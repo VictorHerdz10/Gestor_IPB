@@ -548,7 +548,9 @@
     justify-content: flex-end;
 }
 
-/* Card invisible placeholder - SOLUCIÓN */
+/* ========== ESTILOS UNIFICADOS ========== */
+
+/* Card placeholder (USADO POR CONSUMO Y TRANSFERENCIAS) */
 .empty-card-placeholder {
     background: transparent;
     border: 2px dashed var(--gray-light);
@@ -561,6 +563,8 @@
     justify-content: center;
     color: var(--gray-medium);
     text-align: center;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .empty-card-placeholder i {
@@ -578,37 +582,204 @@
     margin-top: 0.5rem;
 }
 
-/* Responsive para consumo */
+/* Transferencias Container */
+.transferencias-container {
+    padding: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+/* Transferencias Cards Container */
+.transferencias-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Transferencia Card Individual */
+.transferencia-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    border-left: 4px solid var(--primary-color);
+    transition: var(--transition);
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.transferencia-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+}
+
+.transferencia-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.transferencia-monto {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--success-color);
+}
+
+.transferencia-hora {
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.transferencia-notas {
+    color: var(--dark-color);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--light-color);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.transferencia-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+/* Consumo Container */
+.consumo-container {
+    padding: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+/* Consumo Cards Container */
+.consumo-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Consumo Card Individual */
+.consumo-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    border-left: 4px solid var(--danger-color);
+    transition: var(--transition);
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.consumo-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+}
+
+.consumo-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.consumo-descripcion {
+    flex: 1;
+    font-weight: 500;
+    color: var(--dark-color);
+    font-size: 1.1rem;
+    line-height: 1.4;
+}
+
+.consumo-monto {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--danger-color);
+    white-space: nowrap;
+}
+
+.consumo-hora {
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.consumo-notas {
+    color: var(--dark-color);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--light-color);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.consumo-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+/* ========== RESPONSIVE UNIFICADO ========== */
+
 @media (max-width: 768px) {
-    .list-header {
-        flex-direction: column;
-        align-items: stretch;
+    .transferencias-container,
+    .consumo-container {
+        padding: 1rem;
     }
     
+    .transferencia-card,
     .consumo-card,
     .empty-card-placeholder {
         padding: 1.25rem;
         min-height: 110px;
     }
     
+    .transferencia-card-header,
     .consumo-card-header {
         flex-direction: column;
         gap: 0.5rem;
     }
     
+    .transferencia-monto,
     .consumo-monto {
         font-size: 1.3rem;
     }
 }
 
 @media (max-width: 480px) {
+    .transferencias-container,
     .consumo-container {
         padding: 1rem;
     }
     
+    .transferencia-card,
     .consumo-card,
     .empty-card-placeholder {
-        padding: 1.25rem;
+        padding: 1rem;
         min-height: 100px;
     }
     
@@ -627,10 +798,6 @@
         width: 100%;
     }
     
-    .empty-card-placeholder {
-        padding: 1rem;
-    }
-    
     .empty-card-placeholder i {
         font-size: 2rem;
     }
@@ -640,43 +807,257 @@
         margin-bottom: 1rem;
     }
 }
-/* Transferencias - mismo fix */
-.empty-card-placeholder {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-    border-left: 4px solid var(--gray-light);
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--gray-medium);
-    text-align: center;
+
+/* Asegurar que no haya scroll horizontal */
+.content-section {
+    overflow-x: hidden;
+    width: 100%;
 }
 
-.empty-card-placeholder i {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
+/* transferencias.css - Estilos responsivos para móviles */
+@media (max-width: 480px) {
+    /* Ajustes generales para las tarjetas */
+    .consumo-card {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 0 15px 0 !important;
+        padding: 15px !important;
+    }
+    
+    /* Contenedor de transferencias */
+    .transferencias-cards {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px !important;
+        width: 100% !important;
+    }
+    
+    /* Ajustes específicos para el header de las tarjetas */
+    .consumo-card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+    
+    .consumo-descripcion {
+        font-size: 16px !important;
+        max-width: 100% !important;
+        overflow-wrap: break-word !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+    }
+    
+    .consumo-monto {
+        font-size: 18px !important;
+        font-weight: 600 !important;
+        align-self: flex-end !important;
+    }
+    
+    /* Ajustes para las notas */
+    .consumo-notas {
+        font-size: 13px !important;
+        line-height: 1.4 !important;
+        max-width: 100% !important;
+        overflow-wrap: break-word !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+    }
+    
+    /* Ajustes para la hora */
+    .consumo-hora {
+        font-size: 13px !important;
+        margin-top: 8px !important;
+    }
+    
+    /* Ajustes para los botones de acción */
+    .consumo-actions {
+        margin-top: 12px !important;
+        justify-content: flex-end !important;
+    }
+    
+    .btn-icon {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 14px !important;
+    }
+    
+    /* Estado vacío */
+    .empty-state-card {
+        padding: 30px 20px !important;
+        text-align: center !important;
+    }
+    
+    .empty-state-card i {
+        font-size: 48px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .empty-state-card p {
+        font-size: 16px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    /* List header */
+    .list-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    .list-header h3 {
+        font-size: 18px !important;
+    }
+    
+    .total-display {
+        align-self: flex-end !important;
+    }
+    
+    /* Formularios */
+    .form-container {
+        padding: 15px !important;
+    }
+    
+    .form-card {
+        padding: 20px !important;
+    }
+    
+    .form-card h3 {
+        font-size: 18px !important;
+    }
+    
+    .form-group {
+        width: 100% !important;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    
+    .full-width {
+        grid-column: 1 !important;
+    }
+    
+    /* Botones del formulario */
+    .form-actions {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .form-actions button {
+        width: 100% !important;
+    }
 }
 
-.empty-card-placeholder p {
-    font-size: 1.1rem;
-    margin-bottom: 1.5rem;
+/* Para pantallas muy pequeñas (menos de 400px) */
+@media (max-width: 400px) {
+    .consumo-card {
+        padding: 12px !important;
+    }
+    
+    .consumo-descripcion {
+        font-size: 15px !important;
+    }
+    
+    .consumo-monto {
+        font-size: 17px !important;
+    }
+    
+    .empty-state-card {
+        padding: 25px 15px !important;
+    }
+    
+    .empty-state-card i {
+        font-size: 40px !important;
+    }
+    
+    .empty-state-card p {
+        font-size: 15px !important;
+    }
+    
+    .btn {
+        padding: 10px 15px !important;
+        font-size: 14px !important;
+    }
+    
+    .btn-outline {
+        padding: 10px 20px !important;
+    }
+    
+    /* Ajustes para el contenedor principal */
+    .transferencias-container,
+    .consumo-container {
+        padding: 10px !important;
+    }
+    
+    /* Header de sección */
+    .section-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 15px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    .section-header h2 {
+        font-size: 20px !important;
+    }
+    
+    .section-controls {
+        width: 100% !important;
+    }
+    
+    .section-controls .btn {
+        width: 100% !important;
+    }
 }
 
-.empty-card-placeholder .btn {
-    margin-top: 0.5rem;
+/* Para el diseño flex en móviles */
+@media (max-width: 768px) {
+    /* Asegurar que las tarjetas no se salgan del contenedor */
+    .consumo-card {
+        box-sizing: border-box !important;
+    }
+    
+    /* Contenedor de listas */
+    .transferencias-list-container,
+    .consumo-list-container {
+        padding: 0 5px !important;
+    }
+    
+    /* Quick summary */
+    .quick-summary {
+        margin-top: 20px !important;
+    }
+    
+    .summary-card {
+        padding: 15px !important;
+    }
+    
+    .card-header h4 {
+        font-size: 16px !important;
+    }
+    
+    .summary-item {
+        font-size: 14px !important;
+    }
 }
 
-.transferencias-cards:has(.empty-card-placeholder) {
-    display: block;
+/* Clases específicas para transferencias si es necesario */
+.transferencia-card {
+    /* Si necesitas estilos específicos para transferencias */
 }
 
-.transferencias-cards:has(.transferencia-card) {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+/* Asegurar que el input de monto se vea bien en móviles */
+#transferencia-monto,
+#consumo-monto {
+    font-size: 16px !important; /* Evita zoom en iOS */
+    padding: 12px !important;
+}
+
+/* Ajustes para textareas en móviles */
+textarea {
+    font-size: 16px !important; /* Evita zoom en iOS */
+    min-height: 80px !important;
 }

@@ -1,4 +1,4 @@
-// transferencias.js - Versión con Tarjetas
+// transferencias.js - Versión con Tarjetas (CORREGIDO)
 document.addEventListener('DOMContentLoaded', function() {
     // Elementos del DOM
     const transferenciaFormContainer = document.getElementById('transferencia-form');
@@ -50,8 +50,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 guardarTransferencia();
             });
         }
-        
-       
     }
     
     // Mostrar formulario de transferencia
@@ -220,13 +218,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return data || [];
     }
     
-    // Renderizar lista de transferencias como tarjetas
+    // Renderizar lista de transferencias como tarjetas - CORREGIDO
     function renderTransferenciasList(transferencias) {
         if (!transferenciaList) return;
         
         if (transferencias.length === 0) {
+            // Usar la misma estructura que en consumo.js para mantener consistencia
             transferenciaList.innerHTML = `
-                <div class="empty-state-card">
+                <div class="empty-card-placeholder">
                     <i class="fas fa-exchange-alt"></i>
                     <p>No hay transferencias registradas hoy</p>
                     <button class="btn btn-outline" id="btn-add-first-transferencia">
@@ -258,12 +257,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 maximumFractionDigits: 2
             });
             
+            // Usar la misma clase "consumo-card" para mantener consistencia de estilos
             html += `
                 <div class="transferencia-card" data-id="${transferencia.id}">
                     <div class="transferencia-card-header">
                         <div class="transferencia-monto">$${formattedMonto}</div>
                         <div class="transferencia-hora">
-                            <i class="fas fa-clock"></i> ${transferencia.hora || '--:--'}
+                        <i class="fas fa-clock"></i> ${transferencia.hora || '--:--'}
                         </div>
                     </div>
                     
@@ -395,4 +395,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Exponer funciones globalmente
     window.cargarTransferencias = cargarTransferencias;
+    window.getTotalTransferencias = function() {
+        const transferencias = obtenerTransferencias();
+        const hoy = new Date().toISOString().split('T')[0];
+        const transferenciasHoy = transferencias.filter(t => t.fecha === hoy);
+        
+        return transferenciasHoy.reduce((sum, t) => sum + (parseFloat(t.monto) || 0), 0);
+    };
 });
