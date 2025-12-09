@@ -1,0 +1,560 @@
+/* billetes.css - Estilos específicos para el contador de billetes */
+
+/* ===== CONTADOR DE BILLETES ===== */
+.billetes-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.billetes-header {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.billetes-header h2 {
+    color: var(--secondary-color);
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+.billetes-controls {
+    display: flex;
+    gap: 1rem;
+}
+
+.tasas-cambio {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.tasas-cambio h3 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--gray-light);
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tasas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.tasa-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--light-color);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--gray-light);
+}
+
+.tasa-item label {
+    color: var(--secondary-color);
+    font-weight: 500;
+    min-width: 80px;
+}
+
+.tasa-item input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--gray-medium);
+    border-radius: 5px;
+    font-size: 1rem;
+    text-align: center;
+    font-family: 'Poppins', sans-serif;
+    max-width: 100px;
+}
+
+.billetes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 992px) {
+    .billetes-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.billetes-moneda {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.billetes-moneda h3 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--gray-light);
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.billetes-moneda h3 i {
+    color: var(--primary-color);
+}
+
+.billetes-denominaciones {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .billetes-denominaciones {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.billete-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.billete-item label {
+    font-weight: 600;
+    color: var(--secondary-color);
+    font-size: 1.1rem;
+}
+
+.billete-item input {
+    padding: 0.75rem;
+    border: 2px solid var(--gray-light);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+    transition: var(--transition);
+}
+
+.billete-item input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.billete-total {
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+    min-height: 1.2rem;
+}
+
+.moneda-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--light-color);
+    border-radius: 10px;
+    border-left: 4px solid var(--primary-color);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.moneda-total.cup {
+    margin-top: 0.5rem;
+    border-left-color: var(--success-color);
+    background: rgba(76, 201, 240, 0.1);
+}
+
+.moneda-total .amount {
+    color: var(--primary-color);
+    font-size: 1.3rem;
+}
+
+.moneda-total.cup .amount {
+    color: var(--success-color);
+}
+
+.billetes-resumen {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.resumen-card h3 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--gray-light);
+    font-size: 1.3rem;
+}
+
+.resumen-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--gray-light);
+    font-size: 1.1rem;
+}
+
+.resumen-item.total {
+    border-top: 2px solid var(--primary-color);
+    border-bottom: none;
+    font-weight: 700;
+    color: var(--secondary-color);
+    font-size: 1.2rem;
+    margin-top: 0.5rem;
+    padding-top: 1.5rem;
+}
+
+.resumen-item .amount {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.resumen-item.total .amount {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+/* ===== REGISTROS DE BILLETES ===== */
+.registros-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.registros-header {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.registros-header h2 {
+    color: var(--secondary-color);
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+.registros-list {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.registros-list h3 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--gray-light);
+    font-size: 1.3rem;
+}
+
+#lista-registros {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.registro-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--light-color);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid var(--primary-color);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.registro-item:hover {
+    transform: translateX(5px);
+    background: #e3eaf9;
+}
+
+.registro-info {
+    flex: 1;
+}
+
+.registro-hora {
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin-bottom: 0.25rem;
+}
+
+.registro-total {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.registro-acciones {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-ver {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.btn-ver:hover {
+    background: var(--primary-dark);
+}
+
+.btn-eliminar {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.btn-eliminar:hover {
+    background: #d63031;
+}
+
+.registros-resumen {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.registros-resumen h3 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--gray-light);
+    font-size: 1.3rem;
+}
+
+.resumen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+/* Detalle de registro en modal */
+.detalle-registro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.detalle-monedas h4 {
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.detalle-billetes {
+    margin-bottom: 1rem;
+}
+
+.detalle-billete {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.detalle-total {
+    font-weight: 700;
+    color: var(--secondary-color);
+    border-top: 2px solid var(--gray-light);
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+}
+
+.detalle-resumen h4 {
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+/* ===== RESPONSIVE DESIGN ESPECÍFICO PARA BILLETES ===== */
+@media (max-width: 768px) {
+    .billetes-header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+    }
+    
+    .billetes-controls {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .billetes-controls .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .tasas-cambio {
+        padding: 1rem;
+    }
+    
+    .tasas-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .tasa-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .tasa-item label {
+        min-width: auto;
+        font-size: 0.9rem;
+    }
+    
+    .tasa-item input {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .billetes-moneda {
+        padding: 1rem;
+    }
+    
+    .billetes-denominaciones {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    
+    .billete-item label {
+        font-size: 1rem;
+    }
+    
+    .billete-item input {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .billetes-resumen {
+        padding: 1rem;
+    }
+    
+    .registros-header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+    }
+    
+    .registros-header .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .registros-list {
+        padding: 1rem;
+    }
+    
+    .registro-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+    
+    .registro-acciones {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .detalle-registro {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Para móviles muy pequeños (menos de 480px) */
+@media (max-width: 480px) {
+    .tasas-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .billetes-denominaciones {
+        grid-template-columns: 1fr;
+    }
+    
+    .billete-item {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .billete-item label {
+        width: 60px;
+        flex-shrink: 0;
+    }
+    
+    .billete-item input {
+        width: 80px;
+        text-align: center;
+    }
+    
+    .billete-total {
+        width: 90px;
+        text-align: right;
+        flex-shrink: 0;
+        font-size: 0.8rem;
+    }
+    
+    .resumen-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Para dispositivos de orientación horizontal */
+@media (max-height: 600px) and (orientation: landscape) {
+    .billetes-denominaciones {
+        max-height: 200px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+    
+    .billetes-denominaciones::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .billetes-denominaciones::-webkit-scrollbar-thumb {
+        background: var(--gray-medium);
+        border-radius: 2px;
+    }
+}

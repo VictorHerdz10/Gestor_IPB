@@ -1,4 +1,4 @@
-// billetes.js - Sistema mejorado de contador de billetes
+// billetes.js - Sistema mejorado de contador de billetes CON VALIDACIÓN
 document.addEventListener('DOMContentLoaded', function () {
     // Elementos del DOM
     const guardarConteoBtn = document.getElementById('guardar-conteo');
@@ -40,11 +40,13 @@ document.addEventListener('DOMContentLoaded', function () {
     denominacionesCUP.forEach(billete => {
         const input = document.getElementById(billete.id);
         input.addEventListener('input', updateBilletesTotals);
+        input.addEventListener('change', validateInput);
     });
 
     denominacionesUSD.forEach(billete => {
         const input = document.getElementById(billete.id);
         input.addEventListener('input', updateBilletesTotals);
+        input.addEventListener('change', validateInput);
     });
 
     // Event listeners para tasas de cambio
@@ -87,6 +89,25 @@ document.addEventListener('DOMContentLoaded', function () {
             closeModal();
         }
     });
+
+    // Función para validar inputs
+    function validateInput(e) {
+        const input = e.target;
+        let value = parseInt(input.value);
+        
+        // Asegurar que sea un número válido
+        if (isNaN(value) || value < 0) {
+            input.value = 0;
+            value = 0;
+        }
+        
+        // Asegurar que sea un número entero
+        if (!Number.isInteger(value)) {
+            input.value = Math.floor(value);
+        }
+        
+        updateBilletesTotals();
+    }
 
     // Función para calcular totales
     function updateBilletesTotals() {
@@ -138,26 +159,38 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('gran-total-cup').textContent = `${granTotal.toLocaleString('es-ES')} CUP`;
     }
 
-    // Función para guardar registro
+    // Función para guardar registro CON VALIDACIÓN
     function guardarRegistro() {
         const billetesCUP = {};
         const billetesUSD = {};
         const tasasUSD = {};
 
         // Obtener billetes CUP
+        let totalCantidad = 0;
+        
         denominacionesCUP.forEach(billete => {
             const input = document.getElementById(billete.id);
-            billetesCUP[billete.valor] = parseInt(input.value) || 0;
+            const cantidad = parseInt(input.value) || 0;
+            billetesCUP[billete.valor] = cantidad;
+            totalCantidad += cantidad;
         });
 
         // Obtener billetes USD y tasas
         denominacionesUSD.forEach(billete => {
             const input = document.getElementById(billete.id);
-            billetesUSD[billete.valor] = parseInt(input.value) || 0;
+            const cantidad = parseInt(input.value) || 0;
+            billetesUSD[billete.valor] = cantidad;
+            totalCantidad += cantidad;
 
             const tasaInput = document.getElementById(billete.tasaId);
             tasasUSD[billete.valor] = parseFloat(tasaInput.value) || 400;
         });
+
+        // VALIDACIÓN: No permitir guardar si todos los valores son 0
+        if (totalCantidad === 0) {
+            showNotification('No se puede guardar un conteo vacío. Ingresa al menos un billete.', 'warning');
+            return;
+        }
 
         // Calcular totales
         let totalCUP = 0;
@@ -472,6 +505,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
         localStorage.setItem('ipb_billetes_config', JSON.stringify(config));
     }
+
+    // Guardar configuración al cambiar tasas
+    denominacionesUSD.forEach(billete => {
+        const input = document.getElementById(billete.tasaId);
+        input.addEventListener('change', saveBilletesConfig);
+    });
+
+    // Función para resetear (nuevo día)
+    window.resetBilletes = function () {
+        limpiarConteo();
+
+        // Resetear tasas a valores por defecto
+        document.getElementById('tasa-usd-1').value = 400;
+        document.getElementById('tasa-usd-5').value = 440;
+        document.getElementById('tasa-usd-10').value = 440;
+        document.getElementById('tasa-usd-20').value = 440;
+        document.getElementById('tasa-usd-50').value = 440;
+        document.getElementById('tasa-usd-100').value = 440;
+
+        saveBilletesConfig();
+        updateBilletesTotals();
+    };
+
+    // Función para cerrar modal
+    function closeModal() {
+        modal.classList.remove('active');
+    }
+
+    // Inicializar
+    updateBilletesTotals();
 
     // Guardar configuración al cambiar tasas
     denominacionesUSD.forEach(billete => {

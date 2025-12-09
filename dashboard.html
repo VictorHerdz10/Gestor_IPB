@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | Gestor IPB</title>
     <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/billetes.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/products.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -230,11 +232,132 @@
                     </div>
                 </section>
 
-                <!-- Productos Section (Placeholder) -->
+                <!-- Productos Section -->
                 <section id="productos-section" class="content-section">
-                    <h2>Gestión de Productos</h2>
-                    <p>Aquí se gestionarán los productos con sus nombres y precios.</p>
+                    <div class="products-container">
+                        <div class="section-header">
+                            <h2><i class="fas fa-box"></i> Gestión de Productos</h2>
+                            <div class="section-controls">
+                                <button class="btn btn-primary" id="btn-agregar-producto">
+                                    <i class="fas fa-plus"></i> Nuevo Producto
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Alert for form actions -->
+                        <div id="form-alert" class="alert" style="display: none;">
+                            <i class="fas fa-info-circle"></i>
+                            <span></span>
+                        </div>
+
+                        <div class="products-content">
+                            <!-- Formulario para agregar productos -->
+                            <div class="form-container" id="producto-form" style="display: none;">
+                                <div class="form-card">
+                                    <h3><i class="fas fa-edit"></i> Registrar Nuevo Producto</h3>
+                                    <form id="form-nuevo-producto">
+                                        <div class="form-grid">
+                                            <div class="form-group">
+                                                <label for="producto-nombre">
+                                                    <i class="fas fa-tag"></i> Nombre del Producto *
+                                                </label>
+                                                <input type="text" id="producto-nombre"
+                                                    placeholder="Ej: Hamburguesa, Pizza, Refresco..." required>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label for="producto-precio">
+                                                    <i class="fas fa-dollar-sign"></i> Precio *
+                                                </label>
+                                                <input type="number" id="producto-precio" placeholder="0.00" step="0.01"
+                                                    min="0" required>
+                                            </div>
+                                        </div>
+
+                                        <!-- Warning for duplicate products -->
+                                        <div id="alerta-duplicado" class="alert alert-warning" style="display: none;">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <span></span>
+                                        </div>
+
+                                        <!-- Similar products warning -->
+                                        <div id="similar-products-warning" class="similar-products-warning">
+                                            <h4><i class="fas fa-exclamation-circle"></i> Productos Similares
+                                                Encontrados:</h4>
+                                            <ul id="similar-products-list" class="similar-products-list">
+                                                <!-- Similar products will be listed here -->
+                                            </ul>
+                                        </div>
+
+                                        <div class="form-actions">
+                                            <button type="button" class="btn btn-secondary" id="btn-cancelar-producto">
+                                                <i class="fas fa-times"></i> Cancelar
+                                            </button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save"></i> Guardar Producto
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Tabla de productos -->
+                            <div class="products-table-container">
+                                <div class="table-header">
+                                    <h3><i class="fas fa-list"></i> Lista de Productos</h3>
+                                    <div class="table-controls">
+                                        <div class="search-box">
+                                            <i class="fas fa-search"></i>
+                                            <input type="text" id="product-search" placeholder="Buscar productos...">
+                                        </div>
+                                        <div class="total-display">
+                                            <span>Total:</span>
+                                            <span class="amount" id="total-products">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Empty State -->
+                                <div class="empty-state" id="products-empty-state">
+                                    <i class="fas fa-box-open"></i>
+                                    <p>No hay productos registrados</p>
+                                    <button class="btn btn-outline" id="btn-add-first-producto">
+                                        <i class="fas fa-plus"></i> Agregar primer producto
+                                    </button>
+                                </div>
+
+                                <!-- Products Table with Scroll -->
+                                <div class="products-table-wrapper">
+                                    <table class="products-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Nombre del Producto</th>
+                                                <th>Precio</th>
+                                                <th>Fecha de Creación</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="products-tbody">
+                                            <!-- Los productos se cargarán aquí dinámicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Pagination -->
+                                <div class="pagination" id="pagination" style="display: none;">
+                                    <button id="prev-page" disabled>
+                                        <i class="fas fa-chevron-left"></i> Anterior
+                                    </button>
+                                    <span class="page-info" id="page-info">Página 1 de 1</span>
+                                    <button id="next-page" disabled>
+                                        Siguiente <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
+
 
                 <!-- Salón Section (Placeholder) -->
                 <section id="salon-section" class="content-section">
@@ -720,9 +843,61 @@
         </div>
     </div>
 
+    <!-- Modal para editar producto -->
+    <div id="modal-edit" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Editar Producto</h3>
+                <button class="modal-close" id="modal-edit-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-edit-producto">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="edit-producto-nombre">
+                                <i class="fas fa-tag"></i> Nombre del Producto *
+                            </label>
+                            <input type="text" id="edit-producto-nombre" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-producto-precio">
+                                <i class="fas fa-dollar-sign"></i> Precio *
+                            </label>
+                            <input type="number" id="edit-producto-precio" step="0.01" min="0" required>
+                        </div>
+                    </div>
+
+                    <!-- Warning for duplicate products in edit -->
+                    <div id="alerta-duplicado-edit" class="alert alert-warning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span></span>
+                    </div>
+
+                    <!-- Similar products warning for edit -->
+                    <div id="similar-products-edit-warning" class="similar-products-warning" style="display: none;">
+                        <h4><i class="fas fa-exclamation-circle"></i> Productos Similares Encontrados:</h4>
+                        <ul id="similar-products-edit-list" class="similar-products-list">
+                            <!-- Similar products will be listed here -->
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="modal-edit-cancel">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary" form="form-edit-producto">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/dashboard.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/billetes.js"></script>
+    <script src="js/products.js"></script>
     <script src="js/efectivo.js"></script>
     <script src="js/consumo.js"></script>
     <script src="js/transferencias.js"></script>
