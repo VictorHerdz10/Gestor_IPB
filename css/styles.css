@@ -1044,11 +1044,6 @@
     }
 }
 
-/* Clases específicas para transferencias si es necesario */
-.transferencia-card {
-    /* Si necesitas estilos específicos para transferencias */
-}
-
 /* Asegurar que el input de monto se vea bien en móviles */
 #transferencia-monto,
 #consumo-monto {
