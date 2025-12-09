@@ -1,13 +1,13 @@
-// transferencias.js - Versión Simplificada
+// transferencias.js - Versión con Tarjetas
 document.addEventListener('DOMContentLoaded', function() {
     // Elementos del DOM
-    const transferenciaForm = document.getElementById('transferencia-form');
+    const transferenciaFormContainer = document.getElementById('transferencia-form');
+    const transferenciaForm = document.getElementById('form-nueva-transferencia');
     const transferenciaTable = document.getElementById('transferencia-table');
     const transferenciaList = document.getElementById('transferencia-list');
     const btnAgregarTransferencia = document.getElementById('btn-agregar-transferencia');
     const btnCancelarTransferencia = document.getElementById('btn-cancelar-transferencia');
     const totalTransferencias = document.getElementById('total-transferencias');
-    const exportTransferenciasBtn = document.getElementById('export-transferencias');
     
     // Elementos del resumen
     const summaryTotal = document.getElementById('summary-total-transferencias');
@@ -51,25 +51,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Botón exportar
-        if (exportTransferenciasBtn) {
-            exportTransferenciasBtn.addEventListener('click', exportTransferencias);
-        }
+       
     }
     
     // Mostrar formulario de transferencia
     function showTransferenciaForm() {
-        if (transferenciaForm) transferenciaForm.style.display = 'block';
+        if (transferenciaFormContainer) transferenciaFormContainer.style.display = 'block';
         if (transferenciaTable) transferenciaTable.style.display = 'none';
-        
-        // Establecer hora actual
-        const horaInput = document.getElementById('transferencia-hora');
-        if (horaInput) {
-            const now = new Date();
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            horaInput.value = `${hours}:${minutes}`;
-        }
         
         // Enfocar el campo de monto
         const montoInput = document.getElementById('transferencia-monto');
@@ -78,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Ocultar formulario de transferencia
     function hideTransferenciaForm() {
-        if (transferenciaForm) transferenciaForm.style.display = 'none';
+        if (transferenciaFormContainer) transferenciaFormContainer.style.display = 'none';
         if (transferenciaTable) transferenciaTable.style.display = 'block';
     }
     
@@ -97,13 +85,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Guardar transferencia
     function guardarTransferencia() {
         const montoInput = document.getElementById('transferencia-monto');
-        const horaInput = document.getElementById('transferencia-hora');
         const notasInput = document.getElementById('transferencia-notas');
         
-        if (!montoInput || !horaInput) return;
+        if (!montoInput) return;
         
         const monto = parseFloat(montoInput.value);
-        const hora = horaInput.value;
         const notas = notasInput ? notasInput.value.trim() : '';
         
         // Validaciones
@@ -112,10 +98,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        if (!hora) {
-            showNotification('Por favor, ingresa la hora de la transferencia', 'error');
-            return;
-        }
+        // Crear timestamp con el formato que pediste
+        const now = new Date();
+        const hora = now.toLocaleString('es-ES', { 
+            month: 'numeric', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+        });
         
         const transferencia = {
             id: editingId || Date.now().toString(),
@@ -123,7 +114,8 @@ document.addEventListener('DOMContentLoaded', function() {
             hora: hora,
             notas: notas,
             fecha: new Date().toISOString().split('T')[0],
-            timestamp: new Date().toISOString()
+            timestamp: now.toISOString(),
+            timestampMs: now.getTime() // Para ordenar por fecha
         };
         
         // Guardar en localStorage
@@ -194,11 +186,9 @@ document.addEventListener('DOMContentLoaded', function() {
         summaryCantidad.textContent = transferencias.length;
         
         if (transferencias.length > 0) {
-            // Obtener la última transferencia (más reciente)
+            // Obtener la última transferencia (más reciente por timestampMs)
             const ultima = transferencias.sort((a, b) => {
-                const timeA = a.hora ? a.hora.split(':').map(Number) : [0, 0];
-                const timeB = b.hora ? b.hora.split(':').map(Number) : [0, 0];
-                return (timeB[0] * 60 + timeB[1]) - (timeA[0] * 60 + timeA[1]);
+                return (b.timestampMs || 0) - (a.timestampMs || 0);
             })[0];
             
             summaryUltima.textContent = ultima.hora || '--:--';
@@ -230,23 +220,19 @@ document.addEventListener('DOMContentLoaded', function() {
         return data || [];
     }
     
-    // Renderizar lista de transferencias
+    // Renderizar lista de transferencias como tarjetas
     function renderTransferenciasList(transferencias) {
         if (!transferenciaList) return;
         
         if (transferencias.length === 0) {
             transferenciaList.innerHTML = `
-                <tr class="empty-row">
-                    <td colspan="4">
-                        <div class="empty-state">
-                            <i class="fas fa-exchange-alt"></i>
-                            <p>No hay transferencias registradas hoy</p>
-                            <button class="btn btn-outline" id="btn-add-first-transferencia">
-                                <i class="fas fa-plus"></i> Agregar primera transferencia
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                <div class="empty-state-card">
+                    <i class="fas fa-exchange-alt"></i>
+                    <p>No hay transferencias registradas hoy</p>
+                    <button class="btn btn-outline" id="btn-add-first-transferencia">
+                        <i class="fas fa-plus"></i> Agregar primera transferencia
+                    </button>
+                </div>
             `;
             
             const addFirstBtn = document.getElementById('btn-add-first-transferencia');
@@ -259,11 +245,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Ordenar por hora (más reciente primero)
+        // Ordenar por timestamp (más reciente primero)
         transferencias.sort((a, b) => {
-            const timeA = a.hora ? a.hora.split(':').map(Number) : [0, 0];
-            const timeB = b.hora ? b.hora.split(':').map(Number) : [0, 0];
-            return (timeB[0] * 60 + timeB[1]) - (timeA[0] * 60 + timeA[1]);
+            return (b.timestampMs || 0) - (a.timestampMs || 0);
         });
         
         let html = '';
@@ -275,27 +259,29 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             html += `
-                <tr class="transferencia-item" data-id="${transferencia.id}">
-                    <td class="amount">$${formattedMonto}</td>
-                    <td>
+                <div class="transferencia-card" data-id="${transferencia.id}">
+                    <div class="transferencia-card-header">
+                        <div class="transferencia-monto">$${formattedMonto}</div>
                         <div class="transferencia-hora">
-                            <i class="fas fa-clock"></i>
-                            <span>${transferencia.hora || '--:--'}</span>
+                            <i class="fas fa-clock"></i> ${transferencia.hora || '--:--'}
                         </div>
-                    </td>
-                    <td>
-                        ${transferencia.notas ? `<div class="transferencia-notas">${transferencia.notas}</div>` : 
-                          '<span class="text-muted">Sin notas</span>'}
-                    </td>
-                    <td class="actions">
+                    </div>
+                    
+                    ${transferencia.notas ? `
+                        <div class="transferencia-notas">
+                            ${transferencia.notas}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="transferencia-actions">
                         <button class="btn-icon edit-transferencia" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn-icon delete-transferencia" title="Eliminar">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </td>
-                </tr>
+                    </div>
+                </div>
             `;
         });
         
@@ -304,16 +290,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Agregar event listeners a los botones
         document.querySelectorAll('.edit-transferencia').forEach(btn => {
             btn.addEventListener('click', function() {
-                const row = this.closest('.transferencia-item');
-                const id = row.getAttribute('data-id');
+                const card = this.closest('.transferencia-card');
+                const id = card.getAttribute('data-id');
                 editarTransferencia(id);
             });
         });
         
         document.querySelectorAll('.delete-transferencia').forEach(btn => {
             btn.addEventListener('click', function() {
-                const row = this.closest('.transferencia-item');
-                const id = row.getAttribute('data-id');
+                const card = this.closest('.transferencia-card');
+                const id = card.getAttribute('data-id');
                 eliminarTransferencia(id);
             });
         });
@@ -328,11 +314,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Rellenar formulario
         const montoInput = document.getElementById('transferencia-monto');
-        const horaInput = document.getElementById('transferencia-hora');
         const notasInput = document.getElementById('transferencia-notas');
         
         if (montoInput) montoInput.value = transferencia.monto || '';
-        if (horaInput) horaInput.value = transferencia.hora || '';
         if (notasInput) notasInput.value = transferencia.notas || '';
         
         // Actualizar estado
@@ -388,49 +372,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Actualizar dashboard
         if (typeof window.updateSummary === 'function') {
             window.updateSummary();
-        }
-    }
-    
-    // Exportar transferencias
-    function exportTransferencias() {
-        const transferencias = obtenerTransferencias();
-        const hoy = new Date().toISOString().split('T')[0];
-        const transferenciasHoy = transferencias.filter(t => t.fecha === hoy);
-        
-        if (transferenciasHoy.length === 0) {
-            if (typeof showNotification === 'function') {
-                showNotification('No hay transferencias para exportar hoy', 'info');
-            }
-            return;
-        }
-        
-        // Crear contenido CSV
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Monto,Hora,Notas,Fecha\n";
-        
-        transferenciasHoy.forEach(t => {
-            const row = [
-                t.monto || 0,
-                `"${t.hora || ''}"`,
-                `"${t.notas || ''}"`,
-                `"${t.fecha || ''}"`
-            ].join(',');
-            csvContent += row + "\n";
-        });
-        
-        // Crear enlace de descarga
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `transferencias_${hoy}.csv`);
-        
-        // Simular clic
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        if (typeof showNotification === 'function') {
-            showNotification('Transferencias exportadas correctamente', 'success');
         }
     }
     

@@ -248,11 +248,108 @@
                     <p>Aquí se registrará el inventario inicial, entradas y agregos de cocina.</p>
                 </section>
 
-                <!-- Consumo Section (Placeholder) -->
-                <section id="consumo-section" class="content-section">
-                    <h2>Registro de Consumo</h2>
-                    <p>Aquí se registrarán los consumos del día.</p>
-                </section>
+                <!-- Consumo Section -->
+<section id="consumo-section" class="content-section">
+    <div class="consumo-container">
+        <div class="section-header">
+            <h2><i class="fas fa-shopping-cart"></i> Registro de Consumo</h2>
+            <div class="section-controls">
+                <button class="btn btn-primary" id="btn-agregar-consumo">
+                    <i class="fas fa-plus"></i> Nuevo Consumo
+                </button>
+            </div>
+        </div>
+
+        <!-- Formulario de Consumo -->
+        <div class="form-container" id="consumo-form" style="display: none;">
+            <div class="form-card">
+                <h3><i class="fas fa-edit"></i> Registrar Consumo</h3>
+                <form id="form-nuevo-consumo">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="consumo-descripcion">
+                                <i class="fas fa-clipboard-list"></i> Descripción *
+                            </label>
+                            <input type="text" id="consumo-descripcion" 
+                                placeholder="Ej: Compra de ingredientes, materiales, etc..." required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="consumo-monto">
+                                <i class="fas fa-dollar-sign"></i> Monto *
+                            </label>
+                            <input type="number" id="consumo-monto" placeholder="0.00" step="0.01" min="0" required>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="consumo-notas">
+                                <i class="fas fa-sticky-note"></i> Notas (Opcional)
+                            </label>
+                            <textarea id="consumo-notas"
+                                placeholder="Detalles adicionales sobre el consumo..."
+                                rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="btn-cancelar-consumo">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar Consumo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de Consumos en Tarjetas -->
+        <div class="consumo-list-container" id="consumo-table">
+            <div class="list-header">
+                <h3><i class="fas fa-history"></i> Consumos de Hoy</h3>
+                <div class="total-display">
+                    <span>Total:</span>
+                    <span class="amount" id="total-consumo">$0.00</span>
+                </div>
+            </div>
+
+            <div class="consumo-cards" id="consumo-list">
+                <!-- Los consumos se mostrarán aquí como tarjetas -->
+                <div class="empty-state-card">
+                    <i class="fas fa-shopping-cart"></i>
+                    <p>No hay consumos registrados hoy</p>
+                    <button class="btn btn-outline" id="btn-add-first-consumo">
+                        <i class="fas fa-plus"></i> Agregar primer consumo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen Rápido -->
+        <div class="quick-summary">
+            <div class="summary-card">
+                <div class="card-header">
+                    <h4><i class="fas fa-chart-line"></i> Resumen del Día</h4>
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="card-body">
+                    <div class="summary-item">
+                        <span>Total Consumido:</span>
+                        <span class="amount" id="summary-total-consumo">$0.00</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Cantidad de Registros:</span>
+                        <span id="summary-cantidad-consumo">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Último Consumo:</span>
+                        <span id="summary-ultimo-consumo">--:--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
                 <!-- Extracciones Section (Placeholder) -->
                 <section id="extracciones-section" class="content-section">
@@ -268,9 +365,6 @@
                             <div class="section-controls">
                                 <button class="btn btn-primary" id="btn-agregar-transferencia">
                                     <i class="fas fa-plus"></i> Nueva Transferencia
-                                </button>
-                                <button class="btn btn-secondary" id="export-transferencias">
-                                    <i class="fas fa-file-export"></i> Exportar
                                 </button>
                             </div>
                         </div>
@@ -290,13 +384,6 @@
                                         </div>
 
                                         <div class="form-group">
-                                            <label for="transferencia-hora">
-                                                <i class="fas fa-clock"></i> Hora *
-                                            </label>
-                                            <input type="time" id="transferencia-hora" required>
-                                        </div>
-
-                                        <div class="form-group full-width">
                                             <label for="transferencia-notas">
                                                 <i class="fas fa-sticky-note"></i> Notas (Opcional)
                                             </label>
@@ -318,9 +405,9 @@
                             </div>
                         </div>
 
-                        <!-- Tabla Simple de Transferencias -->
-                        <div class="table-container" id="transferencia-table">
-                            <div class="table-header">
+                        <!-- Lista de Transferencias en Tarjetas -->
+                        <div class="transferencias-list-container" id="transferencia-table">
+                            <div class="list-header">
                                 <h3><i class="fas fa-history"></i> Transferencias de Hoy</h3>
                                 <div class="total-display">
                                     <span>Total:</span>
@@ -328,27 +415,15 @@
                                 </div>
                             </div>
 
-                            <div class="table-responsive">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th><i class="fas fa-dollar-sign"></i> Monto</th>
-                                            <th><i class="fas fa-clock"></i> Hora</th>
-                                            <th><i class="fas fa-sticky-note"></i> Notas</th>
-                                            <th><i class="fas fa-cog"></i> Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="transferencia-list">
-                                        <tr class="empty-row">
-                                            <td colspan="4">
-                                                <div class="empty-state">
-                                                    <i class="fas fa-exchange-alt"></i>
-                                                    <p>No hay transferencias registradas hoy</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div class="transferencias-cards" id="transferencia-list">
+                                <!-- Las transferencias se mostrarán aquí como tarjetas -->
+                                <div class="empty-state-card">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    <p>No hay transferencias registradas hoy</p>
+                                    <button class="btn btn-outline" id="btn-add-first-transferencia">
+                                        <i class="fas fa-plus"></i> Agregar primera transferencia
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -377,7 +452,6 @@
                         </div>
                     </div>
                 </section>
-
                 <!-- Efectivo Section -->
                 <section id="efectivo-section" class="content-section">
                     <div class="efectivo-container">
@@ -650,6 +724,7 @@
     <script src="js/storage.js"></script>
     <script src="js/billetes.js"></script>
     <script src="js/efectivo.js"></script>
+    <script src="js/consumo.js"></script>
     <script src="js/transferencias.js"></script>
 </body>
 

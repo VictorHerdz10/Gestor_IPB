@@ -5,7 +5,7 @@ const StorageManager = {
         PRODUCTS: 'ipb_products',
         SALON: 'ipb_salon',
         COCINA: 'ipb_cocina',
-        CONSUMO: 'ipb_consumo',
+        CONSUMO: 'ipb_consumo_data',
         EXTRACCIONES: 'ipb_extracciones',
         TRANSFERENCIAS: 'ipb_transferencias',
         DAILY_DATA: 'ipb_daily_data'

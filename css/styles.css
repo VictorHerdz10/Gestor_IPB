@@ -350,3 +350,333 @@
         width: 100%;
     }
 }
+
+/* Transferencias Cards Styles */
+.transferencias-list-container {
+    margin-bottom: 2rem;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.list-header h3 {
+    color: var(--dark-color);
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.transferencias-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.transferencia-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    border-left: 4px solid var(--primary-color);
+    transition: var(--transition);
+    position: relative;
+}
+
+.transferencia-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+}
+
+.transferencia-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.transferencia-monto {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--success-color);
+}
+
+.transferencia-hora {
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.transferencia-notas {
+    color: var(--dark-color);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--light-color);
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.transferencia-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.empty-state-card {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    color: var(--gray-medium);
+}
+
+.empty-state-card i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state-card p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive para cards */
+@media (max-width: 768px) {
+    .list-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .transferencia-card {
+        padding: 1.25rem;
+    }
+    
+    .transferencia-card-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .transferencia-monto {
+        font-size: 1.3rem;
+    }
+}
+
+/* Consumo Styles */
+.consumo-container {
+    padding: 1.5rem;
+}
+
+.consumo-list-container {
+    margin-bottom: 2rem;
+}
+
+.consumo-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.consumo-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    border-left: 4px solid var(--danger-color);
+    transition: var(--transition);
+    position: relative;
+}
+
+.consumo-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+}
+
+.consumo-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.consumo-descripcion {
+    flex: 1;
+    font-weight: 500;
+    color: var(--dark-color);
+    font-size: 1.1rem;
+    line-height: 1.4;
+}
+
+.consumo-monto {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--danger-color);
+    white-space: nowrap;
+}
+
+.consumo-hora {
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.consumo-notas {
+    color: var(--dark-color);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--light-color);
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.consumo-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+/* Card invisible placeholder - SOLUCIÓN */
+.empty-card-placeholder {
+    background: transparent;
+    border: 2px dashed var(--gray-light);
+    border-radius: 12px;
+    padding: 1.5rem;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-medium);
+    text-align: center;
+}
+
+.empty-card-placeholder i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-card-placeholder p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+.empty-card-placeholder .btn {
+    margin-top: 0.5rem;
+}
+
+/* Responsive para consumo */
+@media (max-width: 768px) {
+    .list-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .consumo-card,
+    .empty-card-placeholder {
+        padding: 1.25rem;
+        min-height: 110px;
+    }
+    
+    .consumo-card-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .consumo-monto {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .consumo-container {
+        padding: 1rem;
+    }
+    
+    .consumo-card,
+    .empty-card-placeholder {
+        padding: 1.25rem;
+        min-height: 100px;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .section-controls {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .section-controls .btn {
+        width: 100%;
+    }
+    
+    .empty-card-placeholder {
+        padding: 1rem;
+    }
+    
+    .empty-card-placeholder i {
+        font-size: 2rem;
+    }
+    
+    .empty-card-placeholder p {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+}
+/* Transferencias - mismo fix */
+.empty-card-placeholder {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    border-left: 4px solid var(--gray-light);
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-medium);
+    text-align: center;
+}
+
+.empty-card-placeholder i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-card-placeholder p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+.empty-card-placeholder .btn {
+    margin-top: 0.5rem;
+}
+
+.transferencias-cards:has(.empty-card-placeholder) {
+    display: block;
+}
+
+.transferencias-cards:has(.transferencia-card) {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
