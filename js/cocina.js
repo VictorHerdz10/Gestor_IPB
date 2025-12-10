@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function cargarDatosCocina() {
         return new Promise((resolve) => {
             const today = getTodayDate();
-            const datosGuardados = localStorage.getItem(`cocina_data_${today}`);
+            const datosGuardados = localStorage.getItem('ipb_cocina');
             
             if (datosGuardados) {
                 cocinaData = JSON.parse(datosGuardados);
@@ -131,8 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function guardarDatosCocina() {
         try {
-            const today = getTodayDate();
-            localStorage.setItem(`cocina_data_${today}`, JSON.stringify(cocinaData));
+            localStorage.setItem(`ipb_cocina`, JSON.stringify(cocinaData));
             guardarAgregos();
             mostrarIndicadorGuardadoCocina();
             
