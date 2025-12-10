@@ -1056,3 +1056,253 @@ textarea {
     font-size: 16px !important; /* Evita zoom en iOS */
     min-height: 80px !important;
 }
+
+/* ============================
+   ESTILOS PARA EXTRACCIONES
+   ============================ */
+
+/* Contenedor principal de extracciones */
+.extracciones-container {
+    padding: 20px;
+}
+
+/* Lista de extracciones en tarjetas */
+.extracciones-list-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.extracciones-list-container .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.extracciones-list-container .list-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.extracciones-list-container .list-header h3 i {
+    color: #e74c3c;
+}
+
+.extracciones-list-container .total-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.extracciones-list-container .total-display .amount {
+    font-weight: 600;
+    color: #e74c3c;
+    font-size: 1.2rem;
+}
+
+/* Tarjetas de extracciones */
+.extracciones-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.extraccion-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 18px;
+    border-left: 4px solid #e74c3c;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+
+.extraccion-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.extraccion-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.extraccion-card .descripcion {
+    font-weight: 500;
+    color: #333;
+    font-size: 1rem;
+    margin: 0;
+    flex: 1;
+}
+
+.extraccion-card .monto {
+    font-weight: 600;
+    color: #e74c3c;
+    font-size: 1.2rem;
+    margin-left: 15px;
+}
+
+.extraccion-card .card-body {
+    margin-bottom: 10px;
+}
+
+.extraccion-card .notas {
+    color: #666;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.extraccion-card .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #888;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+.extraccion-card .hora {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.extraccion-card .acciones {
+    display: flex;
+    gap: 10px;
+}
+
+.extraccion-card .btn-eliminar {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.extraccion-card .btn-eliminar:hover {
+    background: rgba(231, 76, 60, 0.1);
+}
+
+/* Estado vacío para extracciones */
+.extracciones-cards .empty-state-card {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+}
+
+.extracciones-cards .empty-state-card i {
+    font-size: 3rem;
+    color: #ddd;
+    margin-bottom: 15px;
+}
+
+.extracciones-cards .empty-state-card p {
+    margin: 0 0 20px 0;
+    font-size: 1rem;
+}
+
+/* Resumen rápido */
+.extracciones-container .quick-summary {
+    margin-top: 30px;
+}
+
+.extracciones-container .summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.extracciones-container .summary-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.extracciones-container .summary-card .card-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.extracciones-container .summary-card .card-header i {
+    color: #e74c3c;
+    font-size: 1.5rem;
+}
+
+.extracciones-container .summary-card .summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.extracciones-container .summary-card .summary-item:last-child {
+    border-bottom: none;
+}
+
+.extracciones-container .summary-card .summary-item span:first-child {
+    color: #666;
+}
+
+.extracciones-container .summary-card .summary-item .amount {
+    font-weight: 600;
+    color: #e74c3c;
+}
+
+/* Responsive para extracciones */
+@media (max-width: 768px) {
+    .extracciones-container {
+        padding: 15px;
+    }
+    
+    .extracciones-list-container {
+        padding: 15px;
+    }
+    
+    .extraccion-card {
+        padding: 15px;
+    }
+    
+    .extraccion-card .card-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .extraccion-card .monto {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+    
+    .extracciones-list-container .list-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .extracciones-list-container .total-display {
+        align-self: flex-end;
+    }
+}

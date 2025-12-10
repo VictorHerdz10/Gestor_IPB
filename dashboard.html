@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/products.css">
     <link rel="stylesheet" href="css/salon.css">
+    <link rel="stylesheet" href="css/cocina.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -24,9 +25,6 @@
                     <i class="fas fa-chart-line"></i>
                     <h2>Gestor IPB</h2>
                 </a>
-                <button class="sidebar-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
             </div>
 
             <nav class="sidebar-menu">
@@ -127,844 +125,1113 @@
                 </button>
             </header>
 
-            <!-- Content Sections -->
-            <div class="content-sections">
-                <!-- Resumen Section -->
-                <section id="resumen-section" class="content-section active">
-                    <div class="summary-cards">
-                        <div class="summary-card">
-                            <div class="card-header">
-                                <h3>Ventas Totales</h3>
-                                <i class="fas fa-dollar-sign"></i>
-                            </div>
-                            <div class="card-body">
-                                <p class="amount" id="total-ventas">$0.00</p>
-                                <p class="description">Salón + Cocina</p>
-                            </div>
+            <!-- Resumen Section -->
+            <section id="resumen-section" class="content-section active">
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="card-header">
+                            <h3>Ventas Totales</h3>
+                            <i class="fas fa-dollar-sign"></i>
                         </div>
-
-                        <div class="summary-card">
-                            <div class="card-header">
-                                <h3>Dinero Real</h3>
-                                <i class="fas fa-money-bill-alt"></i>
-                            </div>
-                            <div class="card-body">
-                                <p class="amount" id="dinero-real">$0.00</p>
-                                <p class="description">Consumo + Extracciones + Transferencias + Efectivo</p>
-                            </div>
-                        </div>
-
-                        <div class="summary-card">
-                            <div class="card-header">
-                                <h3>Diferencia</h3>
-                                <i class="fas fa-balance-scale"></i>
-                            </div>
-                            <div class="card-body">
-                                <p class="amount" id="diferencia">$0.00</p>
-                                <p class="description" id="diferencia-desc">Sin diferencias</p>
-                            </div>
-                        </div>
-
-                        <div class="summary-card">
-                            <div class="card-header">
-                                <h3>1% de Ventas</h3>
-                                <i class="fas fa-percentage"></i>
-                            </div>
-                            <div class="card-body">
-                                <p class="amount" id="porciento-ventas">$0.00</p>
-                                <p class="description" id="porciento-desc">Calculado del dinero real (Extracciones +
-                                    Transferencias + Efectivo)</p>
-                            </div>
+                        <div class="card-body">
+                            <p class="amount" id="total-ventas">$0.00</p>
+                            <p class="description">Salón + Cocina</p>
                         </div>
                     </div>
 
-                    <div class="summary-details">
-                        <div class="detail-card">
-                            <h3>Desglose de Ventas</h3>
-                            <div class="detail-item">
-                                <span>Ventas Salón:</span>
-                                <span id="ventas-salon">$0.00</span>
-                            </div>
-                            <div class="detail-item">
-                                <span>Ventas Cocina:</span>
-                                <span id="ventas-cocina">$0.00</span>
-                            </div>
-                            <div class="detail-item total">
-                                <span>Total Ventas:</span>
-                                <span id="ventas-total">$0.00</span>
-                            </div>
+                    <div class="summary-card">
+                        <div class="card-header">
+                            <h3>Dinero Real</h3>
+                            <i class="fas fa-money-bill-alt"></i>
                         </div>
-
-                        <div class="detail-card">
-                            <h3>Desglose de Dinero Real</h3>
-                            <div class="detail-item">
-                                <span>Consumo:</span>
-                                <span id="consumo-total">$0.00</span>
-                            </div>
-                            <div class="detail-item">
-                                <span>Extracciones:</span>
-                                <span id="extracciones-total">$0.00</span>
-                            </div>
-                            <div class="detail-item">
-                                <span>Transferencias:</span>
-                                <span id="transferencias-total">$0.00</span>
-                            </div>
-                            <div class="detail-item">
-                                <span>Efectivo:</span>
-                                <span id="efectivo-total">$0.00</span>
-                            </div>
-                            <div class="detail-item total">
-                                <span>Dinero Real:</span>
-                                <span id="dinero-real-detalle">$0.00</span>
-                            </div>
-                        </div>
-
-                        <div class="detail-card" id="billetes-resumen-card" style="display: none;">
-                            <h3>Resumen de Billetes</h3>
-                            <div id="billetes-resumen-detalle">
-                                <!-- Aquí se cargará dinámicamente el resumen de billetes -->
-                                <p class="no-data">No hay registros de billetes hoy</p>
-                            </div>
-                            <div class="detail-item total">
-                                <span>Total Billetes:</span>
-                                <span id="total-billetes-resumen">$0.00</span>
-                            </div>
+                        <div class="card-body">
+                            <p class="amount" id="dinero-real">$0.00</p>
+                            <p class="description">Consumo + Extracciones + Transferencias + Efectivo</p>
                         </div>
                     </div>
-                </section>
 
-                <!-- Productos Section -->
-                <section id="productos-section" class="content-section">
-                    <div class="products-container">
-                        <div class="section-header">
-                            <h2><i class="fas fa-box"></i> Gestión de Productos</h2>
-                            <div class="section-controls">
-                                <button class="btn btn-primary" id="btn-agregar-producto">
-                                    <i class="fas fa-plus"></i> Nuevo Producto
-                                </button>
-                            </div>
+                    <div class="summary-card">
+                        <div class="card-header">
+                            <h3>Diferencia</h3>
+                            <i class="fas fa-balance-scale"></i>
                         </div>
-
-                        <!-- Alert for form actions -->
-                        <div id="form-alert" class="alert" style="display: none;">
-                            <i class="fas fa-info-circle"></i>
-                            <span></span>
-                        </div>
-
-                        <div class="products-content">
-                            <!-- Formulario para agregar productos -->
-                            <div class="form-container" id="producto-form" style="display: none;">
-                                <div class="form-card">
-                                    <h3><i class="fas fa-edit"></i> Registrar Nuevo Producto</h3>
-                                    <form id="form-nuevo-producto">
-                                        <div class="form-grid">
-                                            <div class="form-group">
-                                                <label for="producto-nombre">
-                                                    <i class="fas fa-tag"></i> Nombre del Producto *
-                                                </label>
-                                                <input type="text" id="producto-nombre"
-                                                    placeholder="Ej: Hamburguesa, Pizza, Refresco..." required>
-                                            </div>
-
-                                            <div class="form-group">
-                                                <label for="producto-precio">
-                                                    <i class="fas fa-dollar-sign"></i> Precio *
-                                                </label>
-                                                <input type="number" id="producto-precio" placeholder="0.00" step="0.01"
-                                                    min="0" required>
-                                            </div>
-                                        </div>
-
-                                        <!-- Warning for duplicate products -->
-                                        <div id="alerta-duplicado" class="alert alert-warning" style="display: none;">
-                                            <i class="fas fa-exclamation-triangle"></i>
-                                            <span></span>
-                                        </div>
-
-                                        <!-- Similar products warning -->
-                                        <div id="similar-products-warning" class="similar-products-warning">
-                                            <h4><i class="fas fa-exclamation-circle"></i> Productos Similares
-                                                Encontrados:</h4>
-                                            <ul id="similar-products-list" class="similar-products-list">
-                                                <!-- Similar products will be listed here -->
-                                            </ul>
-                                        </div>
-
-                                        <div class="form-actions">
-                                            <button type="button" class="btn btn-secondary" id="btn-cancelar-producto">
-                                                <i class="fas fa-times"></i> Cancelar
-                                            </button>
-                                            <button type="submit" class="btn btn-primary">
-                                                <i class="fas fa-save"></i> Guardar Producto
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-
-                            <!-- Tabla de productos -->
-                            <div class="products-table-container">
-                                <div class="table-header">
-                                    <h3><i class="fas fa-list"></i> Lista de Productos</h3>
-                                    <div class="table-controls">
-                                        <div class="search-box">
-                                            <i class="fas fa-search"></i>
-                                            <input type="text" id="product-search" placeholder="Buscar productos...">
-                                        </div>
-                                        <div class="total-display">
-                                            <span>Total:</span>
-                                            <span class="amount" id="total-products">0</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Empty State -->
-                                <div class="empty-state" id="products-empty-state">
-                                    <i class="fas fa-box-open"></i>
-                                    <p>No hay productos registrados</p>
-                                    <button class="btn btn-outline" id="btn-add-first-producto">
-                                        <i class="fas fa-plus"></i> Agregar primer producto
-                                    </button>
-                                </div>
-
-                                <!-- Products Table with Scroll -->
-                                <div class="products-table-wrapper">
-                                    <table class="products-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Nombre del Producto</th>
-                                                <th>Precio</th>
-                                                <th>Fecha de Creación</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="products-tbody">
-                                            <!-- Los productos se cargarán aquí dinámicamente -->
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- Pagination -->
-                                <div class="pagination" id="pagination" style="display: none;">
-                                    <button id="prev-page" disabled>
-                                        <i class="fas fa-chevron-left"></i> Anterior
-                                    </button>
-                                    <span class="page-info" id="page-info">Página 1 de 1</span>
-                                    <button id="next-page" disabled>
-                                        Siguiente <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                </div>
-                            </div>
+                        <div class="card-body">
+                            <p class="amount" id="diferencia">$0.00</p>
+                            <p class="description" id="diferencia-desc">Sin diferencias</p>
                         </div>
                     </div>
-                </section>
 
-               <!-- Salón Section - MEJORADA -->
-<section id="salon-section" class="content-section">
-    <div class="salon-container">
-        <div class="section-header">
-            <h2><i class="fas fa-utensils"></i> Control de Salón</h2>
-            <div class="section-controls">
-                <button class="btn btn-warning" id="btn-configurar-salida">
-                    <i class="fas fa-sliders-h"></i> 
-                    <span class="btn-text">Editar Final</span>
-                </button>
-                <button class="btn btn-success" id="btn-finalizar-dia">
-                    <i class="fas fa-flag-checkered"></i> 
-                    <span class="btn-text">Finalizar Día</span>
-                </button>
-                <button class="btn btn-info" onclick="window.actualizarSalonDesdeProductos()">
-                    <i class="fas fa-sync-alt"></i> 
-                    <span class="btn-text">Sincronizar</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Formulario de entrada manual -->
-        <div class="form-container" id="entrada-form" style="display: none;">
-            <div class="form-card">
-                <h3><i class="fas fa-edit"></i> Registrar Entrada Manual</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="select-producto">
-                            <i class="fas fa-box"></i> Producto *
-                        </label>
-                        <select id="select-producto" class="product-select">
-                            <option value="">Seleccionar producto...</option>
-                            <!-- Productos se cargarán dinámicamente -->
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="entrada-cantidad">
-                            <i class="fas fa-sign-in-alt"></i> Cantidad de Entrada *
-                        </label>
-                        <input type="number" 
-                               id="entrada-cantidad" 
-                               min="1" 
-                               step="1" 
-                               placeholder="0"
-                               autocomplete="off">
-                        <small class="form-help">Cantidad de productos que entran</small>
+                    <div class="summary-card">
+                        <div class="card-header">
+                            <h3>1% de Ventas</h3>
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                        <div class="card-body">
+                            <p class="amount" id="porciento-ventas">$0.00</p>
+                            <p class="description" id="porciento-desc">Calculado del dinero real (Extracciones +
+                                Transferencias + Efectivo)</p>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="btn-cancelar-entrada">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                    <button type="button" class="btn btn-primary" id="btn-guardar-entrada">
-                        <i class="fas fa-save"></i> Guardar Entrada
-                    </button>
-                </div>
-            </div>
-        </div>
 
-        <!-- Tabla de control mejorada -->
-        <div class="salon-table-container">
-            <div class="table-header">
-                <h3><i class="fas fa-list"></i> Inventario del Día</h3>
-                <div class="table-controls">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" 
-                               id="salon-search" 
-                               placeholder="Buscar productos..."
-                               autocomplete="off">
-                    </div>
-                    <div class="total-display">
-                        <span>Total Ventas:</span>
-                        <span class="amount" id="total-ventas-salon">$0.00</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contenedor de tabla con scroll -->
-            <div class="salon-table-wrapper">
-                <table class="salon-table">
-                    <thead>
-                        <tr>
-                            <th class="producto-cell">Producto</th>
-                            <th class="numeric-cell">Precio</th>
-                            <th class="numeric-cell">Inicio</th>
-                            <th class="numeric-cell">Entrada</th>
-                            <th class="calculated-cell">Venta</th>
-                            <th class="numeric-cell">Final</th>
-                            <th class="calculated-cell">Vendido</th>
-                            <th class="currency-cell">Importe</th>
-                            <th class="actions-cell">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="salon-tbody">
-                        <!-- Los productos se cargarán aquí dinámicamente -->
-                        <tr>
-                            <td colspan="9" class="loading-state">
-                                <i class="fas fa-spinner"></i>
-                                <p>Cargando datos del salón...</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Estado vacío -->
-            <div class="empty-state" id="salon-empty-state" style="display: none;">
-                <i class="fas fa-utensils"></i>
-                <p>No hay productos configurados para el salón</p>
-                <p class="small-text">Agrega productos desde la sección de Productos</p>
-                <button class="btn btn-outline" onclick="window.actualizarSalonDesdeProductos()">
-                    <i class="fas fa-sync-alt"></i> Sincronizar Productos
-                </button>
-            </div>
-        </div>
-
-        <!-- Resumen mejorado -->
-        <div class="resumen-container">
-            <div class="resumen-card">
-                <h3><i class="fas fa-chart-bar"></i> Resumen del Día</h3>
-                <div class="resumen-grid">
-                    <div class="resumen-item">
-                        <span>Total Productos:</span>
-                        <span id="total-productos-salon">0</span>
-                    </div>
-                    <div class="resumen-item">
-                        <span>Total Vendido:</span>
-                        <span class="amount" id="total-unidades-vendidas">0 unidades</span>
-                    </div>
-                    <div class="resumen-item">
-                        <span>Total Importe:</span>
-                        <span class="amount" id="total-importe-salon">$0.00</span>
-                    </div>
-                    <div class="resumen-item">
-                        <span>Última Actualización:</span>
-                        <span id="ultima-actualizacion">--:--</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-                <!-- Cocina Section (Placeholder) -->
-                <section id="cocina-section" class="content-section">
-                    <h2>Control de Cocina</h2>
-                    <p>Aquí se registrará el inventario inicial, entradas y agregos de cocina.</p>
-                </section>
-
-                <!-- Consumo Section -->
-                <section id="consumo-section" class="content-section">
-                    <div class="consumo-container">
-                        <div class="section-header">
-                            <h2><i class="fas fa-shopping-cart"></i> Registro de Consumo</h2>
-                            <div class="section-controls">
-                                <button class="btn btn-primary" id="btn-agregar-consumo">
-                                    <i class="fas fa-plus"></i> Nuevo Consumo
-                                </button>
-                            </div>
+                <div class="summary-details">
+                    <div class="detail-card">
+                        <h3>Desglose de Ventas</h3>
+                        <div class="detail-item">
+                            <span>Ventas Salón:</span>
+                            <span id="ventas-salon">$0.00</span>
                         </div>
+                        <div class="detail-item">
+                            <span>Ventas Cocina:</span>
+                            <span id="ventas-cocina">$0.00</span>
+                        </div>
+                        <div class="detail-item total">
+                            <span>Total Ventas:</span>
+                            <span id="ventas-total">$0.00</span>
+                        </div>
+                    </div>
 
-                        <!-- Formulario de Consumo -->
-                        <div class="form-container" id="consumo-form" style="display: none;">
+                    <div class="detail-card">
+                        <h3>Desglose de Dinero Real</h3>
+                        <div class="detail-item">
+                            <span>Consumo:</span>
+                            <span id="consumo-total">$0.00</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Extracciones:</span>
+                            <span id="extracciones-total">$0.00</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Transferencias:</span>
+                            <span id="transferencias-total">$0.00</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Efectivo:</span>
+                            <span id="efectivo-total">$0.00</span>
+                        </div>
+                        <div class="detail-item total">
+                            <span>Dinero Real:</span>
+                            <span id="dinero-real-detalle">$0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-card" id="billetes-resumen-card" style="display: none;">
+                        <h3>Resumen de Billetes</h3>
+                        <div id="billetes-resumen-detalle">
+                            <!-- Aquí se cargará dinámicamente el resumen de billetes -->
+                            <p class="no-data">No hay registros de billetes hoy</p>
+                        </div>
+                        <div class="detail-item total">
+                            <span>Total Billetes:</span>
+                            <span id="total-billetes-resumen">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Productos Section -->
+            <section id="productos-section" class="content-section">
+                <div class="products-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-box"></i> Gestión de Productos</h2>
+                        <div class="section-controls">
+                            <button class="btn btn-primary" id="btn-agregar-producto">
+                                <i class="fas fa-plus"></i> Nuevo Producto
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Alert for form actions -->
+                    <div id="form-alert" class="alert" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        <span></span>
+                    </div>
+
+                    <div class="products-content">
+                        <!-- Formulario para agregar productos -->
+                        <!-- Formulario para agregar productos -->
+                        <div class="form-container" id="producto-form" style="display: none;">
                             <div class="form-card">
-                                <h3><i class="fas fa-edit"></i> Registrar Consumo</h3>
-                                <form id="form-nuevo-consumo">
+                                <h3><i class="fas fa-edit"></i> Registrar Nuevo Producto</h3>
+                                <form id="form-nuevo-producto">
                                     <div class="form-grid">
                                         <div class="form-group">
-                                            <label for="consumo-descripcion">
-                                                <i class="fas fa-clipboard-list"></i> Descripción *
+                                            <label for="producto-nombre">
+                                                <i class="fas fa-tag"></i> Nombre del Producto *
                                             </label>
-                                            <input type="text" id="consumo-descripcion"
-                                                placeholder="Ej: Compra de ingredientes, materiales, etc..." required>
+                                            <input type="text" id="producto-nombre"
+                                                placeholder="Ej: Hamburguesa, Pizza, Refresco..." required>
                                         </div>
 
                                         <div class="form-group">
-                                            <label for="consumo-monto">
-                                                <i class="fas fa-dollar-sign"></i> Monto *
+                                            <label for="producto-precio">
+                                                <i class="fas fa-dollar-sign"></i> Precio *
                                             </label>
-                                            <input type="number" id="consumo-monto" placeholder="0.00" step="0.01"
+                                            <input type="number" id="producto-precio" placeholder="0.00" step="1.00"
                                                 min="0" required>
                                         </div>
 
-                                        <div class="form-group full-width">
-                                            <label for="consumo-notas">
-                                                <i class="fas fa-sticky-note"></i> Notas (Opcional)
+                                        <div class="form-group">
+                                            <label for="producto-ubicacion">
+                                                <i class="fas fa-map-marker-alt"></i> Ubicación *
                                             </label>
-                                            <textarea id="consumo-notas"
-                                                placeholder="Detalles adicionales sobre el consumo..."
-                                                rows="2"></textarea>
+                                            <select id="producto-ubicacion" required>
+                                                <option value="salon">Salón</option>
+                                                <option value="cocina">Cocina</option>
+                                            </select>
                                         </div>
                                     </div>
 
+                                    <!-- Warning for duplicate products -->
+                                    <div id="alerta-duplicado" class="alert alert-warning" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span></span>
+                                    </div>
+
+                                    <!-- Similar products warning -->
+                                    <div id="similar-products-warning" class="similar-products-warning">
+                                        <h4><i class="fas fa-exclamation-circle"></i> Productos Similares Encontrados:
+                                        </h4>
+                                        <ul id="similar-products-list" class="similar-products-list">
+                                            <!-- Similar products will be listed here -->
+                                        </ul>
+                                    </div>
+
                                     <div class="form-actions">
-                                        <button type="button" class="btn btn-secondary" id="btn-cancelar-consumo">
+                                        <button type="button" class="btn btn-secondary" id="btn-cancelar-producto">
                                             <i class="fas fa-times"></i> Cancelar
                                         </button>
                                         <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save"></i> Guardar Consumo
+                                            <i class="fas fa-save"></i> Guardar Producto
                                         </button>
                                     </div>
                                 </form>
                             </div>
                         </div>
 
-                        <!-- Lista de Consumos en Tarjetas -->
-                        <div class="consumo-list-container" id="consumo-table">
-                            <div class="list-header">
-                                <h3><i class="fas fa-history"></i> Consumos de Hoy</h3>
+                        <!-- Products Table Container -->
+                        <div class="products-table-container">
+                            <div class="table-header">
+                                <h3><i class="fas fa-list"></i> Lista de Productos</h3>
+                                <div class="table-controls">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="product-search" placeholder="Buscar productos...">
+                                    </div>
+                                    <div class="total-display">
+                                        <span>Total:</span>
+                                        <span class="amount" id="total-products">0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div class="empty-state" id="products-empty-state">
+                                <i class="fas fa-box-open"></i>
+                                <p>No hay productos registrados</p>
+                                <button class="btn btn-outline" id="btn-add-first-producto">
+                                    <i class="fas fa-plus"></i> Agregar primer producto
+                                </button>
+                            </div>
+
+                            <!-- Products Table with Scroll -->
+                            <div class="products-table-wrapper">
+                                <table class="products-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="number-col">Nº</th>
+                                            <th>Producto</th>
+                                            <th>Precio</th>
+                                            <th>Fecha de Creación</th>
+                                            <th>Ubicación</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="products-tbody">
+                                        <!-- Los productos se cargarán aquí dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="pagination" id="pagination" style="display: none;">
+                                <button id="prev-page" disabled>
+                                    <i class="fas fa-chevron-left"></i> Anterior
+                                </button>
+                                <span class="page-info" id="page-info">Página 1 de 1</span>
+                                <button id="next-page" disabled>
+                                    Siguiente <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Salón Section - MEJORADA Y RESPONSIVE -->
+            <section id="salon-section" class="content-section">
+                <div class="salon-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-utensils"></i> Control de Salón</h2>
+                        <div class="section-controls">
+                            <button class="btn btn-warning" id="btn-configurar-salida">
+                                <i class="fas fa-sliders-h"></i>
+                                <span class="btn-text">Editar Final</span>
+                            </button>
+                            <button class="btn btn-success" id="btn-finalizar-dia">
+                                <i class="fas fa-flag-checkered"></i>
+                                <span class="btn-text">Finalizar Día</span>
+                            </button>
+                            <button class="btn btn-info" id="btn-sincronizar-productos">
+                                <i class="fas fa-sync-alt"></i>
+                                <span class="btn-text">Sincronizar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de control mejorada y RESPONSIVE -->
+                    <div class="salon-table-container">
+                        <div class="table-header">
+                            <h3><i class="fas fa-list"></i> Inventario del Día</h3>
+                            <div class="table-controls">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="salon-search" placeholder="Buscar productos..."
+                                        autocomplete="off">
+                                </div>
                                 <div class="total-display">
-                                    <span>Total:</span>
-                                    <span class="amount" id="total-consumo">$0.00</span>
-                                </div>
-                            </div>
-
-                            <div class="consumo-cards" id="consumo-list">
-                                <!-- Los consumos se mostrarán aquí como tarjetas -->
-                                <div class="empty-state-card">
-                                    <i class="fas fa-shopping-cart"></i>
-                                    <p>No hay consumos registrados hoy</p>
-                                    <button class="btn btn-outline" id="btn-add-first-consumo">
-                                        <i class="fas fa-plus"></i> Agregar primer consumo
-                                    </button>
+                                    <span>Total Ventas:</span>
+                                    <span class="amount" id="total-ventas-salon">$0.00</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Resumen Rápido -->
-                        <div class="quick-summary">
-                            <div class="summary-card">
-                                <div class="card-header">
-                                    <h4><i class="fas fa-chart-line"></i> Resumen del Día</h4>
-                                    <i class="fas fa-shopping-cart"></i>
-                                </div>
-                                <div class="card-body">
-                                    <div class="summary-item">
-                                        <span>Total Consumido:</span>
-                                        <span class="amount" id="summary-total-consumo">$0.00</span>
-                                    </div>
-                                    <div class="summary-item">
-                                        <span>Cantidad de Registros:</span>
-                                        <span id="summary-cantidad-consumo">0</span>
-                                    </div>
-                                    <div class="summary-item">
-                                        <span>Último Consumo:</span>
-                                        <span id="summary-ultimo-consumo">--:--</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Extracciones Section (Placeholder) -->
-                <section id="extracciones-section" class="content-section">
-                    <h2>Registro de Extracciones</h2>
-                    <p>Aquí se registrarán las extracciones de dinero.</p>
-                </section>
-
-                <section id="transferencias-section" class="content-section">
-                    <div class="transferencias-container">
-                        <div class="section-header">
-                            <h2><i class="fas fa-exchange-alt"></i> Registro de Transferencias</h2>
-                            <div class="section-controls">
-                                <button class="btn btn-primary" id="btn-agregar-transferencia">
-                                    <i class="fas fa-plus"></i> Nueva Transferencia
-                                </button>
-                            </div>
+                        <!-- Contenedor de tabla responsive -->
+                        <div class="salon-table-wrapper">
+                            <table class="salon-table" id="salon-table-main">
+                                <thead>
+                                    <tr>
+                                        <th class="producto-header">Producto</th>
+                                        <th class="precio-header">Precio</th>
+                                        <th class="inicio-header">Inicio</th>
+                                        <th class="entrada-header">Entrada</th>
+                                        <th class="venta-header">Venta</th>
+                                        <th class="final-header">Final</th>
+                                        <th class="vendido-header">Vendido</th>
+                                        <th class="importe-header">Importe</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salon-tbody">
+                                    <!-- Los productos se cargarán aquí dinámicamente -->
+                                    <tr>
+                                        <td colspan="8" class="loading-state">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            <p>Cargando datos del salón...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
 
-                        <!-- Formulario Simple de Transferencia - CORREGIDO -->
-                        <div class="form-container" id="transferencia-form" style="display: none;">
-                            <div class="form-card">
-                                <h3><i class="fas fa-edit"></i> Registrar Transferencia</h3>
-                                <form id="form-nueva-transferencia">
-                                    <div class="form-grid">
-                                        <div class="form-group">
-                                            <label for="transferencia-monto">
-                                                <i class="fas fa-dollar-sign"></i> Monto Transferido *
-                                            </label>
-                                            <input type="number" id="transferencia-monto" placeholder="0.00" step="0.01"
-                                                min="0" required>
-                                        </div>
-
-                                        <div class="form-group full-width">
-                                            <label for="transferencia-notas">
-                                                <i class="fas fa-sticky-note"></i> Notas (Opcional)
-                                            </label>
-                                            <textarea id="transferencia-notas"
-                                                placeholder="Ej: Transferencia por cliente, pago a proveedor, etc..."
-                                                rows="2"></textarea>
-                                        </div>
-                                    </div>
-
-                                    <div class="form-actions">
-                                        <button type="button" class="btn btn-secondary" id="btn-cancelar-transferencia">
-                                            <i class="fas fa-times"></i> Cancelar
-                                        </button>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save"></i> Guardar Transferencia
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
-                        <!-- Lista de Transferencias en Tarjetas -->
-                        <div class="transferencias-list-container" id="transferencia-table">
-                            <div class="list-header">
-                                <h3><i class="fas fa-history"></i> Transferencias de Hoy</h3>
-                                <div class="total-display">
-                                    <span>Total:</span>
-                                    <span class="amount" id="total-transferencias">$0.00</span>
-                                </div>
-                            </div>
-
-                            <div class="transferencias-cards" id="transferencia-list">
-                                <!-- Las transferencias se mostrarán aquí como tarjetas -->
-                                <div class="empty-state-card">
-                                    <i class="fas fa-exchange-alt"></i>
-                                    <p>No hay transferencias registradas hoy</p>
-                                    <button class="btn btn-outline" id="btn-add-first-transferencia">
-                                        <i class="fas fa-plus"></i> Agregar primera transferencia
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Resumen Rápido -->
-                        <div class="quick-summary">
-                            <div class="summary-card">
-                                <div class="card-header">
-                                    <h4><i class="fas fa-chart-line"></i> Resumen del Día</h4>
-                                    <i class="fas fa-exchange-alt"></i>
-                                </div>
-                                <div class="card-body">
-                                    <div class="summary-item">
-                                        <span>Total Transferido:</span>
-                                        <span class="amount" id="summary-total-transferencias">$0.00</span>
-                                    </div>
-                                    <div class="summary-item">
-                                        <span>Cantidad de Registros:</span>
-                                        <span id="summary-cantidad-transferencias">0</span>
-                                    </div>
-                                    <div class="summary-item">
-                                        <span>Última Transferencia:</span>
-                                        <span id="summary-ultima-transferencia">--:--</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <!-- Efectivo Section -->
-                <section id="efectivo-section" class="content-section">
-                    <div class="efectivo-container">
-                        <h2>Registro de Efectivo</h2>
-                        <div class="form-container">
-                            <div class="form-group">
-                                <label for="monto-efectivo">
-                                    <i class="fas fa-money-bill-wave"></i> Monto de Efectivo
-                                </label>
-                                <div class="input-with-button">
-                                    <input type="number" id="monto-efectivo" placeholder="0.00" step="0.01" min="0">
-                                    <button class="btn btn-primary" id="agregar-efectivo">
-                                        <i class="fas fa-plus"></i> Agregar
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="efectivo-list">
-                                <h3>Registros de Efectivo Hoy</h3>
-                                <div id="lista-efectivo">
-                                    <!-- Los registros se cargarán aquí -->
-                                    <p class="no-data">No hay registros de efectivo hoy</p>
-                                </div>
-                                <div class="total-efectivo">
-                                    <span>Total Efectivo:</span>
-                                    <span id="total-efectivo-hoy">$0.00</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Contador de Billetes Section -->
-                <section id="billetes-section" class="content-section">
-                    <div class="billetes-container">
-                        <div class="billetes-header">
-                            <h2>Contador de Billetes</h2>
-                            <div class="billetes-controls">
-                                <button class="btn btn-primary" id="guardar-conteo">
-                                    <i class="fas fa-save"></i> Guardar Conteo
-                                </button>
-                                <button class="btn btn-secondary" id="limpiar-conteo">
-                                    <i class="fas fa-broom"></i> Limpiar
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="tasas-cambio">
-                            <h3><i class="fas fa-exchange-alt"></i> Tasas de Cambio por Denominación USD</h3>
-                            <div class="tasas-grid">
-                                <div class="tasa-item">
-                                    <label for="tasa-usd-1">$1 USD:</label>
-                                    <input type="number" id="tasa-usd-1" value="400" min="1" step="0.01">
-                                    <span>CUP</span>
-                                </div>
-                                <div class="tasa-item">
-                                    <label for="tasa-usd-5">$5 USD:</label>
-                                    <input type="number" id="tasa-usd-5" value="440" min="1" step="0.01">
-                                    <span>CUP</span>
-                                </div>
-                                <div class="tasa-item">
-                                    <label for="tasa-usd-10">$10 USD:</label>
-                                    <input type="number" id="tasa-usd-10" value="440" min="1" step="0.01">
-                                    <span>CUP</span>
-                                </div>
-                                <div class="tasa-item">
-                                    <label for="tasa-usd-20">$20 USD:</label>
-                                    <input type="number" id="tasa-usd-20" value="440" min="1" step="0.01">
-                                    <span>CUP</span>
-                                </div>
-                                <div class="tasa-item">
-                                    <label for="tasa-usd-50">$50 USD:</label>
-                                    <input type="number" id="tasa-usd-50" value="440" min="1" step="0.01">
-                                    <span>CUP</span>
-                                </div>
-                                <div class="tasa-item">
-                                    <label for="tasa-usd-100">$100 USD:</label>
-                                    <input type="number" id="tasa-usd-100" value="440" min="1" step="0.01">
-                                    <span>CUP</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="billetes-grid">
-                            <!-- Billetes CUP -->
-                            <div class="billetes-moneda">
-                                <h3><i class="fas fa-money-bill-wave"></i> Billetes CUP</h3>
-                                <div class="billetes-denominaciones">
-                                    <div class="billete-item">
-                                        <label for="cup-1000">$1000</label>
-                                        <input type="number" id="cup-1000" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-1000">0 CUP</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="cup-500">$500</label>
-                                        <input type="number" id="cup-500" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-500">0 CUP</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="cup-200">$200</label>
-                                        <input type="number" id="cup-200" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-200">0 CUP</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="cup-100">$100</label>
-                                        <input type="number" id="cup-100" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-100">0 CUP</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="cup-50">$50</label>
-                                        <input type="number" id="cup-50" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-50">0 CUP</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="cup-20">$20</label>
-                                        <input type="number" id="cup-20" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-20">0 CUP</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="cup-10">$10</label>
-                                        <input type="number" id="cup-10" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-10">0 CUP</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="cup-5">$5</label>
-                                        <input type="number" id="cup-5" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-5">0 CUP</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="cup-3">$3</label>
-                                        <input type="number" id="cup-3" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-3">0 CUP</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="cup-1">$1</label>
-                                        <input type="number" id="cup-1" value="0" min="0">
-                                        <span class="billete-total" id="total-cup-1">0 CUP</span>
-                                    </div>
-                                </div>
-                                <div class="moneda-total">
-                                    <span>Total CUP:</span>
-                                    <span class="amount" id="total-cup">0 CUP</span>
-                                </div>
-                            </div>
-
-                            <!-- Billetes USD -->
-                            <div class="billetes-moneda">
-                                <h3><i class="fas fa-dollar-sign"></i> Billetes USD</h3>
-                                <div class="billetes-denominaciones">
-                                    <div class="billete-item">
-                                        <label for="usd-100">$100</label>
-                                        <input type="number" id="usd-100" value="0" min="0">
-                                        <span class="billete-total" id="total-usd-100">0 USD</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="usd-50">$50</label>
-                                        <input type="number" id="usd-50" value="0" min="0">
-                                        <span class="billete-total" id="total-usd-50">0 USD</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="usd-20">$20</label>
-                                        <input type="number" id="usd-20" value="0" min="0">
-                                        <span class="billete-total" id="total-usd-20">0 USD</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="usd-10">$10</label>
-                                        <input type="number" id="usd-10" value="0" min="0">
-                                        <span class="billete-total" id="total-usd-10">0 USD</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="usd-5">$5</label>
-                                        <input type="number" id="usd-5" value="0" min="0">
-                                        <span class="billete-total" id="total-usd-5">0 USD</span>
-                                    </div>
-                                    <div class="billete-item">
-                                        <label for="usd-1">$1</label>
-                                        <input type="number" id="usd-1" value="0" min="0">
-                                        <span class="billete-total" id="total-usd-1">0 USD</span>
-                                    </div>
-                                </div>
-                                <div class="moneda-total">
-                                    <span>Total USD:</span>
-                                    <span class="amount" id="total-usd">0 USD</span>
-                                </div>
-                                <div class="moneda-total cup">
-                                    <span>Total USD en CUP:</span>
-                                    <span class="amount" id="total-usd-cup">0 CUP</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="billetes-resumen">
-                            <div class="resumen-card">
-                                <h3>Resumen del Conteo Actual</h3>
-                                <div class="resumen-item">
-                                    <span>Total CUP:</span>
-                                    <span class="amount" id="resumen-total-cup">0 CUP</span>
-                                </div>
-                                <div class="resumen-item">
-                                    <span>Total USD en CUP:</span>
-                                    <span class="amount" id="resumen-total-usd-cup">0 CUP</span>
-                                </div>
-                                <div class="resumen-item total">
-                                    <span>Gran Total (CUP):</span>
-                                    <span class="amount" id="gran-total-cup">0 CUP</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Registros de Conteo Section -->
-                <section id="registros-billetes-section" class="content-section">
-                    <div class="registros-container">
-                        <div class="registros-header">
-                            <h2>Registros de Conteo de Billetes</h2>
-                            <button class="btn btn-primary" id="nuevo-registro">
-                                <i class="fas fa-plus"></i> Nuevo Registro
+                        <!-- Estado vacío -->
+                        <div class="empty-state" id="salon-empty-state" style="display: none;">
+                            <i class="fas fa-utensils"></i>
+                            <p>No hay productos configurados para el salón</p>
+                            <p class="small-text">Agrega productos desde la sección de Productos</p>
+                            <button class="btn btn-outline" id="btn-sincronizar-empty">
+                                <i class="fas fa-sync-alt"></i> Sincronizar Productos
                             </button>
                         </div>
 
-                        <div class="registros-list">
-                            <h3>Registros de Hoy</h3>
-                            <div id="lista-registros">
-                                <!-- Los registros se cargarán aquí -->
-                                <p class="no-data">No hay registros de conteo hoy</p>
-                            </div>
+                        <!-- Indicador de guardado -->
+                        <div class="save-indicator" id="save-indicator" style="display: none;">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="save-time">Guardado</span>
                         </div>
+                    </div>
 
-                        <div class="registros-resumen">
-                            <h3>Resumen Total del Día</h3>
+                    <!-- Resumen mejorado -->
+                    <div class="resumen-container">
+                        <div class="resumen-card">
+                            <h3><i class="fas fa-chart-bar"></i> Resumen del Día</h3>
                             <div class="resumen-grid">
                                 <div class="resumen-item">
-                                    <span>Total CUP (suma de registros):</span>
-                                    <span class="amount" id="total-registros-cup">0 CUP</span>
+                                    <span>Total Productos:</span>
+                                    <span id="total-productos-salon">0</span>
                                 </div>
                                 <div class="resumen-item">
-                                    <span>Total USD en CUP:</span>
-                                    <span class="amount" id="total-registros-usd-cup">0 CUP</span>
+                                    <span>Total Vendido:</span>
+                                    <span class="amount" id="total-unidades-vendidas">0 unidades</span>
                                 </div>
-                                <div class="resumen-item total">
-                                    <span>Gran Total del Día:</span>
-                                    <span class="amount" id="total-registros-dia">0 CUP</span>
+                                <div class="resumen-item">
+                                    <span>Total Importe:</span>
+                                    <span class="amount" id="total-importe-salon">$0.00</span>
+                                </div>
+                                <div class="resumen-item">
+                                    <span>Última Actualización:</span>
+                                    <span id="ultima-actualizacion">--:--</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </section>
-            </div>
-        </main>
+                </div>
+            </section>
+
+            <!-- Cocina Section - MODIFICADA -->
+            <section id="cocina-section" class="content-section">
+                <div class="cocina-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-fire"></i> Control de Cocina</h2>
+                        <div class="section-controls">
+                            <button class="btn btn-primary" id="btn-agregar-agrego">
+                                <i class="fas fa-plus"></i>
+                                <span class="btn-text">Nuevo Agrego</span>
+                            </button>
+                            <button class="btn btn-success" id="btn-finalizar-dia-cocina">
+                                <i class="fas fa-flag-checkered"></i>
+                                <span class="btn-text">Finalizar Día</span>
+                            </button>
+                            <button class="btn btn-info" id="btn-sincronizar-productos-cocina">
+                                <i class="fas fa-sync-alt"></i>
+                                <span class="btn-text">Sincronizar Productos</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mensaje si no hay productos -->
+                    <div class="no-products-message" id="cocina-no-products" style="display: none;">
+                        <div class="message-content">
+                            <i class="fas fa-utensils"></i>
+                            <h3>No hay productos en la cocina</h3>
+                            <p>Para comenzar, agrega productos desde la sección de Productos o sincronízalos aquí.</p>
+                            <div class="message-actions">
+                                <button class="btn btn-primary" id="btn-ir-productos">
+                                    <i class="fas fa-box"></i> Ir a Productos
+                                </button>
+                                <button class="btn btn-outline" id="btn-crear-producto-cocina">
+                                    <i class="fas fa-plus"></i> Crear Producto en Cocina
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de control de cocina -->
+                    <div class="cocina-table-container" id="cocina-table-container" style="display: none;">
+                        <div class="table-header">
+                            <h3><i class="fas fa-list"></i> Inventario del Día - Cocina</h3>
+                            <div class="table-controls">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="cocina-search" placeholder="Buscar productos..."
+                                        autocomplete="off">
+                                </div>
+                                <div class="total-display">
+                                    <span>Total Ventas:</span>
+                                    <span class="amount" id="total-ventas-cocina">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contenedor de tabla responsive -->
+                        <div class="cocina-table-wrapper">
+                            <table class="cocina-table" id="cocina-table-main">
+                                <thead>
+                                    <tr>
+                                        <th class="producto-header">Producto</th>
+                                        <th class="precio-header">Precio</th>
+                                        <th class="inicio-header">Inicio</th>
+                                        <th class="entrada-header">Entrada</th>
+                                        <th class="venta-header">Venta</th>
+                                        <th class="final-header">Final</th>
+                                        <th class="vendido-header">Vendido</th>
+                                        <th class="importe-header">Importe</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cocina-tbody">
+                                    <tr>
+                                        <td colspan="8" class="loading-state">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            <p>Cargando datos de cocina...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Estado vacío -->
+                        <div class="empty-state" id="cocina-empty-state" style="display: none;">
+                            <i class="fas fa-fire"></i>
+                            <p>No hay productos configurados para la cocina</p>
+                            <p class="small-text">Agrega productos desde la sección de Productos</p>
+                            <button class="btn btn-outline" id="btn-sincronizar-empty-cocina">
+                                <i class="fas fa-sync-alt"></i> Sincronizar Productos
+                            </button>
+                        </div>
+
+                        <!-- Indicador de guardado -->
+                        <div class="save-indicator" id="save-indicator-cocina" style="display: none;">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="save-time-cocina">Guardado</span>
+                        </div>
+                    </div>
+
+                    <!-- Sección de Agregos -->
+                    <div class="agregos-section" id="agregos-section">
+                        <div class="agregos-header">
+                            <h3><i class="fas fa-plus-circle"></i> Agregos de Cocina</h3>
+                            <button class="btn btn-primary" id="btn-agregar-agrego-top">
+                                <i class="fas fa-plus"></i>
+                                <span class="btn-text">Nuevo Agrego</span>
+                            </button>
+                        </div>
+
+                        <!-- Formulario de Agregos -->
+                        <div class="form-container" id="agrego-form" style="display: none;">
+                            <div class="form-card">
+                                <h3><i class="fas fa-edit"></i> Registrar Agrego</h3>
+                                <form id="form-nuevo-agrego">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="agrego-descripcion">
+                                                <i class="fas fa-clipboard-list"></i> Descripción *
+                                            </label>
+                                            <input type="text" id="agrego-descripcion"
+                                                placeholder="Ej: Agrego especial, producto extra, etc..." required>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="agrego-monto">
+                                                <i class="fas fa-dollar-sign"></i> Monto *
+                                            </label>
+                                            <input type="number" id="agrego-monto" placeholder="0.00" step="1.00"
+                                                min="0" required>
+                                        </div>
+
+                                        <div class="form-group full-width">
+                                            <label for="agrego-notas">
+                                                <i class="fas fa-sticky-note"></i> Notas (Opcional)
+                                            </label>
+                                            <textarea id="agrego-notas"
+                                                placeholder="Detalles adicionales sobre el agrego..."
+                                                rows="2"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-actions">
+                                        <button type="button" class="btn btn-secondary" id="btn-cancelar-agrego">
+                                            <i class="fas fa-times"></i> Cancelar
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Guardar Agrego
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Agregos -->
+                        <div class="agregos-list">
+                            <h4>Agregos de Hoy</h4>
+                            <div id="lista-agregos">
+                                <!-- Los agregos se mostrarán aquí -->
+                                <div class="empty-state-card">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <p>No hay agregos registrados hoy</p>
+                                </div>
+                            </div>
+                            <div class="total-agregos">
+                                <span>Total Agregos:</span>
+                                <span id="total-agregos">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen de Cocina -->
+                    <div class="resumen-container" id="cocina-resumen">
+                        <div class="resumen-card">
+                            <h3><i class="fas fa-chart-bar"></i> Resumen del Día - Cocina</h3>
+                            <div class="resumen-grid">
+                                <div class="resumen-item">
+                                    <span>Total Productos:</span>
+                                    <span id="total-productos-cocina">0</span>
+                                </div>
+                                <div class="resumen-item">
+                                    <span>Total Vendido:</span>
+                                    <span class="amount" id="total-unidades-vendidas-cocina">0 unidades</span>
+                                </div>
+                                <div class="resumen-item">
+                                    <span>Total Importe:</span>
+                                    <span class="amount" id="total-importe-cocina">$0.00</span>
+                                </div>
+                                <div class="resumen-item">
+                                    <span>Total Agregos:</span>
+                                    <span class="amount" id="summary-total-agregos">$0.00</span>
+                                </div>
+                                <div class="resumen-item">
+                                    <span>Cant. Agregos:</span>
+                                    <span id="summary-cantidad-agregos">0</span>
+                                </div>
+                                <div class="resumen-item">
+                                    <span>Ventas Totales:</span>
+                                    <span class="amount" id="summary-ventas-totales">$0.00</span>
+                                </div>
+                                <div class="resumen-item">
+                                    <span>Última Actualización:</span>
+                                    <span id="ultima-actualizacion-cocina">--:--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Consumo Section -->
+            <section id="consumo-section" class="content-section">
+                <div class="consumo-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-shopping-cart"></i> Registro de Consumo</h2>
+                        <div class="section-controls">
+                            <button class="btn btn-primary" id="btn-agregar-consumo">
+                                <i class="fas fa-plus"></i> Nuevo Consumo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de Consumo -->
+                    <div class="form-container" id="consumo-form" style="display: none;">
+                        <div class="form-card">
+                            <h3><i class="fas fa-edit"></i> Registrar Consumo</h3>
+                            <form id="form-nuevo-consumo">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="consumo-descripcion">
+                                            <i class="fas fa-clipboard-list"></i> Descripción *
+                                        </label>
+                                        <input type="text" id="consumo-descripcion"
+                                            placeholder="Ej: Compra de ingredientes, materiales, etc..." required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="consumo-monto">
+                                            <i class="fas fa-dollar-sign"></i> Monto *
+                                        </label>
+                                        <input type="number" id="consumo-monto" placeholder="0.00" step="1.00" min="0"
+                                            required>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label for="consumo-notas">
+                                            <i class="fas fa-sticky-note"></i> Notas (Opcional)
+                                        </label>
+                                        <textarea id="consumo-notas"
+                                            placeholder="Detalles adicionales sobre el consumo..." rows="2"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-secondary" id="btn-cancelar-consumo">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Guardar Consumo
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Consumos en Tarjetas -->
+                    <div class="consumo-list-container" id="consumo-table">
+                        <div class="list-header">
+                            <h3><i class="fas fa-history"></i> Consumos de Hoy</h3>
+                            <div class="total-display">
+                                <span>Total:</span>
+                                <span class="amount" id="total-consumo">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="consumo-cards" id="consumo-list">
+                            <!-- Los consumos se mostrarán aquí como tarjetas -->
+                            <div class="empty-state-card">
+                                <i class="fas fa-shopping-cart"></i>
+                                <p>No hay consumos registrados hoy</p>
+                                <button class="btn btn-outline" id="btn-add-first-consumo">
+                                    <i class="fas fa-plus"></i> Agregar primer consumo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen Rápido -->
+                    <div class="quick-summary">
+                        <div class="summary-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-chart-line"></i> Resumen del Día</h4>
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="card-body">
+                                <div class="summary-item">
+                                    <span>Total Consumido:</span>
+                                    <span class="amount" id="summary-total-consumo">$0.00</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Cantidad de Registros:</span>
+                                    <span id="summary-cantidad-consumo">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Último Consumo:</span>
+                                    <span id="summary-ultimo-consumo">--:--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Extracciones Section -->
+            <section id="extracciones-section" class="content-section">
+                <div class="extracciones-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-money-bill-wave"></i> Registro de Extracciones</h2>
+                        <div class="section-controls">
+                            <button class="btn btn-primary" id="btn-agregar-extraccion">
+                                <i class="fas fa-plus"></i> Nueva Extracción
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de Extracción -->
+                    <div class="form-container" id="extraccion-form" style="display: none;">
+                        <div class="form-card">
+                            <h3><i class="fas fa-edit"></i> Registrar Extracción</h3>
+                            <form id="form-nueva-extraccion">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="extraccion-descripcion">
+                                            <i class="fas fa-clipboard-list"></i> Descripción / Motivo *
+                                        </label>
+                                        <input type="text" id="extraccion-descripcion"
+                                            placeholder="Ej: Retiro para pago a proveedor, compra de materiales, efectivo para cambio, etc..."
+                                            required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="extraccion-monto">
+                                            <i class="fas fa-dollar-sign"></i> Monto Extraído *
+                                        </label>
+                                        <input type="number" id="extraccion-monto" placeholder="0.00" step="1.00"
+                                            min="0" required>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label for="extraccion-notas">
+                                            <i class="fas fa-sticky-note"></i> Notas (Opcional)
+                                        </label>
+                                        <textarea id="extraccion-notas"
+                                            placeholder="Detalles adicionales sobre la extracción..."
+                                            rows="2"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-secondary" id="btn-cancelar-extraccion">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Guardar Extracción
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Extracciones en Tarjetas -->
+                    <div class="extracciones-list-container" id="extraccion-table">
+                        <div class="list-header">
+                            <h3><i class="fas fa-history"></i> Extracciones de Hoy</h3>
+                            <div class="total-display">
+                                <span>Total Extraído:</span>
+                                <span class="amount" id="total-extracciones">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="extracciones-cards" id="extraccion-list">
+                            <!-- Las extracciones se mostrarán aquí como tarjetas -->
+                            <div class="empty-state-card">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <p>No hay extracciones registradas hoy</p>
+                                <button class="btn btn-outline" id="btn-add-first-extraccion">
+                                    <i class="fas fa-plus"></i> Agregar primera extracción
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen Rápido -->
+                    <div class="quick-summary">
+                        <div class="summary-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-chart-line"></i> Resumen del Día</h4>
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div class="card-body">
+                                <div class="summary-item">
+                                    <span>Total Extraído:</span>
+                                    <span class="amount" id="summary-total-extracciones">$0.00</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Cantidad de Registros:</span>
+                                    <span id="summary-cantidad-extracciones">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Última Extracción:</span>
+                                    <span id="summary-ultima-extraccion">--:--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="transferencias-section" class="content-section">
+                <div class="transferencias-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-exchange-alt"></i> Registro de Transferencias</h2>
+                        <div class="section-controls">
+                            <button class="btn btn-primary" id="btn-agregar-transferencia">
+                                <i class="fas fa-plus"></i> Nueva Transferencia
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Formulario Simple de Transferencia - CORREGIDO -->
+                    <div class="form-container" id="transferencia-form" style="display: none;">
+                        <div class="form-card">
+                            <h3><i class="fas fa-edit"></i> Registrar Transferencia</h3>
+                            <form id="form-nueva-transferencia">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="transferencia-monto">
+                                            <i class="fas fa-dollar-sign"></i> Monto Transferido *
+                                        </label>
+                                        <input type="number" id="transferencia-monto" placeholder="0.00" step="1.00"
+                                            min="0" required>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label for="transferencia-notas">
+                                            <i class="fas fa-sticky-note"></i> Notas (Opcional)
+                                        </label>
+                                        <textarea id="transferencia-notas"
+                                            placeholder="Ej: Transferencia por cliente, pago a proveedor, etc..."
+                                            rows="2"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-secondary" id="btn-cancelar-transferencia">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Guardar Transferencia
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Transferencias en Tarjetas -->
+                    <div class="transferencias-list-container" id="transferencia-table">
+                        <div class="list-header">
+                            <h3><i class="fas fa-history"></i> Transferencias de Hoy</h3>
+                            <div class="total-display">
+                                <span>Total:</span>
+                                <span class="amount" id="total-transferencias">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="transferencias-cards" id="transferencia-list">
+                            <!-- Las transferencias se mostrarán aquí como tarjetas -->
+                            <div class="empty-state-card">
+                                <i class="fas fa-exchange-alt"></i>
+                                <p>No hay transferencias registradas hoy</p>
+                                <button class="btn btn-outline" id="btn-add-first-transferencia">
+                                    <i class="fas fa-plus"></i> Agregar primera transferencia
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen Rápido -->
+                    <div class="quick-summary">
+                        <div class="summary-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-chart-line"></i> Resumen del Día</h4>
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <div class="card-body">
+                                <div class="summary-item">
+                                    <span>Total Transferido:</span>
+                                    <span class="amount" id="summary-total-transferencias">$0.00</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Cantidad de Registros:</span>
+                                    <span id="summary-cantidad-transferencias">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Última Transferencia:</span>
+                                    <span id="summary-ultima-transferencia">--:--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Efectivo Section -->
+            <section id="efectivo-section" class="content-section">
+                <div class="efectivo-container">
+                    <h2>Registro de Efectivo</h2>
+                    <div class="form-container">
+                        <div class="form-group">
+                            <label for="monto-efectivo">
+                                <i class="fas fa-money-bill-wave"></i> Monto de Efectivo
+                            </label>
+                            <div class="input-with-button">
+                                <input type="number" id="monto-efectivo" placeholder="0.00" step="1.00" min="0">
+                                <button class="btn btn-primary" id="agregar-efectivo">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="efectivo-list">
+                            <h3>Registros de Efectivo Hoy</h3>
+                            <div id="lista-efectivo">
+                                <!-- Los registros se cargarán aquí -->
+                                <p class="no-data">No hay registros de efectivo hoy</p>
+                            </div>
+                            <div class="total-efectivo">
+                                <span>Total Efectivo:</span>
+                                <span id="total-efectivo-hoy">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contador de Billetes Section -->
+            <section id="billetes-section" class="content-section">
+                <div class="billetes-container">
+                    <div class="billetes-header">
+                        <h2>Contador de Billetes</h2>
+                        <div class="billetes-controls">
+                            <button class="btn btn-primary" id="guardar-conteo">
+                                <i class="fas fa-save"></i> Guardar Conteo
+                            </button>
+                            <button class="btn btn-secondary" id="limpiar-conteo">
+                                <i class="fas fa-broom"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="tasas-cambio">
+                        <h3><i class="fas fa-exchange-alt"></i> Tasas de Cambio por Denominación USD a CUP</h3>
+                        <div class="tasas-grid">
+                            <div class="tasa-item">
+                                <label for="tasa-usd-1">$1 USD:</label>
+                                <input type="number" id="tasa-usd-1" value="400" min="1" step="1.00">
+                            </div>
+                            <div class="tasa-item">
+                                <label for="tasa-usd-5">$5 USD:</label>
+                                <input type="number" id="tasa-usd-5" value="440" min="1" step="1.00">
+                            </div>
+                            <div class="tasa-item">
+                                <label for="tasa-usd-10">$10 USD:</label>
+                                <input type="number" id="tasa-usd-10" value="440" min="1" step="1.00">
+                            </div>
+                            <div class="tasa-item">
+                                <label for="tasa-usd-20">$20 USD:</label>
+                                <input type="number" id="tasa-usd-20" value="440" min="1" step="1.00">
+                            </div>
+                            <div class="tasa-item">
+                                <label for="tasa-usd-50">$50 USD:</label>
+                                <input type="number" id="tasa-usd-50" value="440" min="1" step="1.00">
+                            </div>
+                            <div class="tasa-item">
+                                <label for="tasa-usd-100">$100 USD:</label>
+                                <input type="number" id="tasa-usd-100" value="440" min="1" step="1.00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="billetes-grid">
+                        <!-- Billetes CUP -->
+                        <div class="billetes-moneda">
+                            <h3><i class="fas fa-money-bill-wave"></i> Billetes CUP</h3>
+                            <div class="billetes-denominaciones">
+                                <div class="billete-item">
+                                    <label for="cup-1000">$1000</label>
+                                    <input type="number" id="cup-1000" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-1000">0 CUP</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="cup-500">$500</label>
+                                    <input type="number" id="cup-500" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-500">0 CUP</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="cup-200">$200</label>
+                                    <input type="number" id="cup-200" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-200">0 CUP</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="cup-100">$100</label>
+                                    <input type="number" id="cup-100" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-100">0 CUP</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="cup-50">$50</label>
+                                    <input type="number" id="cup-50" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-50">0 CUP</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="cup-20">$20</label>
+                                    <input type="number" id="cup-20" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-20">0 CUP</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="cup-10">$10</label>
+                                    <input type="number" id="cup-10" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-10">0 CUP</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="cup-5">$5</label>
+                                    <input type="number" id="cup-5" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-5">0 CUP</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="cup-3">$3</label>
+                                    <input type="number" id="cup-3" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-3">0 CUP</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="cup-1">$1</label>
+                                    <input type="number" id="cup-1" value="0" min="0">
+                                    <span class="billete-total" id="total-cup-1">0 CUP</span>
+                                </div>
+                            </div>
+                            <div class="moneda-total">
+                                <span>Total CUP:</span>
+                                <span class="amount" id="total-cup">0 CUP</span>
+                            </div>
+                        </div>
+
+                        <!-- Billetes USD -->
+                        <div class="billetes-moneda">
+                            <h3><i class="fas fa-dollar-sign"></i> Billetes USD</h3>
+                            <div class="billetes-denominaciones">
+                                <div class="billete-item">
+                                    <label for="usd-100">$100</label>
+                                    <input type="number" id="usd-100" value="0" min="0">
+                                    <span class="billete-total" id="total-usd-100">0 USD</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="usd-50">$50</label>
+                                    <input type="number" id="usd-50" value="0" min="0">
+                                    <span class="billete-total" id="total-usd-50">0 USD</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="usd-20">$20</label>
+                                    <input type="number" id="usd-20" value="0" min="0">
+                                    <span class="billete-total" id="total-usd-20">0 USD</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="usd-10">$10</label>
+                                    <input type="number" id="usd-10" value="0" min="0">
+                                    <span class="billete-total" id="total-usd-10">0 USD</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="usd-5">$5</label>
+                                    <input type="number" id="usd-5" value="0" min="0">
+                                    <span class="billete-total" id="total-usd-5">0 USD</span>
+                                </div>
+                                <div class="billete-item">
+                                    <label for="usd-1">$1</label>
+                                    <input type="number" id="usd-1" value="0" min="0">
+                                    <span class="billete-total" id="total-usd-1">0 USD</span>
+                                </div>
+                            </div>
+                            <div class="moneda-total">
+                                <span>Total USD:</span>
+                                <span class="amount" id="total-usd">0 USD</span>
+                            </div>
+                            <div class="moneda-total cup">
+                                <span>Total USD en CUP:</span>
+                                <span class="amount" id="total-usd-cup">0 CUP</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="billetes-resumen">
+                        <div class="resumen-card">
+                            <h3>Resumen del Conteo Actual</h3>
+                            <div class="resumen-item">
+                                <span>Total CUP:</span>
+                                <span class="amount" id="resumen-total-cup">0 CUP</span>
+                            </div>
+                            <div class="resumen-item">
+                                <span>Total USD en CUP:</span>
+                                <span class="amount" id="resumen-total-usd-cup">0 CUP</span>
+                            </div>
+                            <div class="resumen-item total">
+                                <span>Gran Total (CUP):</span>
+                                <span class="amount" id="gran-total-cup">0 CUP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Registros de Conteo Section -->
+            <section id="registros-billetes-section" class="content-section">
+                <div class="registros-container">
+                    <div class="registros-header">
+                        <h2>Registros de Conteo de Billetes</h2>
+                        <button class="btn btn-primary" id="nuevo-registro">
+                            <i class="fas fa-plus"></i> Nuevo Registro
+                        </button>
+                    </div>
+
+                    <div class="registros-list">
+                        <h3>Registros de Hoy</h3>
+                        <div id="lista-registros">
+                            <!-- Los registros se cargarán aquí -->
+                            <p class="no-data">No hay registros de conteo hoy</p>
+                        </div>
+                    </div>
+
+                    <div class="registros-resumen">
+                        <h3>Resumen Total del Día</h3>
+                        <div class="resumen-grid">
+                            <div class="resumen-item">
+                                <span>Total CUP (suma de registros):</span>
+                                <span class="amount" id="total-registros-cup">0 CUP</span>
+                            </div>
+                            <div class="resumen-item">
+                                <span>Total USD en CUP:</span>
+                                <span class="amount" id="total-registros-usd-cup">0 CUP</span>
+                            </div>
+                            <div class="resumen-item total">
+                                <span>Gran Total del Día:</span>
+                                <span class="amount" id="total-registros-dia">0 CUP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+    </div>
+    </main>
     </div>
 
     <!-- Modal para ver detalle de registro -->
@@ -1004,7 +1271,17 @@
                             <label for="edit-producto-precio">
                                 <i class="fas fa-dollar-sign"></i> Precio *
                             </label>
-                            <input type="number" id="edit-producto-precio" step="0.01" min="0" required>
+                            <input type="number" id="edit-producto-precio" step="1.00" min="0" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-producto-ubicacion">
+                                <i class="fas fa-map-marker-alt"></i> Ubicación *
+                            </label>
+                            <select id="edit-producto-ubicacion" required>
+                                <option value="salon">Salón</option>
+                                <option value="cocina">Cocina</option>
+                            </select>
                         </div>
                     </div>
 
@@ -1041,6 +1318,8 @@
     <script src="js/efectivo.js"></script>
     <script src="js/consumo.js"></script>
     <script src="js/salon.js"></script>
+    <script src="js/cocina.js"></script>
+    <script src="js/extracciones.js"></script>
     <script src="js/transferencias.js"></script>
 </body>
 

@@ -1,6 +1,7 @@
 class ProductManager {
     constructor() {
         this.products = [];
+        this.cocinaProducts = []; // Nueva: productos específicos de cocina
         this.currentPage = 1;
         this.itemsPerPage = 10;
         this.currentEditId = null;
@@ -15,13 +16,20 @@ class ProductManager {
 
     loadProducts() {
         const savedProducts = localStorage.getItem('ipb_products');
+        const savedCocinaProducts = localStorage.getItem('ipb_cocina_products'); // Nueva
+        
         if (savedProducts) {
             this.products = JSON.parse(savedProducts);
+        }
+        
+        if (savedCocinaProducts) {
+            this.cocinaProducts = JSON.parse(savedCocinaProducts);
         }
     }
 
     saveProducts() {
         localStorage.setItem('ipb_products', JSON.stringify(this.products));
+        localStorage.setItem('ipb_cocina_products', JSON.stringify(this.cocinaProducts)); // Nueva
     }
 
     bindEvents() {
@@ -85,6 +93,10 @@ class ProductManager {
         
         const warning = document.getElementById('similar-products-warning');
         if (warning) warning.style.display = 'none';
+        
+        // Reset location selection
+        const locationSelect = document.getElementById('producto-ubicacion');
+        if (locationSelect) locationSelect.value = 'salon';
     }
 
     hideForm() {
@@ -120,6 +132,7 @@ class ProductManager {
                     li.innerHTML = `
                         <span>${product.nombre}</span>
                         <span>$${product.precio.toFixed(2)}</span>
+                        <span class="product-location-badge">${product.ubicacion === 'cocina' ? 'Cocina' : 'Salón'}</span>
                     `;
                     similarList.appendChild(li);
                 });
@@ -132,7 +145,9 @@ class ProductManager {
 
     findSimilarProducts(name) {
         const searchTerm = name.toLowerCase().trim();
-        return this.products.filter(product => {
+        const allProducts = [...this.products, ...this.cocinaProducts];
+        
+        return allProducts.filter(product => {
             const productName = product.nombre.toLowerCase();
             
             // Check for exact match (excluding current edit)
@@ -193,11 +208,13 @@ class ProductManager {
     saveProduct() {
         const nombreInput = document.getElementById('producto-nombre');
         const precioInput = document.getElementById('producto-precio');
+        const ubicacionSelect = document.getElementById('producto-ubicacion');
         
-        if (!nombreInput || !precioInput) return;
+        if (!nombreInput || !precioInput || !ubicacionSelect) return;
         
         const nombre = nombreInput.value.trim();
         const precio = parseFloat(precioInput.value);
+        const ubicacion = ubicacionSelect.value; // 'salon' o 'cocina'
         const alerta = document.getElementById('alerta-duplicado');
 
         // Validation
@@ -206,14 +223,21 @@ class ProductManager {
             return;
         }
 
-        // Check for duplicates
-        const duplicate = this.products.find(p => 
-            p.nombre.toLowerCase() === nombre.toLowerCase()
-        );
+        // Check for duplicates based on location
+        let duplicate = null;
+        if (ubicacion === 'salon') {
+            duplicate = this.products.find(p => 
+                p.nombre.toLowerCase() === nombre.toLowerCase()
+            );
+        } else {
+            duplicate = this.cocinaProducts.find(p => 
+                p.nombre.toLowerCase() === nombre.toLowerCase()
+            );
+        }
 
         if (duplicate) {
             if (alerta) {
-                alerta.textContent = `¡Advertencia! Ya existe un producto con el nombre "${duplicate.nombre}"`;
+                alerta.textContent = `¡Advertencia! Ya existe un producto con el nombre "${duplicate.nombre}" en ${ubicacion === 'cocina' ? 'Cocina' : 'Salón'}`;
                 alerta.style.display = 'flex';
                 alerta.className = 'alert-products alert-products-warning';
             }
@@ -225,15 +249,22 @@ class ProductManager {
             id: Date.now(),
             nombre,
             precio,
+            ubicacion, // Añadimos la ubicación
             fechaCreacion: new Date().toISOString(),
             fechaActualizacion: new Date().toISOString()
         };
 
-        this.products.push(newProduct);
+        // Add to appropriate array
+        if (ubicacion === 'salon') {
+            this.products.push(newProduct);
+        } else {
+            this.cocinaProducts.push(newProduct);
+        }
+        
         this.saveProducts();
         this.renderProducts();
         
-        this.showAlert('Producto agregado exitosamente', 'success');
+        this.showAlert(`Producto agregado exitosamente a ${ubicacion === 'cocina' ? 'Cocina' : 'Salón'}`, 'success');
         this.hideForm();
     }
 
@@ -261,11 +292,12 @@ class ProductManager {
 
         if (!tbody || !totalProducts || !emptyState || !tableContainer) return;
 
-        // Update total
-        totalProducts.textContent = productsToRender.length;
+        // Update total (sum of both types)
+        const totalCount = this.products.length + this.cocinaProducts.length;
+        totalProducts.textContent = totalCount;
 
         // Show/hide empty state
-        if (productsToRender.length === 0) {
+        if (totalCount === 0) {
             emptyState.style.display = 'block';
             tableContainer.style.display = 'none';
             if (pagination) pagination.style.display = 'none';
@@ -275,25 +307,36 @@ class ProductManager {
         emptyState.style.display = 'none';
         tableContainer.style.display = 'block';
 
+        // Combine both product lists for display
+        const allProducts = [...this.products, ...this.cocinaProducts];
+        
         // Calculate pagination
-        const totalPages = Math.ceil(productsToRender.length / this.itemsPerPage);
+        const totalPages = Math.ceil(allProducts.length / this.itemsPerPage);
         const startIndex = (this.currentPage - 1) * this.itemsPerPage;
         const endIndex = startIndex + this.itemsPerPage;
-        const pageProducts = productsToRender.slice(startIndex, endIndex);
+        const pageProducts = allProducts.slice(startIndex, endIndex);
 
         // Render products
         tbody.innerHTML = '';
-        pageProducts.forEach(product => {
+        pageProducts.forEach((product, index) => {
             const tr = document.createElement('tr');
+            const rowNumber = startIndex + index + 1;
+            
             tr.innerHTML = `
+                <td class="row-number">${rowNumber}</td>
                 <td class="product-name">${product.nombre}</td>
                 <td class="product-price">$${product.precio.toFixed(2)}</td>
                 <td>${new Date(product.fechaCreacion).toLocaleDateString()}</td>
+                <td>
+                    <span class="product-location ${product.ubicacion === 'cocina' ? 'location-cocina' : 'location-salon'}">
+                        ${product.ubicacion === 'cocina' ? 'Cocina' : 'Salón'}
+                    </span>
+                </td>
                 <td class="actions-cell-products">
-                    <button class="btn-icon-products btn-edit-products" data-id="${product.id}" title="Editar">
+                    <button class="btn-icon-products btn-edit-products" data-id="${product.id}" data-ubicacion="${product.ubicacion}" title="Editar">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-icon-products btn-delete-products" data-id="${product.id}" title="Eliminar">
+                    <button class="btn-icon-products btn-delete-products" data-id="${product.id}" data-ubicacion="${product.ubicacion}" title="Eliminar">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -305,14 +348,16 @@ class ProductManager {
         tbody.querySelectorAll('.btn-edit-products').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const id = parseInt(e.currentTarget.dataset.id);
-                this.openEditModal(id);
+                const ubicacion = e.currentTarget.dataset.ubicacion;
+                this.openEditModal(id, ubicacion);
             });
         });
 
         tbody.querySelectorAll('.btn-delete-products').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const id = parseInt(e.currentTarget.dataset.id);
-                this.confirmDeleteProduct(id);
+                const ubicacion = e.currentTarget.dataset.ubicacion;
+                this.confirmDeleteProduct(id, ubicacion);
             });
         });
 
@@ -359,26 +404,121 @@ class ProductManager {
         }
 
         const term = searchTerm.toLowerCase();
-        const filtered = this.products.filter(product =>
+        const allProducts = [...this.products, ...this.cocinaProducts];
+        const filtered = allProducts.filter(product =>
             product.nombre.toLowerCase().includes(term) ||
-            product.precio.toString().includes(term)
+            product.precio.toString().includes(term) ||
+            (product.ubicacion === 'cocina' ? 'cocina' : 'salon').includes(term)
         );
 
         this.currentPage = 1;
-        this.renderProducts(filtered);
+        this.renderFilteredProducts(filtered);
     }
 
-    openEditModal(productId) {
-        const product = this.products.find(p => p.id === productId);
+    renderFilteredProducts(filteredProducts) {
+        const tbody = document.getElementById('products-tbody');
+        const totalProducts = document.getElementById('total-products');
+        const emptyState = document.getElementById('products-empty-state');
+        const tableContainer = document.querySelector('.products-table-wrapper');
+        const pagination = document.getElementById('pagination');
+        const pageInfo = document.getElementById('page-info');
+
+        if (!tbody || !totalProducts || !emptyState || !tableContainer) return;
+
+        // Update total
+        totalProducts.textContent = filteredProducts.length;
+
+        // Show/hide empty state
+        if (filteredProducts.length === 0) {
+            emptyState.style.display = 'block';
+            tableContainer.style.display = 'none';
+            if (pagination) pagination.style.display = 'none';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        tableContainer.style.display = 'block';
+
+        // Calculate pagination
+        const totalPages = Math.ceil(filteredProducts.length / this.itemsPerPage);
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const pageProducts = filteredProducts.slice(startIndex, endIndex);
+
+        // Render products
+        tbody.innerHTML = '';
+        pageProducts.forEach((product, index) => {
+            const tr = document.createElement('tr');
+            const rowNumber = startIndex + index + 1;
+            
+            tr.innerHTML = `
+                <td class="row-number">${rowNumber}</td>
+                <td class="product-name">${product.nombre}</td>
+                <td class="product-price">$${product.precio.toFixed(2)}</td>
+                <td>${new Date(product.fechaCreacion).toLocaleDateString()}</td>
+                <td>
+                    <span class="product-location ${product.ubicacion === 'cocina' ? 'location-cocina' : 'location-salon'}">
+                        ${product.ubicacion === 'cocina' ? 'Cocina' : 'Salón'}
+                    </span>
+                </td>
+                <td class="actions-cell-products">
+                    <button class="btn-icon-products btn-edit-products" data-id="${product.id}" data-ubicacion="${product.ubicacion}" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon-products btn-delete-products" data-id="${product.id}" data-ubicacion="${product.ubicacion}" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Add event listeners to action buttons
+        tbody.querySelectorAll('.btn-edit-products').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.dataset.id);
+                const ubicacion = e.currentTarget.dataset.ubicacion;
+                this.openEditModal(id, ubicacion);
+            });
+        });
+
+        tbody.querySelectorAll('.btn-delete-products').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.dataset.id);
+                const ubicacion = e.currentTarget.dataset.ubicacion;
+                this.confirmDeleteProduct(id, ubicacion);
+            });
+        });
+
+        // Update pagination
+        this.updatePagination(totalPages, pageInfo);
+
+        // Show/hide pagination
+        if (pagination) {
+            pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+        }
+    }
+
+    openEditModal(productId, ubicacion) {
+        let product;
+        if (ubicacion === 'salon') {
+            product = this.products.find(p => p.id === productId);
+        } else {
+            product = this.cocinaProducts.find(p => p.id === productId);
+        }
+        
         if (!product) return;
 
         this.currentEditId = productId;
+        this.currentEditUbicacion = ubicacion;
 
         const nombreInput = document.getElementById('edit-producto-nombre');
         const precioInput = document.getElementById('edit-producto-precio');
+        const ubicacionSelect = document.getElementById('edit-producto-ubicacion');
         
         if (nombreInput) nombreInput.value = product.nombre;
         if (precioInput) precioInput.value = product.precio;
+        if (ubicacionSelect) ubicacionSelect.value = product.ubicacion;
 
         // Check for similar products
         const similar = this.findSimilarProducts(product.nombre);
@@ -394,6 +534,7 @@ class ProductManager {
                         li.innerHTML = `
                             <span>${p.nombre}</span>
                             <span>$${p.precio.toFixed(2)}</span>
+                            <span class="product-location-badge">${p.ubicacion === 'cocina' ? 'Cocina' : 'Salón'}</span>
                         `;
                         similarList.appendChild(li);
                     }
@@ -413,6 +554,7 @@ class ProductManager {
         if (modal) modal.classList.remove('active');
         
         this.currentEditId = null;
+        this.currentEditUbicacion = null;
         
         const warningDiv = document.getElementById('similar-products-edit-warning');
         if (warningDiv) warningDiv.style.display = 'none';
@@ -421,42 +563,88 @@ class ProductManager {
     updateProduct() {
         const nombreInput = document.getElementById('edit-producto-nombre');
         const precioInput = document.getElementById('edit-producto-precio');
+        const ubicacionSelect = document.getElementById('edit-producto-ubicacion');
         
-        if (!nombreInput || !precioInput) return;
+        if (!nombreInput || !precioInput || !ubicacionSelect) return;
         
         const nombre = nombreInput.value.trim();
         const precio = parseFloat(precioInput.value);
+        const nuevaUbicacion = ubicacionSelect.value;
 
         if (!nombre || !precio || precio <= 0) {
             this.showAlert('Por favor, complete todos los campos correctamente', 'warning');
             return;
         }
 
-        // Check for duplicates (excluding current product)
-        const duplicate = this.products.find(p => 
-            p.id !== this.currentEditId &&
-            p.nombre.toLowerCase() === nombre.toLowerCase()
-        );
+        // Check for duplicates in the new location (excluding current product)
+        let duplicate = null;
+        if (nuevaUbicacion === 'salon') {
+            duplicate = this.products.find(p => 
+                p.id !== this.currentEditId &&
+                p.nombre.toLowerCase() === nombre.toLowerCase()
+            );
+        } else {
+            duplicate = this.cocinaProducts.find(p => 
+                p.id !== this.currentEditId &&
+                p.nombre.toLowerCase() === nombre.toLowerCase()
+            );
+        }
 
         if (duplicate) {
             const alerta = document.getElementById('alerta-duplicado-edit');
             if (alerta) {
-                alerta.textContent = `¡Advertencia! Ya existe un producto con el nombre "${duplicate.nombre}"`;
+                alerta.textContent = `¡Advertencia! Ya existe un producto con el nombre "${duplicate.nombre}" en ${nuevaUbicacion === 'cocina' ? 'Cocina' : 'Salón'}`;
                 alerta.style.display = 'flex';
             }
             return;
         }
 
-        // Update product
-        const productIndex = this.products.findIndex(p => p.id === this.currentEditId);
+        // Find and update product
+        let productArray;
+        let otherArray;
+        
+        if (this.currentEditUbicacion === 'salon') {
+            productArray = this.products;
+            otherArray = this.cocinaProducts;
+        } else {
+            productArray = this.cocinaProducts;
+            otherArray = this.products;
+        }
+        
+        const productIndex = productArray.findIndex(p => p.id === this.currentEditId);
+        
         if (productIndex !== -1) {
-            this.products[productIndex] = {
-                ...this.products[productIndex],
-                nombre,
-                precio,
-                fechaActualizacion: new Date().toISOString()
-            };
-
+            const product = productArray[productIndex];
+            
+            // If location changed, move product to other array
+            if (this.currentEditUbicacion !== nuevaUbicacion) {
+                // Remove from current array
+                productArray.splice(productIndex, 1);
+                
+                // Add to new array
+                const updatedProduct = {
+                    ...product,
+                    nombre,
+                    precio,
+                    ubicacion: nuevaUbicacion,
+                    fechaActualizacion: new Date().toISOString()
+                };
+                
+                if (nuevaUbicacion === 'salon') {
+                    this.products.push(updatedProduct);
+                } else {
+                    this.cocinaProducts.push(updatedProduct);
+                }
+            } else {
+                // Just update in place
+                productArray[productIndex] = {
+                    ...productArray[productIndex],
+                    nombre,
+                    precio,
+                    fechaActualizacion: new Date().toISOString()
+                };
+            }
+            
             this.saveProducts();
             this.renderProducts();
             this.closeEditModal();
@@ -464,34 +652,67 @@ class ProductManager {
         }
     }
 
-    confirmDeleteProduct(productId) {
-        const product = this.products.find(p => p.id === productId);
+    confirmDeleteProduct(productId, ubicacion) {
+        let product;
+        if (ubicacion === 'salon') {
+            product = this.products.find(p => p.id === productId);
+        } else {
+            product = this.cocinaProducts.find(p => p.id === productId);
+        }
+        
         if (!product) return;
 
         // Usar el modal de confirmación existente del dashboard
         if (window.showConfirmationModal) {
             window.showConfirmationModal(
                 '¿Eliminar Producto?',
-                `¿Está seguro de eliminar el producto "${product.nombre}"? Esta acción no se puede deshacer.`,
+                `¿Está seguro de eliminar el producto "${product.nombre}" de ${ubicacion === 'cocina' ? 'Cocina' : 'Salón'}? Esta acción no se puede deshacer.`,
                 'warning',
-                () => this.deleteProduct(productId)
+                () => this.deleteProduct(productId, ubicacion)
             );
         } else {
             // Fallback si el modal no está disponible
-            if (confirm(`¿Está seguro de eliminar el producto "${product.nombre}"?`)) {
-                this.deleteProduct(productId);
+            if (confirm(`¿Está seguro de eliminar el producto "${product.nombre}" de ${ubicacion === 'cocina' ? 'Cocina' : 'Salón'}?`)) {
+                this.deleteProduct(productId, ubicacion);
             }
         }
     }
 
-    deleteProduct(productId) {
-        const productIndex = this.products.findIndex(p => p.id === productId);
+    deleteProduct(productId, ubicacion) {
+        let productArray;
+        
+        if (ubicacion === 'salon') {
+            productArray = this.products;
+        } else {
+            productArray = this.cocinaProducts;
+        }
+        
+        const productIndex = productArray.findIndex(p => p.id === productId);
         if (productIndex !== -1) {
-            this.products.splice(productIndex, 1);
+            productArray.splice(productIndex, 1);
             this.saveProducts();
             this.renderProducts();
             this.showAlert('Producto eliminado exitosamente', 'success');
         }
+    }
+
+    // Nuevo método para obtener productos por ubicación
+    getProductsByUbicacion(ubicacion) {
+        if (ubicacion === 'salon') {
+            return this.products;
+        } else {
+            return this.cocinaProducts;
+        }
+    }
+
+    // Método para sincronizar con otras secciones
+    syncProductsToSection(section) {
+        if (section === 'salon') {
+            return this.products;
+        } else if (section === 'cocina') {
+            return this.cocinaProducts;
+        }
+        return [];
     }
 }
 
@@ -501,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('productos-section')) {
         const productManager = new ProductManager();
         
-        // Make it available globally for debugging
+        // Make it available globally for other sections
         window.productManager = productManager;
     }
 });

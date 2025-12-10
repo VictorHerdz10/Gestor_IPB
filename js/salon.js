@@ -1,22 +1,20 @@
-// Control de Salón - VERSIÓN CORREGIDA
+// Control de Salón - VERSIÓN MEJORADA Y RESPONSIVA
 document.addEventListener('DOMContentLoaded', function() {
     // Elementos del DOM
     const salonTable = document.getElementById('salon-tbody');
     const salonSearch = document.getElementById('salon-search');
     const btnConfigurarSalida = document.getElementById('btn-configurar-salida');
     const btnFinalizarDia = document.getElementById('btn-finalizar-dia');
-    const btnGuardarEntrada = document.getElementById('btn-guardar-entrada');
-    const btnCancelarEntrada = document.getElementById('btn-cancelar-entrada');
-    const entradaForm = document.getElementById('entrada-form');
-    const selectProducto = document.getElementById('select-producto');
-    const entradaCantidad = document.getElementById('entrada-cantidad');
+    const btnSincronizarProductos = document.getElementById('btn-sincronizar-productos');
+    const btnSincronizarEmpty = document.getElementById('btn-sincronizar-empty');
     const salonEmptyState = document.getElementById('salon-empty-state');
+    const saveIndicator = document.getElementById('save-indicator');
     
     // Variables de estado
     let salonData = [];
     let productos = [];
     let autoSaveTimer = null;
-    let lastSaveTime = null;
+    let editingFinalEnabled = false;
     
     // Inicializar
     initSalon();
@@ -47,22 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Ordenar alfabéticamente
             productos.sort((a, b) => a.nombre.localeCompare(b.nombre));
-            
-            actualizarSelectProductos();
             resolve();
-        });
-    }
-    
-    function actualizarSelectProductos() {
-        if (!selectProducto) return;
-        
-        selectProducto.innerHTML = '<option value="">Seleccionar producto...</option>';
-        
-        productos.forEach(producto => {
-            const option = document.createElement('option');
-            option.value = producto.id;
-            option.textContent = `${producto.nombre} - $${producto.precio.toFixed(2)}`;
-            selectProducto.appendChild(option);
         });
     }
     
@@ -81,18 +64,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     precio: producto.precio,
                     inicio: 0,
                     entrada: 0,
-                    venta: 0,      // Calculado automáticamente
+                    venta: 0,
                     final: 0,
-                    vendido: 0,    // Calculado automáticamente
-                    importe: 0,    // Calculado automáticamente
+                    vendido: 0,
+                    importe: 0,
                     historial: [],
-                    ultimaActualizacion: new Date().toISOString()
+                    ultimaActualizacion: obtenerHoraActual()
                 }));
                 console.log('Datos iniciales creados:', salonData);
             }
             
-            // Asegurar que todos los productos existan en salonData
+            // Sincronizar con productos actuales
             sincronizarConProductos();
+            
+            // Asegurar que final tenga un valor inicial válido
+            actualizarFinalesIniciales();
+            
             resolve();
         });
     }
@@ -115,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     vendido: 0,
                     importe: 0,
                     historial: [],
-                    ultimaActualizacion: new Date().toISOString()
+                    ultimaActualizacion: obtenerHoraActual()
                 });
                 console.log('Producto agregado al salón:', producto.nombre);
             }
@@ -130,6 +117,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (productoActual) {
                 item.nombre = productoActual.nombre;
                 item.precio = productoActual.precio;
+            }
+        });
+    }
+    
+    function actualizarFinalesIniciales() {
+        salonData.forEach(producto => {
+            // Si el final es 0 y no estamos en modo edición, establecerlo igual a venta
+            if (producto.final === 0 && producto.venta > 0) {
+                producto.final = producto.venta;
+                console.log(`Final inicializado para ${producto.nombre}: ${producto.final}`);
             }
         });
     }
@@ -157,34 +154,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function crearFilaProducto(producto, index) {
         const row = document.createElement('tr');
         row.dataset.id = producto.id;
+        row.dataset.index = index;
         
-        // CALCULOS CORREGIDOS:
-        // venta = inicio + entrada
-        const venta = producto.inicio + producto.entrada;
+        // Calcular valores automáticamente
+        recalcularProducto(producto);
         
-        // vendido = venta - final (no puede ser negativo)
-        const vendido = Math.max(0, venta - producto.final);
+        // Determinar el valor a mostrar en el campo final
+        let valorFinal = producto.final;
         
-        // importe = vendido * precio
-        const importe = vendido * producto.precio;
-        
-        // Actualizar objeto producto con cálculos
-        producto.venta = venta;
-        producto.vendido = vendido;
-        producto.importe = importe;
-        
-        // Formatear hora de última actualización
-        const horaActualizacion = producto.ultimaActualizacion 
-            ? new Date(producto.ultimaActualizacion).toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit'
-            })
-            : '--:--';
+        // Si el modo de edición está deshabilitado Y el final es 0 Y hay ventas disponibles
+        // Mostrar el total de ventas como valor inicial
+        if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
+            valorFinal = producto.venta;
+        }
         
         row.innerHTML = `
             <td class="producto-cell">
                 <span class="product-name">${producto.nombre}</span>
-                <small class="product-update-time">${horaActualizacion}</small>
             </td>
             <td class="numeric-cell currency-cell">
                 <span class="price-display">$${producto.precio.toFixed(2)}</span>
@@ -196,7 +182,8 @@ document.addEventListener('DOMContentLoaded', function() {
                        data-field="inicio" 
                        data-id="${producto.id}"
                        class="editable-input inicio-input"
-                       placeholder="0">
+                       placeholder="0"
+                       autocomplete="off">
             </td>
             <td class="numeric-cell">
                 <input type="number" 
@@ -205,38 +192,33 @@ document.addEventListener('DOMContentLoaded', function() {
                        data-field="entrada" 
                        data-id="${producto.id}"
                        class="editable-input entrada-input"
-                       placeholder="0">
+                       placeholder="0"
+                       autocomplete="off">
             </td>
-            <td class="calculated-cell">
-                <span class="venta-display">${venta}</span>
+            <td class="calculated-cell venta-cell">
+                <span class="venta-display">${producto.venta}</span>
             </td>
             <td class="numeric-cell">
                 <input type="number" 
                        min="0" 
-                       value="${producto.final}" 
+                       value="${valorFinal}" 
                        data-field="final" 
                        data-id="${producto.id}"
-                       class="editable-input final-input"
-                       placeholder="0">
+                       class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
+                       placeholder="0"
+                       autocomplete="off"
+                       ${!editingFinalEnabled ? 'disabled' : ''}>
             </td>
-            <td class="calculated-cell">
-                <span class="vendido-display">${vendido}</span>
+            <td class="calculated-cell vendido-cell">
+                <span class="vendido-display">${producto.vendido}</span>
             </td>
-            <td class="currency-cell">
-                <span class="importe-display">$${importe.toFixed(2)}</span>
-            </td>
-            <td class="actions-cell">
-                <button class="btn-action btn-entrada" 
-                        data-id="${producto.id}"
-                        title="Registrar entrada rápida">
-                    <i class="fas fa-plus"></i>
-                    <span class="btn-text">Entrada</span>
-                </button>
+            <td class="currency-cell importe-cell">
+                <span class="importe-display">$${producto.importe.toFixed(2)}</span>
             </td>
         `;
         
         // Agregar event listeners a los inputs editables
-        const inputs = row.querySelectorAll('.editable-input');
+        const inputs = row.querySelectorAll('.editable-input:not(:disabled)');
         inputs.forEach(input => {
             // Guardar valor anterior para comparación
             input.dataset.oldValue = input.value;
@@ -244,6 +226,12 @@ document.addEventListener('DOMContentLoaded', function() {
             input.addEventListener('focus', function() {
                 this.dataset.oldValue = this.value;
                 this.classList.add('focus');
+                
+                // Si es un campo final y está deshabilitado pero se va a habilitar
+                if (this.dataset.field === 'final' && this.disabled && editingFinalEnabled) {
+                    this.disabled = false;
+                    this.classList.add('editing-enabled');
+                }
             });
             
             input.addEventListener('blur', function() {
@@ -257,6 +245,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Programar guardado automático
                     programarAutoSave();
+                    
+                    // Efecto visual
+                    setTimeout(() => {
+                        this.classList.remove('edited');
+                    }, 1000);
+                }
+            });
+            
+            input.addEventListener('input', function() {
+                // Actualizar en tiempo real para los campos de inicio y entrada
+                const field = this.dataset.field;
+                if (field === 'inicio' || field === 'entrada') {
+                    actualizarProductoDesdeInput(this, true);
                 }
             });
             
@@ -267,79 +268,103 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         
-        // Botón de entrada rápida
-        const btnEntrada = row.querySelector('.btn-entrada');
-        btnEntrada.addEventListener('click', function() {
-            const id = parseInt(this.dataset.id);
-            mostrarFormEntrada(id);
-        });
-        
         return row;
     }
     
-    function actualizarProductoDesdeInput(input) {
+    function recalcularProducto(producto) {
+        // CORREGIDO: venta = inicio + entrada (total disponible para vender)
+        producto.venta = producto.inicio + producto.entrada;
+        
+        // Si el final no ha sido establecido y hay ventas disponibles, establecerlo igual a venta
+        if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
+            producto.final = producto.venta;
+        }
+        
+        // CORREGIDO: vendido = venta - final (lo que se vendió)
+        producto.vendido = Math.max(0, producto.venta - producto.final);
+        
+        // CORREGIDO: importe = vendido * precio
+        producto.importe = producto.vendido * producto.precio;
+        
+        return producto;
+    }
+    
+    function actualizarProductoDesdeInput(input, realTime = false) {
         const id = parseInt(input.dataset.id);
         const field = input.dataset.field;
         const value = parseInt(input.value) || 0;
         
         const productoIndex = salonData.findIndex(p => p.id === id);
         if (productoIndex !== -1) {
-            // Registrar cambio en historial
-            const oldValue = salonData[productoIndex][field];
+            const producto = salonData[productoIndex];
+            const oldValue = producto[field];
             
             if (value !== oldValue) {
-                salonData[productoIndex][field] = value;
-                salonData[productoIndex].ultimaActualizacion = new Date().toISOString();
+                // Actualizar valor
+                producto[field] = value;
+                producto.ultimaActualizacion = obtenerHoraActual();
+                
+                // Recalcular todos los valores derivados
+                recalcularProducto(producto);
                 
                 // Agregar al historial
-                salonData[productoIndex].historial.push({
+                producto.historial.push({
                     fecha: new Date().toISOString(),
+                    hora: obtenerHoraActual(),
                     campo: field,
                     valorAnterior: oldValue,
                     valorNuevo: value,
-                    hora: new Date().toLocaleTimeString('es-ES')
+                    accion: 'modificación'
                 });
                 
-                console.log(`Producto ${id} actualizado: ${field} = ${value}`);
+                // Actualizar UI si es en tiempo real
+                if (realTime) {
+                    actualizarFilaUI(id);
+                } else {
+                    // Si no es tiempo real, actualizar toda la fila
+                    actualizarFilaCompleta(id);
+                }
                 
-                // Recalcular toda la fila
-                recalcularFila(id);
+                console.log(`Producto ${id} actualizado: ${field} = ${value}`, {
+                    venta: producto.venta,
+                    final: producto.final,
+                    vendido: producto.vendido,
+                    importe: producto.importe
+                });
             }
         }
     }
     
-    function recalcularFila(productoId) {
+    function actualizarFilaUI(productoId) {
         const producto = salonData.find(p => p.id === productoId);
         if (!producto) return;
         
         const row = document.querySelector(`tr[data-id="${productoId}"]`);
         if (!row) return;
         
-        // Recalcular valores
-        const venta = producto.inicio + producto.entrada;
-        const vendido = Math.max(0, venta - producto.final);
-        const importe = vendido * producto.precio;
-        
-        // Actualizar producto
-        producto.venta = venta;
-        producto.vendido = vendido;
-        producto.importe = importe;
-        
-        // Actualizar UI
+        // Actualizar solo los valores calculados
         const ventaDisplay = row.querySelector('.venta-display');
         const vendidoDisplay = row.querySelector('.vendido-display');
         const importeDisplay = row.querySelector('.importe-display');
-        const updateTime = row.querySelector('.product-update-time');
         
-        if (ventaDisplay) ventaDisplay.textContent = venta;
-        if (vendidoDisplay) vendidoDisplay.textContent = vendido;
-        if (importeDisplay) importeDisplay.textContent = `$${importe.toFixed(2)}`;
-        if (updateTime) {
-            updateTime.textContent = new Date().toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
+        if (ventaDisplay) ventaDisplay.textContent = producto.venta;
+        if (vendidoDisplay) vendidoDisplay.textContent = producto.vendido;
+        if (importeDisplay) importeDisplay.textContent = `$${producto.importe.toFixed(2)}`;
+        
+        // Actualizar resumen general
+        actualizarResumen();
+    }
+    
+    function actualizarFilaCompleta(productoId) {
+        const productoIndex = salonData.findIndex(p => p.id === productoId);
+        if (productoIndex === -1) return;
+        
+        const row = document.querySelector(`tr[data-id="${productoId}"]`);
+        if (!row) return;
+        
+        // Reemplazar la fila completa
+        const newRow = crearFilaProducto(salonData[productoIndex], productoIndex);
+        row.parentNode.replaceChild(newRow, row);
         
         // Actualizar resumen general
         actualizarResumen();
@@ -351,21 +376,18 @@ document.addEventListener('DOMContentLoaded', function() {
             clearTimeout(autoSaveTimer);
         }
         
-        // Programar nuevo guardado en 2 segundos
+        // Programar nuevo guardado en 1.5 segundos
         autoSaveTimer = setTimeout(() => {
             guardarDatosSalon();
-        }, 2000);
+        }, 1500);
     }
     
     function guardarDatosSalon() {
         try {
             StorageManager.saveSalonData(salonData);
-            lastSaveTime = new Date();
-            
-            // Mostrar indicador de guardado
             mostrarIndicadorGuardado();
             
-            console.log('Datos guardados a las:', lastSaveTime.toLocaleTimeString());
+            console.log('Datos guardados a las:', obtenerHoraActual());
         } catch (error) {
             console.error('Error guardando datos:', error);
             showNotification('Error al guardar datos', 'error');
@@ -373,28 +395,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function mostrarIndicadorGuardado() {
-        const saveIndicator = document.createElement('div');
-        saveIndicator.className = 'save-indicator';
-        saveIndicator.innerHTML = `
-            <i class="fas fa-check-circle"></i>
-            <span>Guardado ${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'})}</span>
-        `;
+        if (!saveIndicator) return;
         
-        // Remover indicador anterior
-        const oldIndicator = document.querySelector('.save-indicator');
-        if (oldIndicator) oldIndicator.remove();
-        
-        // Agregar al contenedor
-        const container = document.querySelector('.salon-table-container');
-        if (container) {
-            container.appendChild(saveIndicator);
-            
-            // Remover después de 3 segundos
-            setTimeout(() => {
-                saveIndicator.classList.add('fade-out');
-                setTimeout(() => saveIndicator.remove(), 300);
-            }, 3000);
+        const saveTime = saveIndicator.querySelector('#save-time');
+        if (saveTime) {
+            saveTime.textContent = `Guardado ${obtenerHoraActual()}`;
         }
+        
+        saveIndicator.style.display = 'flex';
+        
+        // Ocultar después de 3 segundos
+        setTimeout(() => {
+            saveIndicator.classList.add('fade-out');
+            setTimeout(() => {
+                saveIndicator.style.display = 'none';
+                saveIndicator.classList.remove('fade-out');
+            }, 300);
+        }, 3000);
     }
     
     function actualizarResumen() {
@@ -405,13 +422,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Actualizar elementos del DOM
         const elementos = {
             'total-productos-salon': totalProductos,
-            'total-unidades-vendidas': totalUnidadesVendidas,
+            'total-unidades-vendidas': `${totalUnidadesVendidas} unidades`,
             'total-importe-salon': `$${totalImporte.toFixed(2)}`,
             'total-ventas-salon': `$${totalImporte.toFixed(2)}`,
-            'ultima-actualizacion': new Date().toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit'
-            })
+            'ultima-actualizacion': obtenerHoraActual()
         };
         
         Object.entries(elementos).forEach(([id, value]) => {
@@ -454,21 +468,48 @@ document.addEventListener('DOMContentLoaded', function() {
         // Configurar salida (final)
         if (btnConfigurarSalida) {
             btnConfigurarSalida.addEventListener('click', function() {
-                showConfirmationModal(
-                    'Configurar Salida Final',
-                    'Esta acción permitirá editar los valores de "Final" para todos los productos. ¿Continuar?',
-                    'info',
-                    function() {
-                        const finalInputs = document.querySelectorAll('.final-input');
-                        finalInputs.forEach(input => {
-                            input.classList.add('focus-final');
-                            input.style.backgroundColor = '#fff8e1';
-                            input.style.borderColor = '#ffb300';
-                        });
+                editingFinalEnabled = !editingFinalEnabled;
+                
+                if (editingFinalEnabled) {
+                    // Habilitar edición de finales
+                    const finalInputs = document.querySelectorAll('.final-input');
+                    finalInputs.forEach(input => {
+                        input.disabled = false;
+                        input.classList.add('editing-enabled');
                         
-                        showNotification('Modo edición de valores finales activado', 'info');
-                    }
-                );
+                        // Si el valor es 0, establecerlo igual al total de ventas
+                        if (parseInt(input.value) === 0) {
+                            const id = parseInt(input.dataset.id);
+                            const producto = salonData.find(p => p.id === id);
+                            if (producto && producto.venta > 0) {
+                                input.value = producto.venta;
+                                actualizarProductoDesdeInput(input, false);
+                            }
+                        }
+                    });
+                    
+                    this.innerHTML = '<i class="fas fa-times"></i><span class="btn-text">Cancelar Edición</span>';
+                    this.classList.remove('btn-warning');
+                    this.classList.add('btn-secondary');
+                    
+                    showNotification('Modo edición de valores finales activado', 'info');
+                } else {
+                    // Deshabilitar edición de finales
+                    const finalInputs = document.querySelectorAll('.final-input');
+                    finalInputs.forEach(input => {
+                        input.disabled = true;
+                        input.classList.remove('editing-enabled');
+                    });
+                    
+                    this.innerHTML = '<i class="fas fa-sliders-h"></i><span class="btn-text">Editar Final</span>';
+                    this.classList.remove('btn-secondary');
+                    this.classList.add('btn-warning');
+                    
+                    showNotification('Modo edición desactivado', 'info');
+                }
+                
+                // Actualizar tabla para reflejar cambios
+                actualizarTabla();
             });
         }
         
@@ -480,10 +521,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     '¿Estás seguro de finalizar el día? Se calcularán automáticamente los productos vendidos.',
                     'warning',
                     function() {
-                        // Calcular automáticamente los vendidos
+                        // Recalcular todos los productos
                         salonData.forEach(producto => {
-                            producto.vendido = Math.max(0, (producto.inicio + producto.entrada) - producto.final);
-                            producto.importe = producto.vendido * producto.precio;
+                            recalcularProducto(producto);
                         });
                         
                         // Guardar cambios
@@ -499,97 +539,43 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Entrada manual
-        if (btnGuardarEntrada) {
-            btnGuardarEntrada.addEventListener('click', function() {
-                const productoId = parseInt(selectProducto.value);
-                const cantidad = parseInt(entradaCantidad.value) || 0;
-                
-                if (!productoId) {
-                    showNotification('Selecciona un producto', 'error');
-                    return;
-                }
-                
-                if (cantidad <= 0) {
-                    showNotification('Ingresa una cantidad válida', 'error');
-                    entradaCantidad.focus();
-                    return;
-                }
-                
-                // Buscar producto
-                const productoIndex = salonData.findIndex(p => p.id === productoId);
-                if (productoIndex === -1) {
-                    showNotification('Producto no encontrado', 'error');
-                    return;
-                }
-                
-                // Registrar entrada
-                const hora = new Date().toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                salonData[productoIndex].entrada += cantidad;
-                salonData[productoIndex].ultimaActualizacion = new Date().toISOString();
-                
-                // Agregar al historial
-                salonData[productoIndex].historial.push({
-                    fecha: new Date().toISOString(),
-                    tipo: 'entrada',
-                    cantidad: cantidad,
-                    hora: hora,
-                    descripcion: `Entrada manual: ${cantidad} unidades`
-                });
-                
-                // Actualizar interfaz
-                actualizarTabla();
-                guardarDatosSalon();
-                actualizarResumen();
-                
-                // Limpiar formulario
-                selectProducto.value = '';
-                entradaCantidad.value = '';
-                entradaForm.style.display = 'none';
-                
-                showNotification(`Entrada de ${cantidad} unidades registrada (${hora})`, 'success');
+        // Sincronizar productos
+        if (btnSincronizarProductos) {
+            btnSincronizarProductos.addEventListener('click', function() {
+                sincronizarProductos();
             });
         }
         
-        // Cancelar entrada
-        if (btnCancelarEntrada) {
-            btnCancelarEntrada.addEventListener('click', function() {
-                selectProducto.value = '';
-                entradaCantidad.value = '';
-                entradaForm.style.display = 'none';
+        if (btnSincronizarEmpty) {
+            btnSincronizarEmpty.addEventListener('click', function() {
+                sincronizarProductos();
             });
         }
     }
     
-    function mostrarFormEntrada(productoId) {
-        if (!entradaForm) return;
+    function sincronizarProductos() {
+        console.log('Sincronizando salón con productos...');
+        cargarProductos();
+        sincronizarConProductos();
+        actualizarFinalesIniciales();
+        actualizarTabla();
+        guardarDatosSalon();
+        actualizarResumen();
         
-        selectProducto.value = productoId;
-        entradaCantidad.value = '';
-        entradaForm.style.display = 'block';
-        
-        // Enfocar el input de cantidad
-        setTimeout(() => {
-            if (entradaCantidad) entradaCantidad.focus();
-        }, 100);
+        showNotification('Salón sincronizado con productos actualizados', 'success');
     }
     
     function mostrarCargando() {
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'loading-state';
-        loadingDiv.innerHTML = `
-            <i class="fas fa-spinner"></i>
-            <p>Cargando datos del salón...</p>
-        `;
+        if (!salonTable) return;
         
-        if (salonTable) {
-            salonTable.innerHTML = '';
-            salonTable.appendChild(loadingDiv);
-        }
+        salonTable.innerHTML = `
+            <tr>
+                <td colspan="8" class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando datos del salón...</p>
+                </td>
+            </tr>
+        `;
     }
     
     function ocultarCargando() {
@@ -597,17 +583,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (loadingDiv) loadingDiv.remove();
     }
     
+    function obtenerHoraActual() {
+        const now = new Date();
+        return now.toLocaleString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    }
+    
     // Funciones disponibles globalmente
-    window.actualizarSalonDesdeProductos = function() {
-        console.log('Sincronizando salón con productos...');
-        cargarProductos();
-        sincronizarConProductos();
-        actualizarTabla();
-        guardarDatosSalon();
-        actualizarResumen();
-        
-        showNotification('Salón sincronizado con productos actualizados', 'success');
-    };
+    window.actualizarSalonDesdeProductos = sincronizarProductos;
     
     window.getSalonVentasTotal = function() {
         return salonData.reduce((sum, p) => sum + p.importe, 0);
@@ -622,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function() {
             producto.vendido = 0;
             producto.importe = 0;
             producto.historial = [];
-            producto.ultimaActualizacion = new Date().toISOString();
+            producto.ultimaActualizacion = obtenerHoraActual();
         });
         
         guardarDatosSalon();

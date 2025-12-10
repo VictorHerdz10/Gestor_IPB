@@ -3,6 +3,7 @@ const StorageManager = {
     // Claves para localStorage
     KEYS: {
         PRODUCTS: 'ipb_products',
+        COCINA_PRODUCTS: 'ipb_cocina_products', // NUEVA
         SALON: 'ipb_salon',
         COCINA: 'ipb_cocina',
         CONSUMO: 'ipb_consumo_data',
@@ -19,6 +20,23 @@ const StorageManager = {
     getProducts() {
         const products = localStorage.getItem(this.KEYS.PRODUCTS);
         return products ? JSON.parse(products) : [];
+    },
+    
+    // Productos de Cocina (NUEVO)
+    saveCocinaProducts(products) {
+        localStorage.setItem(this.KEYS.COCINA_PRODUCTS, JSON.stringify(products));
+    },
+    
+    getCocinaProducts() {
+        const products = localStorage.getItem(this.KEYS.COCINA_PRODUCTS);
+        return products ? JSON.parse(products) : [];
+    },
+    
+    // Obtener todos los productos (ambos tipos)
+    getAllProducts() {
+        const salonProducts = this.getProducts();
+        const cocinaProducts = this.getCocinaProducts();
+        return [...salonProducts, ...cocinaProducts];
     },
     
     // Salón
@@ -89,12 +107,14 @@ const StorageManager = {
         localStorage.removeItem(this.KEYS.EXTRACCIONES);
         localStorage.removeItem(this.KEYS.TRANSFERENCIAS);
         localStorage.removeItem(this.KEYS.DAILY_DATA);
+        // NOTA: No limpiamos los productos, solo los datos del día
     },
     
     // Exportar todos los datos
     exportAllData() {
         const allData = {
             products: this.getProducts(),
+            cocinaProducts: this.getCocinaProducts(),
             salon: this.getSalonData(),
             cocina: this.getCocinaData(),
             consumo: this.getConsumoData(),
@@ -113,6 +133,7 @@ const StorageManager = {
             const data = JSON.parse(jsonString);
             
             if (data.products) this.saveProducts(data.products);
+            if (data.cocinaProducts) this.saveCocinaProducts(data.cocinaProducts);
             if (data.salon) this.saveSalonData(data.salon);
             if (data.cocina) this.saveCocinaData(data.cocina);
             if (data.consumo) this.saveConsumoData(data.consumo);
