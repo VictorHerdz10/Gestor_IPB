@@ -1,10 +1,9 @@
-// Control de Cocina - VERSIÓN CORREGIDA
+// Control de Cocina - VERSIÓN MEJORADA (similar a salón pero con agregos)
 document.addEventListener('DOMContentLoaded', function() {
     // Elementos del DOM
     const cocinaTable = document.getElementById('cocina-tbody');
     const cocinaSearch = document.getElementById('cocina-search');
-    const btnAgregarAgrego = document.getElementById('btn-agregar-agrego');
-    const btnAgregarAgregoTop = document.getElementById('btn-agregar-agrego-top');
+    const btnEditarFinalCocina = document.getElementById('btn-agregar-agrego'); // Cambiado a editar final
     const btnFinalizarDiaCocina = document.getElementById('btn-finalizar-dia-cocina');
     const btnSincronizarProductosCocina = document.getElementById('btn-sincronizar-productos-cocina');
     const btnSincronizarEmptyCocina = document.getElementById('btn-sincronizar-empty-cocina');
@@ -15,18 +14,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnIrProductos = document.getElementById('btn-ir-productos');
     const btnCrearProductoCocina = document.getElementById('btn-crear-producto-cocina');
     
-    // Elementos de agregos
+    // Elementos de agregos (mantenidos)
     const agregoForm = document.getElementById('agrego-form');
     const btnCancelarAgrego = document.getElementById('btn-cancelar-agrego');
     const formNuevoAgrego = document.getElementById('form-nuevo-agrego');
     const listaAgregos = document.getElementById('lista-agregos');
+    const btnAgregarAgregoTop = document.getElementById('btn-agregar-agrego-top');
     
     // Variables de estado
     let cocinaData = [];
     let productosCocina = [];
     let agregos = [];
     let autoSaveTimer = null;
-    
+    let editingFinalEnabled = false; // Similar a salón
+
     // Inicializar
     initCocina();
     
@@ -114,8 +115,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     precio: producto.precio,
                     inicio: 0,
                     entrada: 0,
-                    venta: producto.inicio + producto.entrada, // venta = inicio + entrada
-                    final: producto.inicio + producto.entrada, // final inicia igual a venta (no vendido)
+                    venta: 0,
+                    final: 0,
                     vendido: 0,
                     importe: 0,
                     historial: [],
@@ -187,8 +188,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Calcular valores automáticamente
         recalcularProductoCocina(producto);
         
-        // Deshabilitar campo final inicialmente (solo se habilita al finalizar día)
-        const finalDisabled = producto.final === producto.venta; // Si son iguales, está deshabilitado
+        // Determinar el valor a mostrar en el campo final
+        let valorFinal = producto.final;
+        
+        // Si el modo de edición está deshabilitado Y el final es 0 Y hay ventas disponibles
+        if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
+            valorFinal = producto.venta;
+        }
         
         row.innerHTML = `
             <td class="producto-cell">
@@ -223,13 +229,13 @@ document.addEventListener('DOMContentLoaded', function() {
             <td class="numeric-cell">
                 <input type="number" 
                        min="0" 
-                       value="${producto.final}" 
+                       value="${valorFinal}" 
                        data-field="final" 
                        data-id="${producto.id}"
-                       class="editable-input final-input ${finalDisabled ? 'disabled-field' : ''}"
+                       class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
                        placeholder="0"
                        autocomplete="off"
-                       ${finalDisabled ? 'disabled' : ''}>
+                       ${!editingFinalEnabled ? 'disabled' : ''}>
             </td>
             <td class="calculated-cell vendido-cell">
                 <span class="vendido-display">${producto.vendido}</span>
@@ -253,6 +259,12 @@ document.addEventListener('DOMContentLoaded', function() {
             input.addEventListener('focus', function() {
                 this.dataset.oldValue = this.value;
                 this.classList.add('focus');
+                
+                // Si es un campo final y está deshabilitado pero se va a habilitar
+                if (this.dataset.field === 'final' && this.disabled && editingFinalEnabled) {
+                    this.disabled = false;
+                    this.classList.add('editing-enabled');
+                }
             });
             
             input.addEventListener('blur', function() {
@@ -294,7 +306,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // venta = inicio + entrada
         producto.venta = producto.inicio + producto.entrada;
         
-        // vendido = venta - final (no puede ser negativo)
+        // Si el final no ha sido establecido y hay ventas disponibles, establecerlo igual a venta
+        if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
+            producto.final = producto.venta;
+        }
+        
+        // vendido = venta - final
         producto.vendido = Math.max(0, producto.venta - producto.final);
         
         // importe = vendido * precio
@@ -317,12 +334,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Actualizar valor
                 producto[field] = value;
                 producto.ultimaActualizacion = obtenerHoraActual();
-                
-                // Si es inicio o entrada, actualizar venta y final automáticamente
-                if (field === 'inicio' || field === 'entrada') {
-                    producto.venta = producto.inicio + producto.entrada;
-                    producto.final = producto.venta; // Final se mantiene igual a venta
-                }
                 
                 // Recalcular todos los valores derivados
                 recalcularProductoCocina(producto);
@@ -360,16 +371,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const ventaDisplay = row.querySelector('.venta-display');
         const vendidoDisplay = row.querySelector('.vendido-display');
         const importeDisplay = row.querySelector('.importe-display');
-        const finalInput = row.querySelector('.final-input');
         
         if (ventaDisplay) ventaDisplay.textContent = producto.venta;
         if (vendidoDisplay) vendidoDisplay.textContent = producto.vendido;
         if (importeDisplay) importeDisplay.textContent = `$${producto.importe.toFixed(2)}`;
-        
-        // Actualizar valor del campo final (pero mantener disabled si corresponde)
-        if (finalInput) {
-            finalInput.value = producto.final;
-        }
         
         // Actualizar resumen general
         actualizarResumenCocina();
@@ -444,25 +449,51 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Agregar agrego
-        if (btnAgregarAgrego) {
-            btnAgregarAgrego.addEventListener('click', mostrarFormularioAgrego);
-        }
-        
-        if (btnAgregarAgregoTop) {
-            btnAgregarAgregoTop.addEventListener('click', mostrarFormularioAgrego);
-        }
-        
-        // Cancelar agrego
-        if (btnCancelarAgrego) {
-            btnCancelarAgrego.addEventListener('click', ocultarFormularioAgrego);
-        }
-        
-        // Formulario de agrego
-        if (formNuevoAgrego) {
-            formNuevoAgrego.addEventListener('submit', function(e) {
-                e.preventDefault();
-                agregarNuevoAgrego();
+        // Editar final (similar a salón)
+        if (btnEditarFinalCocina) {
+            btnEditarFinalCocina.addEventListener('click', function() {
+                editingFinalEnabled = !editingFinalEnabled;
+                
+                if (editingFinalEnabled) {
+                    // Habilitar edición de finales
+                    const finalInputs = document.querySelectorAll('#cocina-tbody .final-input');
+                    finalInputs.forEach(input => {
+                        input.disabled = false;
+                        input.classList.add('editing-enabled');
+                        
+                        // Si el valor es 0, establecerlo igual al total de ventas
+                        if (parseInt(input.value) === 0) {
+                            const id = parseInt(input.dataset.id);
+                            const producto = cocinaData.find(p => p.id === id);
+                            if (producto && producto.venta > 0) {
+                                input.value = producto.venta;
+                                actualizarProductoCocinaDesdeInput(input, false);
+                            }
+                        }
+                    });
+                    
+                    this.innerHTML = '<i class="fas fa-times"></i><span class="btn-text">Cancelar Edición</span>';
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-secondary');
+                    
+                    showNotification('Modo edición de valores finales activado en cocina', 'info');
+                } else {
+                    // Deshabilitar edición de finales
+                    const finalInputs = document.querySelectorAll('#cocina-tbody .final-input');
+                    finalInputs.forEach(input => {
+                        input.disabled = true;
+                        input.classList.remove('editing-enabled');
+                    });
+                    
+                    this.innerHTML = '<i class="fas fa-sliders-h"></i><span class="btn-text">Editar Final</span>';
+                    this.classList.remove('btn-secondary');
+                    this.classList.add('btn-primary');
+                    
+                    showNotification('Modo edición desactivado en cocina', 'info');
+                }
+                
+                // Actualizar tabla para reflejar cambios
+                actualizarTablaCocina();
             });
         }
         
@@ -471,13 +502,12 @@ document.addEventListener('DOMContentLoaded', function() {
             btnFinalizarDiaCocina.addEventListener('click', function() {
                 showConfirmationModal(
                     'Finalizar Día en Cocina',
-                    '¿Estás seguro de finalizar el día en cocina? Se habilitarán los campos "Final" para registrar lo que queda.',
+                    '¿Estás seguro de finalizar el día en cocina? Se calcularán automáticamente los productos vendidos.',
                     'warning',
                     function() {
-                        // Habilitar campos final para todos los productos
+                        // Recalcular todos los productos
                         cocinaData.forEach(producto => {
-                            // Mantener el valor actual de final, pero habilitar el campo
-                            producto.ultimaActualizacion = obtenerHoraActual();
+                            recalcularProductoCocina(producto);
                         });
                         
                         // Guardar cambios
@@ -487,7 +517,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         actualizarTablaCocina();
                         actualizarResumenCocina();
                         
-                        showNotification('Día en cocina finalizado. Ahora puedes registrar el inventario final.', 'success');
+                        showNotification('Día en cocina finalizado correctamente', 'success');
                     }
                 );
             });
@@ -501,25 +531,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         showNotification('No hay productos en la cocina. Agrega productos primero.', 'warning');
                         verificarProductosCocina();
                     } else {
-                        // Crear datos para productos nuevos
-                        productosCocina.forEach(producto => {
-                            const existe = cocinaData.some(p => p.id === producto.id);
-                            if (!existe) {
-                                cocinaData.push({
-                                    id: producto.id,
-                                    nombre: producto.nombre,
-                                    precio: producto.precio,
-                                    inicio: 0,
-                                    entrada: 0,
-                                    venta: 0,
-                                    final: 0,
-                                    vendido: 0,
-                                    importe: 0,
-                                    historial: [],
-                                    ultimaActualizacion: obtenerHoraActual()
-                                });
-                            }
-                        });
+                        // Sincronizar con productos actuales
+                        sincronizarConProductosCocina();
                         
                         // Guardar y actualizar
                         guardarDatosCocina();
@@ -537,25 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnSincronizarEmptyCocina.addEventListener('click', function() {
                 cargarProductosCocina().then(() => {
                     if (productosCocina.length > 0) {
-                        // Similar a la función anterior
-                        productosCocina.forEach(producto => {
-                            const existe = cocinaData.some(p => p.id === producto.id);
-                            if (!existe) {
-                                cocinaData.push({
-                                    id: producto.id,
-                                    nombre: producto.nombre,
-                                    precio: producto.precio,
-                                    inicio: 0,
-                                    entrada: 0,
-                                    venta: 0,
-                                    final: 0,
-                                    vendido: 0,
-                                    importe: 0,
-                                    historial: [],
-                                    ultimaActualizacion: obtenerHoraActual()
-                                });
-                            }
-                        });
+                        sincronizarConProductosCocina();
                         
                         guardarDatosCocina();
                         verificarProductosCocina();
@@ -588,145 +583,70 @@ document.addEventListener('DOMContentLoaded', function() {
                 showModalCrearProductoCocina();
             });
         }
-    }
-    
-    function showModalCrearProductoCocina() {
-        const modalHTML = `
-            <div class="modal" id="modal-crear-producto-cocina">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-plus"></i> Crear Producto en Cocina</h3>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-container">
-                            <div class="form-group">
-                                <label for="nuevo-producto-cocina-nombre">
-                                    <i class="fas fa-tag"></i> Nombre del Producto *
-                                </label>
-                                <input type="text" id="nuevo-producto-cocina-nombre" 
-                                       placeholder="Ej: Pizza, Hamburguesa, Sopa..." required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="nuevo-producto-cocina-precio">
-                                    <i class="fas fa-dollar-sign"></i> Precio *
-                                </label>
-                                <input type="number" id="nuevo-producto-cocina-precio" 
-                                       placeholder="0.00" step="1.00" min="0" required>
-                            </div>
-                            
-                            <div class="alert alert-warning" style="margin: 10px 0;">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Este producto se agregará directamente a la cocina</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" id="btn-cancelar-crear-cocina">Cancelar</button>
-                        <button class="btn btn-primary" id="btn-crear-producto-cocina-confirm">
-                            <i class="fas fa-save"></i> Crear Producto
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
         
-        const modalContainer = document.createElement('div');
-        modalContainer.innerHTML = modalHTML;
-        document.body.appendChild(modalContainer);
-        
-        const modal = document.getElementById('modal-crear-producto-cocina');
-        modal.style.display = 'flex';
-        
-        function cerrarModal() {
-            modal.style.display = 'none';
-            setTimeout(() => {
-                modalContainer.remove();
-            }, 300);
+        // Agregar agrego (mantenido)
+        if (btnAgregarAgregoTop) {
+            btnAgregarAgregoTop.addEventListener('click', mostrarFormularioAgrego);
         }
         
-        document.getElementById('btn-cancelar-crear-cocina').addEventListener('click', cerrarModal);
-        modal.querySelector('.modal-close').addEventListener('click', cerrarModal);
+        // Cancelar agrego
+        if (btnCancelarAgrego) {
+            btnCancelarAgrego.addEventListener('click', ocultarFormularioAgrego);
+        }
         
-        document.getElementById('btn-crear-producto-cocina-confirm').addEventListener('click', function() {
-            const nombre = document.getElementById('nuevo-producto-cocina-nombre').value.trim();
-            const precio = parseFloat(document.getElementById('nuevo-producto-cocina-precio').value) || 0;
-            
-            if (!nombre) {
-                showNotification('El nombre del producto es requerido', 'error');
-                return;
-            }
-            
-            if (precio <= 0) {
-                showNotification('El precio debe ser mayor a 0', 'error');
-                return;
-            }
-            
-            // Verificar si ya existe en productos de cocina
-            if (productosCocina.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
-                showNotification('Ya existe un producto con ese nombre en cocina', 'warning');
-                return;
-            }
-            
-            // Crear nuevo producto
-            const nuevoProducto = {
-                id: Date.now(),
-                nombre: nombre,
-                precio: precio,
-                ubicacion: 'cocina',
-                fechaCreacion: new Date().toISOString(),
-                fechaActualizacion: new Date().toISOString()
-            };
-            
-            // Agregar a productosCocina
-            productosCocina.push(nuevoProducto);
-            productosCocina.sort((a, b) => a.nombre.localeCompare(b.nombre));
-            
-            // Guardar en localStorage
-            localStorage.setItem('ipb_cocina_products', JSON.stringify(productosCocina));
-            
-            // Agregar a cocinaData
-            cocinaData.push({
-                id: nuevoProducto.id,
-                nombre: nuevoProducto.nombre,
-                precio: nuevoProducto.precio,
-                inicio: 0,
-                entrada: 0,
-                venta: 0,
-                final: 0,
-                vendido: 0,
-                importe: 0,
-                historial: [],
-                ultimaActualizacion: obtenerHoraActual()
+        // Formulario de agrego
+        if (formNuevoAgrego) {
+            formNuevoAgrego.addEventListener('submit', function(e) {
+                e.preventDefault();
+                agregarNuevoAgrego();
             });
-            
-            // Guardar y actualizar
-            guardarDatosCocina();
-            verificarProductosCocina();
-            actualizarTablaCocina();
-            actualizarResumenCocina();
-            
-            cerrarModal();
-            showNotification('Producto creado en cocina exitosamente', 'success');
+        }
+    }
+    
+    function sincronizarConProductosCocina() {
+        const productosIds = productosCocina.map(p => p.id);
+        const cocinaIds = cocinaData.map(p => p.id);
+        
+        // Agregar productos nuevos
+        productosCocina.forEach(producto => {
+            if (!cocinaIds.includes(producto.id)) {
+                cocinaData.push({
+                    id: producto.id,
+                    nombre: producto.nombre,
+                    precio: producto.precio,
+                    inicio: 0,
+                    entrada: 0,
+                    venta: 0,
+                    final: 0,
+                    vendido: 0,
+                    importe: 0,
+                    historial: [],
+                    ultimaActualizacion: obtenerHoraActual()
+                });
+                console.log('Producto agregado a cocina:', producto.nombre);
+            }
         });
         
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                cerrarModal();
+        // Eliminar productos que ya no existen
+        cocinaData = cocinaData.filter(item => productosIds.includes(item.id));
+        
+        // Actualizar nombres y precios
+        cocinaData.forEach(item => {
+            const productoActual = productosCocina.find(p => p.id === item.id);
+            if (productoActual) {
+                item.nombre = productoActual.nombre;
+                item.precio = productoActual.precio;
             }
         });
     }
     
     function mostrarFormularioAgrego() {
         if (agregoForm) agregoForm.style.display = 'block';
-        if (btnAgregarAgrego) btnAgregarAgrego.style.display = 'none';
         if (btnAgregarAgregoTop) btnAgregarAgregoTop.style.display = 'none';
     }
     
     function ocultarFormularioAgrego() {
         if (agregoForm) agregoForm.style.display = 'none';
-        if (btnAgregarAgrego) btnAgregarAgrego.style.display = 'flex';
         if (btnAgregarAgregoTop) btnAgregarAgregoTop.style.display = 'flex';
         if (formNuevoAgrego) formNuevoAgrego.reset();
     }
@@ -889,7 +809,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return now.toLocaleTimeString('es-ES', { 
             hour: '2-digit', 
             minute: '2-digit',
-            hour12: false 
+            hour12: true 
         });
     }
     
@@ -933,12 +853,15 @@ document.addEventListener('DOMContentLoaded', function() {
             producto.inicio = producto.final; // El final del día anterior es el inicio del nuevo
             producto.entrada = 0;
             producto.venta = producto.inicio + producto.entrada;
-            producto.final = producto.venta; // Final inicia igual a venta (deshabilitado)
+            producto.final = 0; // Reiniciar final
             producto.vendido = 0;
             producto.importe = 0;
             producto.historial = [];
             producto.ultimaActualizacion = obtenerHoraActual();
         });
+        
+        // Desactivar modo edición
+        editingFinalEnabled = false;
         
         // Limpiar agregos del día anterior
         agregos = [];

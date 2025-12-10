@@ -485,8 +485,8 @@
                         <h2><i class="fas fa-fire"></i> Control de Cocina</h2>
                         <div class="section-controls">
                             <button class="btn btn-primary" id="btn-agregar-agrego">
-                                <i class="fas fa-plus"></i>
-                                <span class="btn-text">Nuevo Agrego</span>
+                                <i class="fas fa-sliders-h"></i>
+                                <span class="btn-text">Editar Final</span>
                             </button>
                             <button class="btn btn-success" id="btn-finalizar-dia-cocina">
                                 <i class="fas fa-flag-checkered"></i>
@@ -533,8 +533,8 @@
                             </div>
                         </div>
 
-                        <!-- Contenedor de tabla responsive -->
-                        <div class="cocina-table-wrapper">
+                        <!-- Contenedor de tabla responsive CON SCROLL -->
+                        <div class="cocina-table-wrapper" style="max-height: 400px; overflow-y: auto;">
                             <table class="cocina-table" id="cocina-table-main">
                                 <thead>
                                     <tr>
@@ -576,8 +576,8 @@
                         </div>
                     </div>
 
-                    <!-- Sección de Agregos -->
-                    <div class="agregos-section" id="agregos-section">
+                    <!-- Sección de Agregos (MANTENIDA) -->
+                    <div class="agregos-section" id="agregos-section" style="display: none;">
                         <div class="agregos-header">
                             <h3><i class="fas fa-plus-circle"></i> Agregos de Cocina</h3>
                             <button class="btn btn-primary" id="btn-agregar-agrego-top">
@@ -630,10 +630,10 @@
                             </div>
                         </div>
 
-                        <!-- Lista de Agregos -->
+                        <!-- Lista de Agregos CON SCROLL -->
                         <div class="agregos-list">
                             <h4>Agregos de Hoy</h4>
-                            <div id="lista-agregos">
+                            <div id="lista-agregos" style="max-height: 200px; overflow-y: auto;">
                                 <!-- Los agregos se mostrarán aquí -->
                                 <div class="empty-state-card">
                                     <i class="fas fa-plus-circle"></i>
@@ -648,7 +648,7 @@
                     </div>
 
                     <!-- Resumen de Cocina -->
-                    <div class="resumen-container" id="cocina-resumen">
+                    <div class="resumen-container" id="cocina-resumen" style="display: none;">
                         <div class="resumen-card">
                             <h3><i class="fas fa-chart-bar"></i> Resumen del Día - Cocina</h3>
                             <div class="resumen-grid">
