@@ -473,6 +473,7 @@ document.addEventListener('DOMContentLoaded', function () {
             bottom: 0;
             background: white;
             z-index: 1;
+            text-align:center;
             justify-content: space-between;
         }
         

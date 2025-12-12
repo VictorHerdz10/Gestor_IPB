@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let relacionesPanIngredientes = []; // Relaciones para panes con ingredientes
     let autoSaveTimer = null;
     let editingFinalEnabled = false;
+    let paginaActualCocina = 1;
+    let productosPorPaginaCocina = 10;
+    let datosFiltradosCocina = [];
 
     // Inicializar
     initCocina();
@@ -66,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 5. Recalcular todo
             recalcularDisponibilidad();
+            datosFiltradosCocina = [...cocinaData]; // Inicializar datos filtrados
             actualizarTablaCocina();
             actualizarResumenCocina();
             actualizarListaAgregos();
@@ -253,6 +257,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Recalcular disponibilidad
         recalcularDisponibilidad();
+        // Actualizar datos filtrados si hubo cambios
+        datosFiltradosCocina = [...cocinaData];
     }
     function guardarAgregos() {
         const today = getTodayDate();
@@ -278,16 +284,137 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (cocinaData.length === 0) {
             if (cocinaEmptyState) cocinaEmptyState.style.display = 'block';
+            actualizarControlesPaginacionCocina(); // Actualizar paginación
             return;
         }
 
         if (cocinaEmptyState) cocinaEmptyState.style.display = 'none';
 
-        cocinaData.forEach((producto, index) => {
-            const row = crearFilaProductoCocina(producto, index);
+        // Filtrar datos si hay búsqueda
+        const searchTerm = cocinaSearch ? cocinaSearch.value.toLowerCase().trim() : '';
+        datosFiltradosCocina = cocinaData.filter(producto =>
+            producto.nombre.toLowerCase().includes(searchTerm)
+        );
+
+        // Calcular índices para la paginación
+        const inicio = (paginaActualCocina - 1) * productosPorPaginaCocina;
+        const fin = paginaActualCocina * productosPorPaginaCocina;
+        const productosPagina = datosFiltradosCocina.slice(inicio, fin);
+
+        // Crear filas solo para los productos de esta página
+        productosPagina.forEach((producto, index) => {
+            const row = crearFilaProductoCocina(producto, inicio + index);
             cocinaTable.appendChild(row);
         });
+
+        // Actualizar controles de paginación
+        actualizarControlesPaginacionCocina();
+
+        console.log('Tabla cocina actualizada:', {
+            total: datosFiltradosCocina.length,
+            pagina: paginaActualCocina,
+            productosPorPagina: productosPorPaginaCocina,
+            mostrando: productosPagina.length
+        });
     }
+    function actualizarControlesPaginacionCocina() {
+        const paginacionContainer = document.getElementById('paginacion-cocina');
+        if (!paginacionContainer) return;
+
+        const totalProductos = datosFiltradosCocina.length;
+        const totalPaginas = Math.ceil(totalProductos / productosPorPaginaCocina);
+
+        // Si hay 0 productos o solo 1 página, ocultar paginación
+        if (totalProductos === 0 || totalPaginas <= 1) {
+            paginacionContainer.style.display = 'none';
+            return;
+        }
+
+        paginacionContainer.style.display = 'flex';
+
+        const inicio = Math.min((paginaActualCocina - 1) * productosPorPaginaCocina + 1, totalProductos);
+        const fin = Math.min(paginaActualCocina * productosPorPaginaCocina, totalProductos);
+
+        let html = `
+        <div class="paginacion-info">
+            <i class="fas fa-list-ol"></i>
+            <span>Mostrando ${inicio}-${fin} de ${totalProductos} productos</span>
+        </div>
+        
+        <div class="paginacion-controles">
+            <button class="btn-paginacion" onclick="cambiarPaginaCocina(${paginaActualCocina - 1})" ${paginaActualCocina === 1 ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left"></i>
+                <span>Anterior</span>
+            </button>
+            
+            <div class="paginacion-numeros">
+    `;
+
+        // Mostrar números de página con truncado inteligente
+        const paginasAMostrar = 5;
+        let inicioPaginas = Math.max(1, paginaActualCocina - Math.floor(paginasAMostrar / 2));
+        let finPaginas = Math.min(totalPaginas, inicioPaginas + paginasAMostrar - 1);
+
+        // Ajustar si no tenemos suficientes páginas
+        if (finPaginas - inicioPaginas + 1 < paginasAMostrar) {
+            inicioPaginas = Math.max(1, finPaginas - paginasAMostrar + 1);
+        }
+
+        // Página 1
+        if (inicioPaginas > 1) {
+            html += `<button class="btn-pagina" onclick="cambiarPaginaCocina(1)">1</button>`;
+            if (inicioPaginas > 2) html += `<span class="puntos">...</span>`;
+        }
+
+        // Páginas intermedias
+        for (let i = inicioPaginas; i <= finPaginas; i++) {
+            html += `<button class="btn-pagina ${i === paginaActualCocina ? 'active' : ''}" onclick="cambiarPaginaCocina(${i})">${i}</button>`;
+        }
+
+        // Última página
+        if (finPaginas < totalPaginas) {
+            if (finPaginas < totalPaginas - 1) html += `<span class="puntos">...</span>`;
+            html += `<button class="btn-pagina" onclick="cambiarPaginaCocina(${totalPaginas})">${totalPaginas}</button>`;
+        }
+
+        html += `
+            </div>
+            
+            <button class="btn-paginacion" onclick="cambiarPaginaCocina(${paginaActualCocina + 1})" ${paginaActualCocina === totalPaginas ? 'disabled' : ''}>
+                <span>Siguiente</span>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <div class="paginacion-selector">
+            <label>Mostrar:</label>
+            <select onchange="cambiarProductosPorPaginaCocina(this.value)">
+                <option value="10" ${productosPorPaginaCocina === 10 ? 'selected' : ''}>10</option>
+                <option value="25" ${productosPorPaginaCocina === 25 ? 'selected' : ''}>25</option>
+                <option value="50" ${productosPorPaginaCocina === 50 ? 'selected' : ''}>50</option>
+                <option value="100" ${productosPorPaginaCocina === 100 ? 'selected' : ''}>100</option>
+                <option value="200" ${productosPorPaginaCocina === 200 ? 'selected' : ''}>200</option>
+            </select>
+        </div>
+    `;
+
+        paginacionContainer.innerHTML = html;
+    }
+    // Función global para cambiar página en cocina
+    window.cambiarPaginaCocina = function (nuevaPagina) {
+        const totalPaginas = Math.ceil(datosFiltradosCocina.length / productosPorPaginaCocina);
+        if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
+            paginaActualCocina = nuevaPagina;
+            actualizarTablaCocina();
+        }
+    };
+
+    // Función global para cambiar productos por página en cocina
+    window.cambiarProductosPorPaginaCocina = function (nuevoValor) {
+        productosPorPaginaCocina = parseInt(nuevoValor);
+        paginaActualCocina = 1;
+        actualizarTablaCocina();
+    };
 
     function crearFilaProductoCocina(producto, index) {
         console.log(producto)
@@ -764,22 +891,19 @@ document.addEventListener('DOMContentLoaded', function () {
         // Búsqueda
         if (cocinaSearch) {
             cocinaSearch.addEventListener('input', function () {
+                paginaActualCocina = 1; // Resetear a página 1 al buscar
                 const searchTerm = this.value.toLowerCase().trim();
-                const rows = cocinaTable.querySelectorAll('tr');
-                let visibleCount = 0;
+                datosFiltradosCocina = cocinaData.filter(producto =>
+                    producto.nombre.toLowerCase().includes(searchTerm)
+                );
 
-                rows.forEach(row => {
-                    const productName = row.querySelector('.product-name');
-                    if (productName) {
-                        const match = productName.textContent.toLowerCase().includes(searchTerm);
-                        row.style.display = match ? '' : 'none';
-                        if (match) visibleCount++;
-                    }
-                });
-
+                // Mostrar/ocultar empty state según resultados
                 if (cocinaEmptyState) {
-                    cocinaEmptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+                    cocinaEmptyState.style.display = datosFiltradosCocina.length === 0 ? 'block' : 'none';
                 }
+
+                // Actualizar tabla y paginación
+                actualizarTablaCocina();
             });
         }
 
@@ -966,6 +1090,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     recalcularProductoCocina(productoExistente);
                 }
             }
+            // Eliminar productos que ya no existen
+            cocinaData = cocinaData.filter(item => productosIds.includes(item.id));
+
+            // Actualizar datos filtrados
+            datosFiltradosCocina = [...cocinaData];
+
+            return Promise.resolve();
         });
 
         // Eliminar productos que ya no existen

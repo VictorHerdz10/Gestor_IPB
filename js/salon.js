@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let autoSaveTimer = null;
     let editingFinalEnabled = false;
     let ordenActual = 'alfabetico';
+    let paginaActualSalon = 1;
+    let productosPorPaginaSalon = 10;
+    let datosFiltradosSalon = [];
 
     // Inicializar
     initSalon();
@@ -133,6 +136,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+    if (salonSearch) {
+        salonSearch.addEventListener('input', function () {
+            paginaActualSalon = 1;
+            actualizarTabla();
+        });
+    }
 
     function actualizarTabla() {
         if (!salonTable) return;
@@ -141,27 +150,46 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (salonData.length === 0) {
             if (salonEmptyState) salonEmptyState.style.display = 'block';
+            actualizarControlesPaginacionSalon();
             return;
         }
 
         if (salonEmptyState) salonEmptyState.style.display = 'none';
 
-        // Ordenar datos según preferencia
-        const datosOrdenados = [...salonData];
+        // Filtrar datos si hay búsqueda
+        const searchTerm = salonSearch ? salonSearch.value.toLowerCase().trim() : '';
+        datosFiltrados = salonData.filter(producto =>
+            producto.nombre.toLowerCase().includes(searchTerm)
+        );
 
+        // Ordenar datos según preferencia
+        const datosOrdenados = [...datosFiltrados];
         if (ordenActual === 'alfabetico') {
             datosOrdenados.sort((a, b) => a.nombre.localeCompare(b.nombre));
         } else {
-            // Orden por ID (orden de agregado)
             datosOrdenados.sort((a, b) => a.id - b.id);
         }
 
-        datosOrdenados.forEach((producto, index) => {
-            const row = crearFilaProducto(producto, index);
+        // Calcular índices para la paginación
+        const inicio = (paginaActualSalon - 1) * productosPorPaginaSalon;
+        const fin = paginaActualSalon * productosPorPaginaSalon;
+        const productosPagina = datosOrdenados.slice(inicio, fin);
+
+        // Crear filas solo para los productos de esta página
+        productosPagina.forEach((producto, index) => {
+            const row = crearFilaProducto(producto, inicio + index);
             salonTable.appendChild(row);
         });
 
-        console.log('Tabla actualizada con', datosOrdenados.length, 'productos, orden:', ordenActual);
+        // Actualizar controles de paginación
+        actualizarControlesPaginacionSalon();
+
+        console.log('Tabla actualizada:', {
+            total: datosOrdenados.length,
+            pagina: paginaActualSalon,
+            productosPorPagina: productosPorPaginaSalon,
+            mostrando: productosPagina.length
+        });
     }
 
     function crearFilaProducto(producto, index) {
@@ -708,6 +736,105 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Exponer datos para depuración
     window.salonData = salonData;
+    function actualizarControlesPaginacionSalon() {
+        const paginacionContainer = document.getElementById('paginacion-salon');
+        if (!paginacionContainer) return;
+
+        const totalProductos = datosFiltrados.length;
+        const totalPaginas = Math.ceil(totalProductos / productosPorPaginaSalon);
+
+        // Si hay 0 productos, ocultar paginación
+        if (totalProductos === 0 || totalPaginas <= 1) {
+            paginacionContainer.style.display = 'none';
+            return;
+        }
+
+        paginacionContainer.style.display = 'flex';
+
+        const inicio = Math.min((paginaActualSalon - 1) * productosPorPaginaSalon + 1, totalProductos);
+        const fin = Math.min(paginaActualSalon * productosPorPaginaSalon, totalProductos);
+
+        let html = `
+        <div class="paginacion-info">
+            <i class="fas fa-list-ol"></i>
+            <span>Mostrando ${inicio}-${fin} de ${totalProductos} productos</span>
+        </div>
+        
+        <div class="paginacion-controles">
+            <button class="btn-paginacion" onclick="cambiarPaginaSalon(${paginaActualSalon - 1})" ${paginaActualSalon === 1 ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left"></i>
+                <span>Anterior</span>
+            </button>
+            
+            <div class="paginacion-numeros">
+    `;
+
+        // Mostrar números de página con truncado inteligente
+        const paginasAMostrar = 5;
+        let inicioPaginas = Math.max(1, paginaActualSalon - Math.floor(paginasAMostrar / 2));
+        let finPaginas = Math.min(totalPaginas, inicioPaginas + paginasAMostrar - 1);
+
+        // Ajustar si no tenemos suficientes páginas
+        if (finPaginas - inicioPaginas + 1 < paginasAMostrar) {
+            inicioPaginas = Math.max(1, finPaginas - paginasAMostrar + 1);
+        }
+
+        // Página 1
+        if (inicioPaginas > 1) {
+            html += `<button class="btn-pagina" onclick="cambiarPaginaSalon(1)">1</button>`;
+            if (inicioPaginas > 2) html += `<span class="puntos">...</span>`;
+        }
+
+        // Páginas intermedias
+        for (let i = inicioPaginas; i <= finPaginas; i++) {
+            html += `<button class="btn-pagina ${i === paginaActualSalon ? 'active' : ''}" onclick="cambiarPaginaSalon(${i})">${i}</button>`;
+        }
+
+        // Última página
+        if (finPaginas < totalPaginas) {
+            if (finPaginas < totalPaginas - 1) html += `<span class="puntos">...</span>`;
+            html += `<button class="btn-pagina" onclick="cambiarPaginaSalon(${totalPaginas})">${totalPaginas}</button>`;
+        }
+
+        html += `
+            </div>
+            
+            <button class="btn-paginacion" onclick="cambiarPaginaSalon(${paginaActualSalon + 1})" ${paginaActualSalon === totalPaginas ? 'disabled' : ''}>
+                <span>Siguiente</span>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <div class="paginacion-selector">
+            <label>Mostrar:</label>
+            <select onchange="cambiarProductosPorPaginaSalon(this.value)">
+                <option value="10" ${productosPorPaginaSalon === 10 ? 'selected' : ''}>10</option>
+                <option value="25" ${productosPorPaginaSalon === 25 ? 'selected' : ''}>25</option>
+                <option value="50" ${productosPorPaginaSalon === 50 ? 'selected' : ''}>50</option>
+                <option value="100" ${productosPorPaginaSalon === 100 ? 'selected' : ''}>100</option>
+                <option value="200" ${productosPorPaginaSalon === 200 ? 'selected' : ''}>200</option>
+            </select>
+        </div>
+    `;
+
+        paginacionContainer.innerHTML = html;
+    }
+
+    // Función global para cambiar página
+    window.cambiarPaginaSalon = function (nuevaPagina) {
+        const totalPaginas = Math.ceil(datosFiltrados.length / productosPorPaginaSalon);
+        if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
+            paginaActualSalon = nuevaPagina;
+            actualizarTabla();
+        }
+    };
+
+    // Función global para cambiar productos por página
+    window.cambiarProductosPorPaginaSalon = function (nuevoValor) {
+        productosPorPaginaSalon = parseInt(nuevoValor);
+        paginaActualSalon = 1;
+        actualizarTabla();
+    };
 });
 
 // Inicializar cuando se carga la sección de salón
