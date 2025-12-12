@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let productos = [];
     let autoSaveTimer = null;
     let editingFinalEnabled = false;
+    let ordenActual = 'alfabetico';
 
     // Inicializar
     initSalon();
@@ -37,6 +38,8 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Error inicializando salón:', error);
             showNotification('Error al cargar datos del salón', 'error');
         }
+        // Establecer orden inicial
+        ordenActual = 'alfabetico';
     }
 
     function cargarProductos() {
@@ -143,12 +146,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (salonEmptyState) salonEmptyState.style.display = 'none';
 
-        salonData.forEach((producto, index) => {
+        // Ordenar datos según preferencia
+        const datosOrdenados = [...salonData];
+
+        if (ordenActual === 'alfabetico') {
+            datosOrdenados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        } else {
+            // Orden por ID (orden de agregado)
+            datosOrdenados.sort((a, b) => a.id - b.id);
+        }
+
+        datosOrdenados.forEach((producto, index) => {
             const row = crearFilaProducto(producto, index);
             salonTable.appendChild(row);
         });
 
-        console.log('Tabla actualizada con', salonData.length, 'productos');
+        console.log('Tabla actualizada con', datosOrdenados.length, 'productos, orden:', ordenActual);
     }
 
     function crearFilaProducto(producto, index) {
@@ -589,6 +602,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 sincronizarProductos();
             });
         }
+
+        // Cambiar orden
+        const btnOrden = document.getElementById('btn-cambiar-orden');
+        if (btnOrden) {
+            btnOrden.addEventListener('click', cambiarOrden);
+        }
     }
 
     function sincronizarProductos() {
@@ -601,6 +620,29 @@ document.addEventListener('DOMContentLoaded', function () {
         actualizarResumen();
 
         showNotification('Salón sincronizado con productos actualizados', 'success');
+    }
+
+    function cambiarOrden() {
+        ordenActual = ordenActual === 'alfabetico' ? 'agregado' : 'alfabetico';
+
+        // Actualizar botón
+        const btnOrden = document.getElementById('btn-cambiar-orden');
+        if (btnOrden) {
+            if (ordenActual === 'alfabetico') {
+                btnOrden.innerHTML = '<i class="fas fa-sort-alpha-down"></i><span class="btn-text">Ordenar Alfabético</span>';
+                btnOrden.classList.remove('btn-info');
+                btnOrden.classList.add('btn-secondary');
+            } else {
+                btnOrden.innerHTML = '<i class="fas fa-sort-numeric-down"></i><span class="btn-text">Ordenar por Agregado</span>';
+                btnOrden.classList.remove('btn-secondary');
+                btnOrden.classList.add('btn-info');
+            }
+        }
+
+        // Actualizar tabla
+        actualizarTabla();
+
+        showNotification(`Orden cambiado a: ${ordenActual === 'alfabetico' ? 'Alfabético' : 'Por orden de agregado'}`, 'info');
     }
 
     function mostrarCargando() {
