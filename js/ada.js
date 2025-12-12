@@ -1,5 +1,5 @@
-// Control de Cocina - VERSIÓN MEJORADA CON VALIDACIONES Y PRODUCTOS COMPUESTOS
-document.addEventListener('DOMContentLoaded', function () {
+// Control de Cocina - VERSIÓN SIMPLIFICADA Y MEJORADA
+document.addEventListener('DOMContentLoaded', function() {
     // Elementos del DOM
     const cocinaTable = document.getElementById('cocina-tbody');
     const cocinaSearch = document.getElementById('cocina-search');
@@ -12,62 +12,51 @@ document.addEventListener('DOMContentLoaded', function () {
     const cocinaTableContainer = document.getElementById('cocina-table-container');
     const cocinaNoProducts = document.getElementById('cocina-no-products');
     const btnIrProductos = document.getElementById('btn-ir-productos');
-
+    
     // Elementos de agregos
-    const agregoForm = document.getElementById('agrego-form');
-    const btnCancelarAgrego = document.getElementById('btn-cancelar-agrego');
-    const formNuevoAgrego = document.getElementById('form-nuevo-agrego');
     const listaAgregos = document.getElementById('lista-agregos');
     const btnAgregarAgregoTop = document.getElementById('btn-agregar-agrego-top');
-
+    
     // Variables de estado
     let cocinaData = [];
     let productosCocina = [];
     let agregos = [];
     let relacionesProductos = []; // Relaciones fijas: producto -> ingrediente
-    let relacionesPanIngredientes = []; // Relaciones para panes con ingredientes
     let autoSaveTimer = null;
     let editingFinalEnabled = false;
 
     // Inicializar
     initCocina();
-
+    
     async function initCocina() {
         try {
             mostrarCargandoCocina();
             await cargarProductosCocina();
             await cargarRelacionesProductos();
-            await cargarRelacionesPanIngredientes();
             await cargarDatosCocina();
             await cargarAgregos();
             setupEventListeners();
             verificarProductosCocina();
-
+            
             // Sincronizar productos automáticamente al cargar
             await sincronizarConProductosCocina();
-
+            
             // Recalcular relaciones automáticas
             recalcularConsumosPorRelaciones();
             recalcularDisponibilidad();
-
+            
             actualizarTablaCocina();
             actualizarResumenCocina();
             actualizarListaAgregos();
             ocultarCargandoCocina();
-
-            console.log('Cocina inicializada correctamente:', {
-                productos: productosCocina.length,
-                cocinaData: cocinaData.length,
-                agregos: agregos.length,
-                relaciones: relacionesProductos.length,
-                panes: relacionesPanIngredientes.length
-            });
+            
+            console.log('Cocina inicializada correctamente');
         } catch (error) {
             console.error('Error inicializando cocina:', error);
             showNotification('Error al cargar datos de cocina', 'error');
         }
     }
-
+    
     function verificarProductosCocina() {
         if (productosCocina.length === 0) {
             if (cocinaTableContainer) cocinaTableContainer.style.display = 'none';
@@ -89,22 +78,22 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     }
-
+    
     function cargarProductosCocina() {
         return new Promise((resolve) => {
             const productosGuardados = localStorage.getItem('ipb_cocina_products');
-
+            
             if (productosGuardados) {
                 productosCocina = JSON.parse(productosGuardados);
             } else {
                 productosCocina = [];
             }
-
+            
             productosCocina.sort((a, b) => a.nombre.localeCompare(b.nombre));
             resolve();
         });
     }
-
+    
     function cargarRelacionesProductos() {
         return new Promise((resolve) => {
             const relacionesGuardadas = localStorage.getItem('cocina_relaciones_fijas');
@@ -112,24 +101,15 @@ document.addEventListener('DOMContentLoaded', function () {
             resolve();
         });
     }
-
-    function cargarRelacionesPanIngredientes() {
-        return new Promise((resolve) => {
-            const relacionesGuardadas = localStorage.getItem('cocina_relaciones_panes');
-            relacionesPanIngredientes = relacionesGuardadas ? JSON.parse(relacionesGuardadas) : [];
-            resolve();
-        });
-    }
-
+    
     function guardarRelacionesProductos() {
         localStorage.setItem('cocina_relaciones_fijas', JSON.stringify(relacionesProductos));
-        localStorage.setItem('cocina_relaciones_panes', JSON.stringify(relacionesPanIngredientes));
     }
-
+    
     function cargarDatosCocina() {
         return new Promise((resolve) => {
             const datosGuardados = localStorage.getItem('ipb_cocina');
-
+            
             if (datosGuardados) {
                 cocinaData = JSON.parse(datosGuardados);
             } else {
@@ -144,16 +124,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     final: 0,
                     vendido: 0,
                     importe: 0,
-                    disponible: 0, // Nuevo campo: cantidad disponible para usar
+                    disponible: 0,
                     historial: [],
                     ultimaActualizacion: obtenerHoraActual()
                 }));
             }
-
+            
             resolve();
         });
     }
-
+    
     function guardarDatosCocina() {
         try {
             localStorage.setItem(`ipb_cocina`, JSON.stringify(cocinaData));
@@ -165,77 +145,74 @@ document.addEventListener('DOMContentLoaded', function () {
             showNotification('Error al guardar datos de cocina', 'error');
         }
     }
-
+    
     function cargarAgregos() {
         return new Promise((resolve) => {
             const today = getTodayDate();
             const agregosGuardados = localStorage.getItem(`cocina_agregos_${today}`);
-
+            
             agregos = agregosGuardados ? JSON.parse(agregosGuardados) : [];
             resolve();
         });
     }
-
+    
     function guardarAgregos() {
         const today = getTodayDate();
         localStorage.setItem(`cocina_agregos_${today}`, JSON.stringify(agregos));
     }
-
+    
     function recalcularDisponibilidad() {
         // Calcular disponibilidad para cada ingrediente
         cocinaData.forEach(producto => {
             if (producto.esIngrediente) {
-                // Disponible = Venta - Vendido (lo que realmente queda)
                 producto.disponible = Math.max(0, producto.venta - producto.vendido);
             } else {
                 producto.disponible = 0;
             }
         });
     }
-
+    
     function actualizarTablaCocina() {
         if (!cocinaTable || productosCocina.length === 0) return;
-
+        
         cocinaTable.innerHTML = '';
-
+        
         if (cocinaData.length === 0) {
             if (cocinaEmptyState) cocinaEmptyState.style.display = 'block';
             return;
         }
-
+        
         if (cocinaEmptyState) cocinaEmptyState.style.display = 'none';
-
+        
         cocinaData.forEach((producto, index) => {
             const row = crearFilaProductoCocina(producto, index);
             cocinaTable.appendChild(row);
         });
     }
-
+    
     function crearFilaProductoCocina(producto, index) {
         const row = document.createElement('tr');
         row.dataset.id = producto.id;
         row.dataset.index = index;
-
+        
         recalcularProductoCocina(producto);
         recalcularDisponibilidad();
-
+        
         let valorFinal = producto.final;
-
+        
         if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
             valorFinal = producto.venta;
         }
-
-        // Verificar si tiene relaciones (se usa en otros productos)
+        
+        // Verificar si tiene relaciones
         const esUsadoEn = relacionesProductos.filter(r => r.ingredienteId === producto.id).length > 0;
-        const esPan = relacionesPanIngredientes.filter(r => r.panId === producto.id).length > 0;
         const esProductoConIngredientes = relacionesProductos.filter(r => r.productoId === producto.id).length > 0;
-
+        
         row.innerHTML = `
             <td class="producto-cell">
                 <span class="product-name">${producto.nombre}</span>
                 ${producto.esIngrediente ? '<span class="badge-ingrediente">Ingrediente</span>' : ''}
                 ${esUsadoEn ? '<span class="badge-relacion" title="Usado en otros productos">✓</span>' : ''}
-                ${esPan ? '<span class="badge-pan" title="Pan con ingredientes">🍞</span>' : ''}
                 ${esProductoConIngredientes ? '<span class="badge-producto" title="Producto con ingredientes fijos">⭐</span>' : ''}
             </td>
             <td class="numeric-cell currency-cell">
@@ -284,78 +261,78 @@ document.addEventListener('DOMContentLoaded', function () {
                 <span class="importe-display">${producto.precio > 0 ? `$${producto.importe.toFixed(2)}` : '$0.00'}</span>
             </td>
         `;
-
+        
         agregarEventListenersFila(row, producto);
-
+        
         return row;
     }
-
+    
     function agregarEventListenersFila(row, producto) {
         const inputs = row.querySelectorAll('.editable-input:not(:disabled)');
         inputs.forEach(input => {
             input.dataset.oldValue = input.value;
-
-            input.addEventListener('focus', function () {
+            
+            input.addEventListener('focus', function() {
                 this.dataset.oldValue = this.value;
                 this.classList.add('focus');
-
+                
                 if (this.dataset.field === 'final' && this.disabled && editingFinalEnabled) {
                     this.disabled = false;
                     this.classList.add('editing-enabled');
                 }
             });
-
-            input.addEventListener('blur', function () {
+            
+            input.addEventListener('blur', function() {
                 this.classList.remove('focus');
                 let newValue = parseInt(this.value) || 0;
                 const oldValue = parseInt(this.dataset.oldValue) || 0;
                 const field = this.dataset.field;
-
+                
                 // Validación especial para campo final
                 if (field === 'final') {
                     const venta = parseInt(this.dataset.venta) || 0;
-
+                    
                     // Si el valor es mayor a la venta, ajustar y mostrar notificación
                     if (newValue > venta) {
                         newValue = venta;
                         this.value = venta;
-
+                        
                         showNotification(
                             `El valor final no puede ser mayor a la venta (${venta}). Se ajustó a ${venta}.`,
                             'warning'
                         );
                     }
-
+                    
                     // Validar disponibilidad de ingredientes si es un producto con ingredientes fijos
                     if (!producto.esIngrediente) {
                         validarDisponibilidadIngredientes(producto, newValue);
                     }
                 }
-
+                
                 if (newValue !== oldValue) {
                     this.classList.add('edited');
                     actualizarProductoCocinaDesdeInput(this);
-
+                    
                     programarAutoSaveCocina();
-
+                    
                     setTimeout(() => {
                         this.classList.remove('edited');
                     }, 1000);
                 }
             });
-
-            input.addEventListener('input', function () {
+            
+            input.addEventListener('input', function() {
                 const field = this.dataset.field;
                 let value = parseInt(this.value) || 0;
-
+                
                 // Validación en tiempo real para campo final
                 if (field === 'final') {
                     const venta = parseInt(this.dataset.venta) || 0;
-
+                    
                     if (value > venta) {
                         value = venta;
                         this.value = venta;
-
+                        
                         // Mostrar notificación solo si el usuario está escribiendo
                         if (this === document.activeElement) {
                             showNotification(
@@ -365,39 +342,37 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
                 }
-
+                
                 if (field === 'inicio' || field === 'entrada') {
                     actualizarProductoCocinaDesdeInput(this, true);
                 }
             });
-
-            input.addEventListener('keypress', function (e) {
+            
+            input.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     this.blur();
                 }
             });
         });
     }
-
+    
     function validarDisponibilidadIngredientes(producto, nuevoFinal) {
-        // Calcular cuántas unidades se quieren vender
         const venta = producto.venta;
         const nuevoVendido = venta - nuevoFinal;
         const diferenciaVendido = nuevoVendido - producto.vendido;
-
-        if (diferenciaVendido <= 0) return true; // No se está vendiendo más
-
-        // Buscar relaciones de ingredientes para este producto
+        
+        if (diferenciaVendido <= 0) return true;
+        
         const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
-
+        
         let hayDisponibilidad = true;
         let mensajeError = '';
-
+        
         relaciones.forEach(relacion => {
             const ingrediente = cocinaData.find(p => p.id === relacion.ingredienteId);
             if (ingrediente) {
                 const ingredienteNecesario = diferenciaVendido * relacion.cantidad;
-
+                
                 if (ingrediente.disponible < ingredienteNecesario) {
                     hayDisponibilidad = false;
                     const faltante = ingredienteNecesario - ingrediente.disponible;
@@ -405,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         });
-
+        
         if (!hayDisponibilidad) {
             showNotification(
                 `No hay suficientes ingredientes para vender ${diferenciaVendido} ${producto.nombre}:${mensajeError}\n\nPor favor, da entrada a más ingredientes o ajusta el valor final.`,
@@ -413,45 +388,42 @@ document.addEventListener('DOMContentLoaded', function () {
             );
             return false;
         }
-
+        
         return true;
     }
-
+    
     function recalcularProductoCocina(producto) {
         producto.venta = producto.inicio + producto.entrada;
-
+        
         if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
             producto.final = producto.venta;
         }
-
+        
         producto.vendido = Math.max(0, producto.venta - producto.final);
         producto.importe = producto.precio > 0 ? producto.vendido * producto.precio : 0;
-
+        
         return producto;
     }
-
+    
     function actualizarProductoCocinaDesdeInput(input, realTime = false) {
         const id = parseInt(input.dataset.id);
         const field = input.dataset.field;
         const value = parseInt(input.value) || 0;
-
+        
         const productoIndex = cocinaData.findIndex(p => p.id === id);
         if (productoIndex !== -1) {
             const producto = cocinaData[productoIndex];
             const oldValue = producto[field];
-
+            
             if (value !== oldValue) {
                 producto[field] = value;
                 producto.ultimaActualizacion = obtenerHoraActual();
-
+                
                 recalcularProductoCocina(producto);
-
-                // Si es un producto principal (no ingrediente), recalcular ingredientes relacionados
+                
                 if (!producto.esIngrediente) {
-                    // Validar disponibilidad antes de actualizar
                     if (field === 'final') {
                         if (!validarDisponibilidadIngredientes(producto, value)) {
-                            // Revertir el cambio si no hay disponibilidad
                             producto[field] = oldValue;
                             recalcularProductoCocina(producto);
                             return;
@@ -459,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     recalcularConsumosPorRelaciones();
                 }
-
+                
                 producto.historial.push({
                     fecha: new Date().toISOString(),
                     hora: obtenerHoraActual(),
@@ -468,70 +440,58 @@ document.addEventListener('DOMContentLoaded', function () {
                     valorNuevo: value,
                     accion: 'modificación'
                 });
-
+                
                 if (realTime) {
                     actualizarFilaUICocina(id);
                 } else {
                     actualizarFilaCompletaCocina(id);
                 }
-
+                
                 guardarDatosCocina();
             }
         }
     }
-
+    
     function recalcularConsumosPorRelaciones() {
-        // Primero resetear vendidos de ingredientes (excepto los usados en agregos)
         cocinaData.forEach(producto => {
             if (producto.esIngrediente) {
-                // Guardar vendido por agregos
                 const vendidoAgregos = producto.vendido;
                 producto.vendido = 0;
-
-                // Recalcular ventas del producto
                 recalcularProductoCocina(producto);
-
-                // Restaurar vendido por agregos
                 producto.vendido = vendidoAgregos;
             }
         });
-
-        // Recalcular consumos por relaciones fijas
+        
         cocinaData.forEach(producto => {
             if (!producto.esIngrediente) {
-                // Buscar relaciones donde este producto use ingredientes
                 const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
-
+                
                 relaciones.forEach(relacion => {
                     const ingrediente = cocinaData.find(p => p.id === relacion.ingredienteId);
                     if (ingrediente) {
-                        // El ingrediente se descuenta automáticamente según vendido del producto
                         const consumo = producto.vendido * relacion.cantidad;
                         ingrediente.vendido += consumo;
-
-                        // Ajustar el final para mantener consistencia
                         ingrediente.final = Math.max(0, ingrediente.venta - ingrediente.vendido);
                     }
                 });
             }
         });
-
-        // Recalcular disponibilidad
+        
         recalcularDisponibilidad();
     }
-
+    
     function actualizarFilaUICocina(productoId) {
         const producto = cocinaData.find(p => p.id === productoId);
         if (!producto) return;
-
+        
         const row = document.querySelector(`tr[data-id="${productoId}"]`);
         if (!row) return;
-
+        
         const ventaDisplay = row.querySelector('.venta-display');
         const vendidoDisplay = row.querySelector('.vendido-display');
         const importeDisplay = row.querySelector('.importe-display');
         const finalInput = row.querySelector('.final-input');
-
+        
         if (ventaDisplay) ventaDisplay.textContent = producto.venta;
         if (vendidoDisplay) vendidoDisplay.textContent = producto.vendido;
         if (importeDisplay) {
@@ -541,45 +501,45 @@ document.addEventListener('DOMContentLoaded', function () {
             finalInput.dataset.venta = producto.venta;
             finalInput.max = producto.venta;
         }
-
+        
         actualizarResumenCocina();
     }
-
+    
     function actualizarFilaCompletaCocina(productoId) {
         const productoIndex = cocinaData.findIndex(p => p.id === productoId);
         if (productoIndex === -1) return;
-
+        
         const row = document.querySelector(`tr[data-id="${productoId}"]`);
         if (!row) return;
-
+        
         const producto = cocinaData[productoIndex];
         const newRow = crearFilaProductoCocina(producto, productoIndex);
-
+        
         row.parentNode.replaceChild(newRow, row);
-
+        
         actualizarResumenCocina();
     }
-
+    
     function programarAutoSaveCocina() {
         if (autoSaveTimer) {
             clearTimeout(autoSaveTimer);
         }
-
+        
         autoSaveTimer = setTimeout(() => {
             guardarDatosCocina();
         }, 1500);
     }
-
+    
     function mostrarIndicadorGuardadoCocina() {
         if (!saveIndicatorCocina) return;
-
+        
         const saveTime = document.getElementById('save-time-cocina');
         if (saveTime) {
             saveTime.textContent = `Guardado ${obtenerHoraActual()}`;
         }
-
+        
         saveIndicatorCocina.style.display = 'flex';
-
+        
         setTimeout(() => {
             saveIndicatorCocina.classList.add('fade-out');
             setTimeout(() => {
@@ -588,15 +548,15 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 300);
         }, 3000);
     }
-
+    
     function setupEventListeners() {
         // Búsqueda
         if (cocinaSearch) {
-            cocinaSearch.addEventListener('input', function () {
+            cocinaSearch.addEventListener('input', function() {
                 const searchTerm = this.value.toLowerCase().trim();
                 const rows = cocinaTable.querySelectorAll('tr');
                 let visibleCount = 0;
-
+                
                 rows.forEach(row => {
                     const productName = row.querySelector('.product-name');
                     if (productName) {
@@ -605,24 +565,24 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (match) visibleCount++;
                     }
                 });
-
+                
                 if (cocinaEmptyState) {
                     cocinaEmptyState.style.display = visibleCount === 0 ? 'block' : 'none';
                 }
             });
         }
-
+        
         // Editar final
         if (btnEditarFinalCocina) {
-            btnEditarFinalCocina.addEventListener('click', function () {
+            btnEditarFinalCocina.addEventListener('click', function() {
                 editingFinalEnabled = !editingFinalEnabled;
-
+                
                 if (editingFinalEnabled) {
                     const finalInputs = document.querySelectorAll('#cocina-tbody .final-input');
                     finalInputs.forEach(input => {
                         input.disabled = false;
                         input.classList.add('editing-enabled');
-
+                        
                         if (parseInt(input.value) === 0) {
                             const id = parseInt(input.dataset.id);
                             const producto = cocinaData.find(p => p.id === id);
@@ -634,11 +594,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         }
                     });
-
+                    
                     this.innerHTML = '<i class="fas fa-times"></i><span class="btn-text">Cancelar Edición</span>';
                     this.classList.remove('btn-primary');
                     this.classList.add('btn-secondary');
-
+                    
                     showNotification('Modo edición de valores finales activado en cocina', 'info');
                 } else {
                     const finalInputs = document.querySelectorAll('#cocina-tbody .final-input');
@@ -646,45 +606,45 @@ document.addEventListener('DOMContentLoaded', function () {
                         input.disabled = true;
                         input.classList.remove('editing-enabled');
                     });
-
+                    
                     this.innerHTML = '<i class="fas fa-sliders-h"></i><span class="btn-text">Editar Final</span>';
                     this.classList.remove('btn-secondary');
                     this.classList.add('btn-primary');
-
+                    
                     showNotification('Modo edición desactivado en cocina', 'info');
                 }
-
+                
                 actualizarTablaCocina();
             });
         }
-
+        
         // Finalizar día en cocina
         if (btnFinalizarDiaCocina) {
-            btnFinalizarDiaCocina.addEventListener('click', function () {
+            btnFinalizarDiaCocina.addEventListener('click', function() {
                 showConfirmationModal(
                     'Finalizar Día en Cocina',
                     '¿Estás seguro de finalizar el día en cocina? Se calcularán automáticamente los productos vendidos.',
                     'warning',
-                    function () {
+                    function() {
                         cocinaData.forEach(producto => {
                             recalcularProductoCocina(producto);
                         });
-
+                        
                         recalcularConsumosPorRelaciones();
-
+                        
                         guardarDatosCocina();
                         actualizarTablaCocina();
                         actualizarResumenCocina();
-
+                        
                         showNotification('Día en cocina finalizado correctamente', 'success');
                     }
                 );
             });
         }
-
+        
         // Sincronizar productos
         if (btnSincronizarProductosCocina) {
-            btnSincronizarProductosCocina.addEventListener('click', function () {
+            btnSincronizarProductosCocina.addEventListener('click', function() {
                 cargarProductosCocina().then(() => {
                     if (productosCocina.length === 0) {
                         showNotification('No hay productos en la cocina. Agrega productos primero.', 'warning');
@@ -696,15 +656,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         verificarProductosCocina();
                         actualizarTablaCocina();
                         actualizarResumenCocina();
-
+                        
                         showNotification(`Sincronizados ${productosCocina.length} productos de cocina`, 'success');
                     }
                 });
             });
         }
-
+        
         if (btnSincronizarEmptyCocina) {
-            btnSincronizarEmptyCocina.addEventListener('click', function () {
+            btnSincronizarEmptyCocina.addEventListener('click', function() {
                 cargarProductosCocina().then(() => {
                     if (productosCocina.length > 0) {
                         sincronizarConProductosCocina();
@@ -713,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         verificarProductosCocina();
                         actualizarTablaCocina();
                         actualizarResumenCocina();
-
+                        
                         showNotification(`Sincronizados ${productosCocina.length} productos de cocina`, 'success');
                     } else {
                         showNotification('No hay productos en la cocina para sincronizar', 'warning');
@@ -721,40 +681,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             });
         }
-
+        
         // Botón para ir a productos
         if (btnIrProductos) {
-            btnIrProductos.addEventListener('click', function () {
+            btnIrProductos.addEventListener('click', function() {
                 const productoLink = document.querySelector('a[data-section="productos"]');
                 if (productoLink) {
                     productoLink.click();
                 }
             });
         }
-
+        
         // Agregar agrego/producto compuesto
         if (btnAgregarAgregoTop) {
-            btnAgregarAgregoTop.addEventListener('click', mostrarModalSeleccionTipo);
-        }
-
-        // Cancelar agrego
-        if (btnCancelarAgrego) {
-            btnCancelarAgrego.addEventListener('click', ocultarFormularioAgrego);
-        }
-
-        // Formulario de agrego (mantener por compatibilidad)
-        if (formNuevoAgrego) {
-            formNuevoAgrego.addEventListener('submit', function (e) {
-                e.preventDefault();
-                agregarNuevoAgregoSimple();
-            });
+            btnAgregarAgregoTop.addEventListener('click', mostrarModalAgregoCompuesto);
         }
     }
-
+    
     function sincronizarConProductosCocina() {
         const productosIds = productosCocina.map(p => p.id);
         const cocinaIds = cocinaData.map(p => p.id);
-
+        
         productosCocina.forEach(producto => {
             if (!cocinaIds.includes(producto.id)) {
                 cocinaData.push({
@@ -774,9 +721,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         });
-
+        
         cocinaData = cocinaData.filter(item => productosIds.includes(item.id));
-
+        
         cocinaData.forEach(item => {
             const productoActual = productosCocina.find(p => p.id === item.id);
             if (productoActual) {
@@ -785,698 +732,420 @@ document.addEventListener('DOMContentLoaded', function () {
                 item.esIngrediente = productoActual.precio === 0;
             }
         });
-
+        
         return Promise.resolve();
     }
-
-    function mostrarModalSeleccionTipo() {
-        const modalHtml = `
-            <div class="modal active" id="modal-seleccion-tipo">
-                <div class="modal-content" style="max-width: 500px;">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-plus-circle"></i> ¿Qué deseas registrar?</h3>
-                        <button class="modal-close" onclick="document.getElementById('modal-seleccion-tipo').remove()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="seleccion-tipo-grid">
-                            <button class="tipo-opcion" id="tipo-agrego-simple">
-                                <div class="tipo-icono">
-                                    <i class="fas fa-hamburger"></i>
-                                </div>
-                                <div class="tipo-contenido">
-                                    <h4>Agrego Simple o Producto Compuesto</h4>
-                                    <p>Agrega un extra o complemento (ej: queso extra, salchicha)</p>
-                                    <p>Producto con ingredientes fijos (ej: pan que usa queso, jamón)</p>
-                                </div>
-                            </button>
-                            
-                            <button class="tipo-opcion" id="tipo-configurar-relaciones">
-                                <div class="tipo-icono">
-                                    <i class="fas fa-cogs"></i>
-                                </div>
-                                <div class="tipo-contenido">
-                                    <h4>Configurar Relaciones</h4>
-                                    <p>Establecer qué ingredientes usa un producto</p>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" onclick="document.getElementById('modal-seleccion-tipo').remove()">
-                            Cancelar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        document.getElementById('tipo-agrego-simple').addEventListener('click', function () {
-            document.getElementById('modal-seleccion-tipo').remove();
-            showModalAgregoSimple();
-        });
-
-        document.getElementById('tipo-configurar-relaciones').addEventListener('click', function () {
-            document.getElementById('modal-seleccion-tipo').remove();
-            showModalConfigurarRelaciones();
-        });
-
-        // Añadir estilos para la selección
-        const style = document.createElement('style');
-        style.textContent = `
-            .seleccion-tipo-grid {
-                display: grid;
-                gap: 15px;
-                margin: 20px 0;
-            }
-            
-            .tipo-opcion {
-                display: flex;
-                align-items: center;
-                padding: 15px;
-                border: 2px solid #ddd;
-                border-radius: 10px;
-                background: white;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                text-align: left;
-                width: 100%;
-            }
-            
-            .tipo-opcion:hover {
-                border-color: #4a6cf7;
-                background: #f8f9ff;
-                transform: translateY(-2px);
-            }
-            
-            .tipo-icono {
-                font-size: 24px;
-                color: #4a6cf7;
-                margin-right: 15px;
-                width: 40px;
-                text-align: center;
-            }
-            
-            .tipo-contenido h4 {
-                margin: 0 0 5px 0;
-                color: #333;
-            }
-            
-            .tipo-contenido p {
-                margin: 0;
-                color: #666;
-                font-size: 14px;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-   function showModalAgregoSimple() {
-    // Filtrar solo ingredientes (productos con precio 0)
-    const ingredientes = cocinaData.filter(p => p.precio === 0);
-
-    if (ingredientes.length === 0) {
-        showNotification('No hay ingredientes disponibles. Agrega productos con precio 0 primero.', 'warning');
-        return;
-    }
-
-    // Crear modal con gestión de disponibilidad
-    const modalHtml = `
-        <div class="modal active" id="modal-agrego-simple">
-            <div class="modal-content" style="max-width: 800px;">
-                <div class="modal-header">
-                    <h3><i class="fas fa-hamburger"></i> Registrar Agrego Simple o Producto Compuesto</h3>
-                    <button class="modal-close" onclick="document.getElementById('modal-agrego-simple').remove()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="agrego-nombre">Nombre del Agrego o Producto *</label>
-                            <input type="text" id="agrego-nombre" class="form-input" placeholder="Ej: Jamón, Queso, Tocino..." required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="agrego-precio">Precio del Agrego o Producto *</label>
-                            <input type="number" id="agrego-precio" class="form-input" placeholder="0.00" step="1.00" min="0" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="agrego-cantidad">Cantidad del Agrego o Producto *</label>
-                            <input type="number" id="agrego-cantidad" class="form-input" placeholder="Ej: 1, 2, 3..." min="1" value="1" required>
-                        </div>
-                    </div>
-                    
-                    <h4>Seleccionar Ingredientes Consumidos:</h4>
-                    <p class="small-text"><i class="fas fa-info-circle"></i> Solo puedes usar ingredientes disponibles</p>
-                    <div class="ingredientes-grid" id="ingredientes-list" style="max-height: 300px; overflow-y: auto;">
-                        ${ingredientes.map(ing => `
-                            <div class="ingrediente-item ${ing.disponible <= 0 ? 'disabled' : ''}">
-                                <div class="ingrediente-info">
-                                    <span class="ingrediente-nombre">${ing.nombre}</span>
-                                    <span class="ingrediente-disponible ${ing.disponible > 0 ? 'available' : 'unavailable'}">
-                                        Disponible: ${ing.disponible}
-                                    </span>
-                                </div>
-                                <div class="ingrediente-controls">
-                                    <input type="number" 
-                                           min="0" 
-                                           max="${ing.disponible}"
-                                           value="0"
-                                           data-ingrediente-id="${ing.id}"
-                                           data-ingrediente-nombre="${ing.nombre}"
-                                           data-ingrediente-disponible="${ing.disponible}"
-                                           class="ingrediente-cantidad form-input-sm"
-                                           ${ing.disponible <= 0 ? 'disabled' : ''}>
-                                    <span class="unidad-text">unidad(es)</span>
-                                </div>
-                                ${ing.disponible <= 0 ? '<div class="ingrediente-sin-disponibilidad">Sin disponibilidad</div>' : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="agrego-notas">Notas (Opcional)</label>
-                            <textarea id="agrego-notas" class="form-textarea" placeholder="Detalles adicionales sobre el agrego..." rows="2"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="document.getElementById('modal-agrego-simple').remove()">
-                        Cancelar
-                    </button>
-                    <button class="btn btn-primary" id="guardar-agrego-simple-modal">
-                        <i class="fas fa-save"></i> Guardar
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
     
-    // Añadir estilos específicos similares al otro modal
-    const style = document.createElement('style');
-    style.textContent = `
-        .modal .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .modal .form-group.full-width {
-            grid-column: span 2;
-        }
-        
-        .modal .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #333;
-        }
-        
-        .modal .form-input,
-        .modal .form-textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        
-        .modal .form-input-sm {
-            width: 80px;
-            padding: 6px 8px;
-            text-align: center;
-        }
-        
-        .modal .form-input:focus,
-        .modal .form-textarea:focus {
-            outline: none;
-            border-color: #4a6cf7;
-            box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.1);
-        }
-        
-        .modal .ingredientes-grid {
-            margin-top: 10px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background: #f8f9fa;
-        }
-        
-        .modal .ingrediente-item {
-            padding: 10px;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #eee;
-            background: white;
-            border-radius: 4px;
-        }
-        
-        .modal .ingrediente-item.disabled {
-            opacity: 0.6;
-        }
-        
-        .modal .ingrediente-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        .modal .ingrediente-nombre {
-            font-weight: 500;
-        }
-        
-        .modal .ingrediente-disponible {
-            font-size: 12px;
-            padding: 2px 6px;
-            border-radius: 10px;
-        }
-        
-        .modal .ingrediente-disponible.available {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .modal .ingrediente-disponible.unavailable {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .modal .ingrediente-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .modal .unidad-text {
-            font-size: 13px;
-            color: #666;
-        }
-        
-        .modal .ingrediente-sin-disponibilidad {
-            font-size: 11px;
-            color: #dc3545;
-            margin-top: 5px;
-        }
-        
-        .modal .small-text {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        
-        .modal .small-text i {
-            margin-right: 5px;
-        }
-        
-        /* Estilos adicionales para validación */
-        .modal .form-input:invalid,
-        .modal .ingrediente-cantidad:invalid {
-            border-color: #dc3545;
-            background-color: rgba(220, 53, 69, 0.05);
-        }
-        
-        .modal .ingrediente-cantidad:disabled {
-            background-color: #e9ecef;
-            cursor: not-allowed;
-        }
-        
-        .modal .has-error {
-            border-color: #dc3545 !important;
-            background-color: rgba(220, 53, 69, 0.05) !important;
-        }
-        
-        .modal .error-message {
-            color: #dc3545;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-        
-        .modal .total-ingredientes {
-            margin-top: 15px;
-            padding: 10px;
-            background: #e9f7fe;
-            border-radius: 4px;
-            text-align: center;
-            font-weight: 500;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // Configurar el botón de guardar
-    document.getElementById('guardar-agrego-simple-modal').addEventListener('click', function () {
-        guardarAgregoSimpleDesdeModal();
-    });
-    
-    // Validación en tiempo real para inputs de ingredientes (igual que en el otro modal)
-    document.querySelectorAll('.ingrediente-cantidad').forEach(input => {
-        input.addEventListener('input', function() {
-            const max = parseInt(this.max) || 0;
-            const value = parseInt(this.value) || 0;
-            
-            if (value > max) {
-                this.value = max;
-                showNotification(`No puedes usar más de ${max} unidades de ${this.dataset.ingredienteNombre}`, 'error');
-            }
-            
-            // Evitar valores negativos
-            if (value < 0) {
-                this.value = 0;
-            }
-            
-            // Mostrar total actual de ingredientes
-            actualizarTotalIngredientes();
-        });
-        
-        input.addEventListener('blur', function() {
-            const max = parseInt(this.max) || 0;
-            const value = parseInt(this.value) || 0;
-            
-            if (value > max) {
-                this.value = max;
-                showNotification(`Ajustado a ${max} unidades de ${this.dataset.ingredienteNombre} (máximo disponible)`, 'warning');
-            }
-        });
-    });
-    
-    // Validación en tiempo real para precio
-    const precioInput = document.getElementById('agrego-precio');
-    if (precioInput) {
-        precioInput.addEventListener('input', function() {
-            const value = parseFloat(this.value) || 0;
-            
-            if (value < 0) {
-                this.value = 0;
-                showNotification('El precio no puede ser negativo', 'error');
-            }
-        });
-    }
-    
-    // Validación en tiempo real para cantidad
-    const cantidadInput = document.getElementById('agrego-cantidad');
-    if (cantidadInput) {
-        cantidadInput.addEventListener('input', function() {
-            const value = parseInt(this.value) || 0;
-            
-            if (value < 1) {
-                this.value = 1;
-                showNotification('La cantidad mínima es 1', 'error');
-            }
-        });
-    }
-    
-    // Función para actualizar el total de ingredientes seleccionados
-    function actualizarTotalIngredientes() {
-        let total = 0;
-        let totalElement = document.getElementById('total-ingredientes-actual');
-        
-        if (!totalElement) {
-            // Crear elemento si no existe
-            const ingredientesGrid = document.getElementById('ingredientes-list');
-            totalElement = document.createElement('div');
-            totalElement.id = 'total-ingredientes-actual';
-            totalElement.className = 'total-ingredientes';
-            ingredientesGrid.parentNode.insertBefore(totalElement, ingredientesGrid.nextSibling);
-        }
-        
-        document.querySelectorAll('.ingrediente-cantidad:not(:disabled)').forEach(input => {
-            const value = parseInt(input.value) || 0;
-            total += value;
-        });
-        
-        totalElement.textContent = `Total de ingredientes seleccionados: ${total} unidad(es)`;
-        
-        // Cambiar color si se excede un límite
-        if (total > 100) {
-            totalElement.style.background = '#f8d7da';
-            totalElement.style.color = '#721c24';
-        } else if (total > 0) {
-            totalElement.style.background = '#d4edda';
-            totalElement.style.color = '#155724';
-        } else {
-            totalElement.style.background = '#e9f7fe';
-            totalElement.style.color = '#0c5460';
-        }
-    }
-    
-    // Inicializar el contador de ingredientes
-    setTimeout(actualizarTotalIngredientes, 100);
-}
-
-
-    function showModalConfigurarRelaciones() {
+    function mostrarModalAgregoCompuesto() {
         // Filtrar productos
         const productosBase = cocinaData.filter(p => p.precio > 0);
         const ingredientes = cocinaData.filter(p => p.precio === 0);
-
-        if (productosBase.length === 0 || ingredientes.length === 0) {
-            showNotification('Necesitas productos base e ingredientes para configurar relaciones', 'warning');
+        
+        if (productosBase.length === 0 && ingredientes.length === 0) {
+            showNotification('No hay productos ni ingredientes disponibles para registrar', 'warning');
             return;
         }
-
+        
         const modalHtml = `
-            <div class="modal active" id="modal-configurar-relaciones">
-                <div class="modal-content" style="max-width: 900px;">
+            <div class="modal active" id="modal-agrego-compuesto">
+                <div class="modal-content" style="max-width: 800px;">
                     <div class="modal-header">
-                        <h3><i class="fas fa-cogs"></i> Configurar Relaciones de Productos</h3>
-                        <button class="modal-close" onclick="document.getElementById('modal-configurar-relaciones').remove()">&times;</button>
+                        <h3><i class="fas fa-plus-circle"></i> Registrar Agrego o Producto Compuesto</h3>
+                        <button class="modal-close" onclick="document.getElementById('modal-agrego-compuesto').remove()">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <div class="form-group">
-                            <label for="seleccionar-producto-relacion">Seleccionar Producto *</label>
-                            <select id="seleccionar-producto-relacion" required>
-                                <option value="">Selecciona un producto...</option>
-                                ${productosBase.map(p => {
-            const tieneRelaciones = relacionesProductos.filter(r => r.productoId === p.id).length > 0;
-            return `<option value="${p.id}" ${tieneRelaciones ? 'data-tiene-relaciones="true"' : ''}>${p.nombre} ${tieneRelaciones ? '(ya configurado)' : ''}</option>`;
-        }).join('')}
-                            </select>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="tipo-registro">Tipo de Registro *</label>
+                                <select id="tipo-registro" class="form-select" required>
+                                    <option value="">Selecciona tipo...</option>
+                                    <option value="agrego">Agrego Simple (Complemento)</option>
+                                    <option value="producto">Producto Compuesto</option>
+                                    <option value="configurar">Configurar Relaciones de Producto</option>
+                                </select>
+                            </div>
                         </div>
                         
-                        <div id="relaciones-actuales" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; display: none;">
-                            <h4>Relaciones Actuales:</h4>
-                            <ul id="lista-relaciones-actuales"></ul>
-                        </div>
-                        
-                        <h4>Configurar Ingredientes Fijos:</h4>
-                        <p class="small-text"><i class="fas fa-info-circle"></i> Define cuánto de cada ingrediente usa UNA unidad de este producto</p>
-                        <div class="ingredientes-grid" id="ingredientes-relaciones-list" style="max-height: 300px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                            ${ingredientes.map(ing => `
-                                <div class="ingrediente-item" style="margin-bottom: 10px; padding: 10px; border-bottom: 1px solid #eee;">
-                                    <label style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span>${ing.nombre}</span>
-                                        <div>
+                        <!-- Campos para Agrego/Producto -->
+                        <div id="campos-agrego-producto" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group" id="campo-nombre-agrego" style="display: none;">
+                                    <label for="agrego-nombre">Nombre del Agrego *</label>
+                                    <input type="text" id="agrego-nombre" class="form-input" placeholder="Ej: Jamón, Queso, Tocino...">
+                                </div>
+                                
+                                <div class="form-group" id="campo-producto-base" style="display: none;">
+                                    <label for="producto-base">Producto Base *</label>
+                                    <select id="producto-base" class="form-select">
+                                        <option value="">Selecciona un producto...</option>
+                                        ${productosBase.map(p => `
+                                            <option value="${p.id}">${p.nombre} - $${p.precio.toFixed(2)}</option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="precio-registro">Precio *</label>
+                                    <input type="number" id="precio-registro" class="form-input" placeholder="0.00" step="1.00" min="0">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="cantidad-registro">Cantidad *</label>
+                                    <input type="number" id="cantidad-registro" class="form-input" placeholder="Ej: 1, 2, 3..." min="1" value="1">
+                                </div>
+                            </div>
+                            
+                            <!-- Campos para Configurar Relaciones -->
+                            <div id="campos-configurar-relaciones" style="display: none;">
+                                <div class="form-group">
+                                    <label for="producto-relacion">Producto para Configurar *</label>
+                                    <select id="producto-relacion" class="form-select">
+                                        <option value="">Selecciona un producto...</option>
+                                        ${productosBase.map(p => `
+                                            <option value="${p.id}">${p.nombre}</option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <h4>Ingredientes Utilizados:</h4>
+                            <p class="small-text"><i class="fas fa-info-circle"></i> Solo puedes usar ingredientes disponibles</p>
+                            <div class="ingredientes-grid" id="ingredientes-list" style="max-height: 300px; overflow-y: auto;">
+                                ${ingredientes.map(ing => `
+                                    <div class="ingrediente-item ${ing.disponible <= 0 ? 'disabled' : ''}">
+                                        <div class="ingrediente-info">
+                                            <span class="ingrediente-nombre">${ing.nombre}</span>
+                                            <span class="ingrediente-disponible ${ing.disponible > 0 ? 'available' : 'unavailable'}">
+                                                Disponible: ${ing.disponible}
+                                            </span>
+                                        </div>
+                                        <div class="ingrediente-controls">
                                             <input type="number" 
                                                    min="0" 
-                                                   max="10"
+                                                   max="${ing.disponible}"
                                                    value="0"
                                                    data-ingrediente-id="${ing.id}"
                                                    data-ingrediente-nombre="${ing.nombre}"
-                                                   class="relacion-ingrediente-cantidad"
-                                                   style="width: 80px; text-align: center;">
-                                            <span style="margin-left: 5px;">por producto</span>
+                                                   data-ingrediente-disponible="${ing.disponible}"
+                                                   class="ingrediente-cantidad form-input-sm"
+                                                   ${ing.disponible <= 0 ? 'disabled' : ''}>
+                                            <span class="unidad-text">unidad(es)</span>
                                         </div>
-                                    </label>
+                                        ${ing.disponible <= 0 ? '<div class="ingrediente-sin-disponibilidad">Sin disponibilidad</div>' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group full-width">
+                                    <label for="notas-registro">Notas (Opcional)</label>
+                                    <textarea id="notas-registro" class="form-textarea" placeholder="Detalles adicionales..." rows="2"></textarea>
                                 </div>
-                            `).join('')}
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" onclick="document.getElementById('modal-configurar-relaciones').remove()">
+                        <button class="btn btn-secondary" onclick="document.getElementById('modal-agrego-compuesto').remove()">
                             Cancelar
                         </button>
-                        <button class="btn btn-primary" id="guardar-relaciones-modal">
-                            <i class="fas fa-save"></i> Guardar Relaciones
-                        </button>
-                        <button class="btn btn-danger" id="eliminar-relaciones-modal" style="display: none;">
-                            <i class="fas fa-trash"></i> Eliminar Relaciones
+                        <button class="btn btn-primary" id="guardar-registro-modal">
+                            <i class="fas fa-save"></i> Guardar
                         </button>
                     </div>
                 </div>
             </div>
         `;
-
+        
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        const selectProducto = document.getElementById('seleccionar-producto-relacion');
-        const relacionesActualesDiv = document.getElementById('relaciones-actuales');
-
-        selectProducto.addEventListener('change', function () {
-            const productoId = parseInt(this.value);
-            if (!productoId) {
-                relacionesActualesDiv.style.display = 'none';
-                document.getElementById('eliminar-relaciones-modal').style.display = 'none';
+        
+        // Añadir estilos específicos
+        const style = document.createElement('style');
+        style.textContent = `
+            .modal .form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .modal .form-group.full-width {
+                grid-column: span 2;
+            }
+            
+            .modal .form-group label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: 500;
+                color: #333;
+            }
+            
+            .modal .form-select,
+            .modal .form-input,
+            .modal .form-textarea {
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+                transition: border-color 0.3s;
+            }
+            
+            .modal .form-input-sm {
+                width: 80px;
+                padding: 6px 8px;
+                text-align: center;
+            }
+            
+            .modal .form-select:focus,
+            .modal .form-input:focus,
+            .modal .form-textarea:focus {
+                outline: none;
+                border-color: #4a6cf7;
+                box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.1);
+            }
+            
+            .modal .ingredientes-grid {
+                margin-top: 10px;
+                padding: 15px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                background: #f8f9fa;
+            }
+            
+            .modal .ingrediente-item {
+                padding: 10px;
+                margin-bottom: 10px;
+                border-bottom: 1px solid #eee;
+                background: white;
+                border-radius: 4px;
+            }
+            
+            .modal .ingrediente-item.disabled {
+                opacity: 0.6;
+            }
+            
+            .modal .ingrediente-info {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+            
+            .modal .ingrediente-nombre {
+                font-weight: 500;
+            }
+            
+            .modal .ingrediente-disponible {
+                font-size: 12px;
+                padding: 2px 6px;
+                border-radius: 10px;
+            }
+            
+            .modal .ingrediente-disponible.available {
+                background: #d4edda;
+                color: #155724;
+            }
+            
+            .modal .ingrediente-disponible.unavailable {
+                background: #f8d7da;
+                color: #721c24;
+            }
+            
+            .modal .ingrediente-controls {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .modal .unidad-text {
+                font-size: 13px;
+                color: #666;
+            }
+            
+            .modal .ingrediente-sin-disponibilidad {
+                font-size: 11px;
+                color: #dc3545;
+                margin-top: 5px;
+            }
+            
+            .modal .small-text {
+                font-size: 12px;
+                color: #666;
+                margin-bottom: 10px;
+            }
+            
+            .modal .small-text i {
+                margin-right: 5px;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        const tipoRegistroSelect = document.getElementById('tipo-registro');
+        const camposAgregoProducto = document.getElementById('campos-agrego-producto');
+        const camposConfigurarRelaciones = document.getElementById('campos-configurar-relaciones');
+        const campoNombreAgrego = document.getElementById('campo-nombre-agrego');
+        const campoProductoBase = document.getElementById('campo-producto-base');
+        const productoRelacionSelect = document.getElementById('producto-relacion');
+        
+        tipoRegistroSelect.addEventListener('change', function() {
+            const tipo = this.value;
+            
+            if (tipo === '') {
+                camposAgregoProducto.style.display = 'none';
                 return;
             }
-
-            const producto = cocinaData.find(p => p.id === productoId);
-            const relacionesActuales = relacionesProductos.filter(r => r.productoId === productoId);
-
-            if (relacionesActuales.length > 0) {
-                const lista = document.getElementById('lista-relaciones-actuales');
-                lista.innerHTML = '';
-
-                relacionesActuales.forEach(rel => {
-                    const ingrediente = cocinaData.find(p => p.id === rel.ingredienteId);
-                    if (ingrediente) {
-                        const li = document.createElement('li');
-                        li.textContent = `${ingrediente.nombre}: ${rel.cantidad} por unidad`;
-                        lista.appendChild(li);
+            
+            camposAgregoProducto.style.display = 'block';
+            
+            if (tipo === 'agrego') {
+                campoNombreAgrego.style.display = 'block';
+                campoProductoBase.style.display = 'none';
+                camposConfigurarRelaciones.style.display = 'none';
+                document.getElementById('precio-registro').value = '';
+                document.getElementById('precio-registro').disabled = false;
+            } else if (tipo === 'producto') {
+                campoNombreAgrego.style.display = 'none';
+                campoProductoBase.style.display = 'block';
+                camposConfigurarRelaciones.style.display = 'none';
+                // Actualizar precio cuando se selecciona producto base
+                productoRelacionSelect.addEventListener('change', function() {
+                    const productoId = parseInt(this.value);
+                    if (productoId) {
+                        const producto = cocinaData.find(p => p.id === productoId);
+                        if (producto) {
+                            document.getElementById('precio-registro').value = producto.precio;
+                            document.getElementById('precio-registro').disabled = true;
+                        }
                     }
                 });
-
-                relacionesActualesDiv.style.display = 'block';
-                document.getElementById('eliminar-relaciones-modal').style.display = 'inline-block';
-
-                // Pre-cargar valores en los inputs
-                document.querySelectorAll('.relacion-ingrediente-cantidad').forEach(input => {
-                    const ingredienteId = parseInt(input.dataset.ingredienteId);
-                    const relacion = relacionesActuales.find(r => r.ingredienteId === ingredienteId);
-                    input.value = relacion ? relacion.cantidad : 0;
-                });
-            } else {
-                relacionesActualesDiv.style.display = 'none';
-                document.getElementById('eliminar-relaciones-modal').style.display = 'none';
-
-                // Limpiar inputs
-                document.querySelectorAll('.relacion-ingrediente-cantidad').forEach(input => {
-                    input.value = 0;
+            } else if (tipo === 'configurar') {
+                campoNombreAgrego.style.display = 'none';
+                campoProductoBase.style.display = 'none';
+                camposConfigurarRelaciones.style.display = 'block';
+                document.getElementById('precio-registro').value = '';
+                document.getElementById('precio-registro').disabled = true;
+                document.getElementById('cantidad-registro').disabled = true;
+                
+                // Cargar relaciones existentes si las hay
+                productoRelacionSelect.addEventListener('change', function() {
+                    const productoId = parseInt(this.value);
+                    if (productoId) {
+                        const relaciones = relacionesProductos.filter(r => r.productoId === productoId);
+                        document.querySelectorAll('.ingrediente-cantidad').forEach(input => {
+                            const ingredienteId = parseInt(input.dataset.ingredienteId);
+                            const relacion = relaciones.find(r => r.ingredienteId === ingredienteId);
+                            input.value = relacion ? relacion.cantidad : 0;
+                        });
+                    }
                 });
             }
         });
-
-        document.getElementById('guardar-relaciones-modal').addEventListener('click', function () {
-            guardarRelacionesDesdeModal();
+        
+        document.getElementById('guardar-registro-modal').addEventListener('click', function() {
+            guardarRegistroDesdeModal();
         });
-
-        document.getElementById('eliminar-relaciones-modal').addEventListener('click', function () {
-            eliminarRelacionesProducto();
+        
+        // Validación en tiempo real para inputs de ingredientes
+        document.querySelectorAll('.ingrediente-cantidad').forEach(input => {
+            input.addEventListener('input', function() {
+                const max = parseInt(this.max) || 0;
+                const value = parseInt(this.value) || 0;
+                
+                if (value > max) {
+                    this.value = max;
+                    showNotification(`No puedes usar más de ${max} unidades de ${this.dataset.ingredienteNombre}`, 'error');
+                }
+            });
+            
+            input.addEventListener('blur', function() {
+                const max = parseInt(this.max) || 0;
+                const value = parseInt(this.value) || 0;
+                
+                if (value > max) {
+                    this.value = max;
+                    showNotification(`Ajustado a ${max} unidades de ${this.dataset.ingredienteNombre} (máximo disponible)`, 'warning');
+                }
+            });
         });
     }
-
-    function guardarAgregoSimpleDesdeModal() {
-        // Obtener valores de los campos
-        const nombre = document.getElementById('agrego-nombre').value.trim();
-        const precio = parseFloat(document.getElementById('agrego-precio').value) || 0;
-        const cantidad = parseInt(document.getElementById('agrego-cantidad').value) || 1;
-        const notas = document.getElementById('agrego-notas').value.trim();
-
-        // Validación 1: Nombre requerido
-        if (!nombre) {
-            showNotification('El nombre  es requerido', 'error');
-            document.getElementById('agrego-nombre').focus();
+    
+    function guardarRegistroDesdeModal() {
+        const tipo = document.getElementById('tipo-registro').value;
+        
+        if (!tipo) {
+            showNotification('Debes seleccionar un tipo de registro', 'error');
             return;
         }
-
-        // Validación 3: Precio válido
+        
+        if (tipo === 'agrego') {
+            guardarAgregoDesdeModal();
+        } else if (tipo === 'producto') {
+            guardarProductoDesdeModal();
+        } else if (tipo === 'configurar') {
+            guardarRelacionesDesdeModal();
+        }
+    }
+    
+    function guardarAgregoDesdeModal() {
+        const nombre = document.getElementById('agrego-nombre').value.trim();
+        const precio = parseFloat(document.getElementById('precio-registro').value) || 0;
+        const cantidad = parseInt(document.getElementById('cantidad-registro').value) || 1;
+        const notas = document.getElementById('notas-registro').value.trim();
+        
+        if (!nombre) {
+            showNotification('El nombre del agrego es requerido', 'error');
+            return;
+        }
+        
         if (precio <= 0) {
             showNotification('El precio debe ser mayor a 0', 'error');
-            document.getElementById('agrego-precio').focus();
             return;
         }
-
-        // Validación 5: Cantidad válida
+        
         if (cantidad <= 0) {
             showNotification('La cantidad debe ser mayor a 0', 'error');
-            document.getElementById('agrego-cantidad').focus();
             return;
         }
-
-        // Validación 6: Notas (opcional pero con límite)
-        if (notas.length > 500) {
-            showNotification('Las notas no pueden exceder 500 caracteres', 'warning');
-            document.getElementById('agrego-notas').focus();
-            return;
-        }
-
+        
         // Obtener ingredientes seleccionados
         const ingredientesInputs = document.querySelectorAll('.ingrediente-cantidad:not(:disabled)');
         const ingredientesConsumidos = [];
         let hayIngredientes = false;
-
-        // Validación 7: Revisar cada ingrediente
+        
         ingredientesInputs.forEach(input => {
             const cantidadUsada = parseInt(input.value) || 0;
-            const inputId = input.id || input.dataset.ingredienteId;
-
             if (cantidadUsada > 0) {
                 const disponible = parseInt(input.dataset.ingredienteDisponible) || 0;
-                const ingredienteNombre = input.dataset.ingredienteNombre || 'Ingrediente';
-
-                // Validación: Cantidad no puede ser negativa
-                if (cantidadUsada < 0) {
-                    showNotification(`La cantidad de ${ingredienteNombre} no puede ser negativa`, 'error');
-                    input.value = 0;
-                    input.focus();
-                    return;
-                }
-
-                // Validación: No exceder disponibilidad
+                
                 if (cantidadUsada > disponible) {
-                    showNotification(`No hay suficiente ${ingredienteNombre}. Disponible: ${disponible}`, 'error');
-                    input.value = Math.min(cantidadUsada, disponible);
-                    input.focus();
+                    showNotification(`No hay suficiente ${input.dataset.ingredienteNombre}. Disponible: ${disponible}`, 'error');
                     return;
                 }
-
-                // Si pasa todas las validaciones, agregar al array
+                
                 ingredientesConsumidos.push({
                     id: parseInt(input.dataset.ingredienteId),
-                    nombre: ingredienteNombre,
-                    cantidad: cantidadUsada,
-                    inputId: inputId
+                    nombre: input.dataset.ingredienteNombre,
+                    cantidad: cantidadUsada
                 });
                 hayIngredientes = true;
             }
         });
-
-
-        // Validación 8: Al menos un ingrediente
+        
         if (!hayIngredientes) {
             showNotification('Debe seleccionar al menos un ingrediente consumido', 'warning');
-
-            // Enfocar el primer input de ingrediente disponible
-            const primerInput = document.querySelector('.ingrediente-cantidad:not(:disabled)');
-            if (primerInput) {
-                primerInput.focus();
-            }
-
             return;
         }
-
-        // Validación 10: Verificar que no haya valores NaN en los inputs
-        let hayValoresInvalidos = false;
-        document.querySelectorAll('.ingrediente-cantidad').forEach(input => {
-            const valor = input.value;
-            if (valor && isNaN(parseInt(valor))) {
-                showNotification(`Valor inválido en ${input.dataset.ingredienteNombre || 'ingrediente'}`, 'error');
-                input.value = 0;
-                hayValoresInvalidos = true;
-            }
-        });
-
-        if (hayValoresInvalidos) {
-            return;
-        }
-
-
-        // Descontar del ingrediente en la tabla
+        
+        // Descontar ingredientes
         ingredientesConsumidos.forEach(ingrediente => {
             const productoIndex = cocinaData.findIndex(p => p.id === ingrediente.id);
             if (productoIndex !== -1) {
                 const ingredienteItem = cocinaData[productoIndex];
                 ingredienteItem.vendido += ingrediente.cantidad;
-                // Ajustar el final para mantener consistencia
                 ingredienteItem.final = Math.max(0, ingredienteItem.venta - ingredienteItem.vendido);
             }
         });
-
+        
         const nuevoAgrego = {
             id: Date.now(),
             nombre: nombre,
@@ -1487,47 +1156,139 @@ document.addEventListener('DOMContentLoaded', function () {
             hora: obtenerHoraActual(),
             fecha: new Date().toISOString(),
             montoTotal: precio * cantidad,
-            tipo: 'agrego-simple'
+            tipo: 'agrego'
         };
-
-        // Agregar a la lista de agregos
+        
         agregos.push(nuevoAgrego);
-
-        // Guardar y actualizar
+        
         recalcularDisponibilidad();
         guardarDatosCocina();
         actualizarResumenCocina();
         actualizarListaAgregos();
         actualizarTablaCocina();
-
-        document.getElementById('modal-agrego-simple').remove();
-
-        showNotification('Agrego simple registrado correctamente', 'success');
-
-        // Limpiar formulario si es necesario
-        if (typeof resetFormularioAgrego === 'function') {
-            resetFormularioAgrego();
-        }
+        
+        document.getElementById('modal-agrego-compuesto').remove();
+        
+        showNotification('Agrego registrado correctamente', 'success');
     }
-
+    
+    function guardarProductoDesdeModal() {
+        const productoBaseId = parseInt(document.getElementById('producto-base').value);
+        const cantidad = parseInt(document.getElementById('cantidad-registro').value) || 1;
+        const notas = document.getElementById('notas-registro').value.trim();
+        
+        if (!productoBaseId) {
+            showNotification('Debes seleccionar un producto base', 'error');
+            return;
+        }
+        
+        if (cantidad <= 0) {
+            showNotification('La cantidad debe ser mayor a 0', 'error');
+            return;
+        }
+        
+        const productoBase = cocinaData.find(p => p.id === productoBaseId);
+        if (!productoBase) {
+            showNotification('Producto no encontrado', 'error');
+            return;
+        }
+        
+        // Verificar si el producto tiene relaciones configuradas
+        const relaciones = relacionesProductos.filter(r => r.productoId === productoBaseId);
+        
+        if (relaciones.length === 0) {
+            showNotification('Este producto no tiene ingredientes configurados. Configura las relaciones primero.', 'error');
+            return;
+        }
+        
+        // Calcular ingredientes necesarios
+        let hayDisponibilidad = true;
+        let mensajeError = '';
+        const ingredientesConsumidos = [];
+        
+        relaciones.forEach(relacion => {
+            const ingrediente = cocinaData.find(p => p.id === relacion.ingredienteId);
+            if (ingrediente) {
+                const cantidadNecesaria = cantidad * relacion.cantidad;
+                
+                if (ingrediente.disponible < cantidadNecesaria) {
+                    hayDisponibilidad = false;
+                    const faltante = cantidadNecesaria - ingrediente.disponible;
+                    mensajeError += `\n• ${ingrediente.nombre}: Necesitas ${cantidadNecesaria}, solo tienes ${ingrediente.disponible} disponible(s). Faltan ${faltante}.`;
+                } else {
+                    ingredientesConsumidos.push({
+                        id: ingrediente.id,
+                        nombre: ingrediente.nombre,
+                        cantidad: cantidadNecesaria,
+                        cantidadPorProducto: relacion.cantidad
+                    });
+                }
+            }
+        });
+        
+        if (!hayDisponibilidad) {
+            showNotification(
+                `No hay suficientes ingredientes para producir ${cantidad} ${productoBase.nombre}:${mensajeError}`,
+                'error'
+            );
+            return;
+        }
+        
+        // Descontar ingredientes
+        ingredientesConsumidos.forEach(ingrediente => {
+            const productoIndex = cocinaData.findIndex(p => p.id === ingrediente.id);
+            if (productoIndex !== -1) {
+                const ingredienteItem = cocinaData[productoIndex];
+                ingredienteItem.vendido += ingrediente.cantidad;
+                ingredienteItem.final = Math.max(0, ingredienteItem.venta - ingredienteItem.vendido);
+            }
+        });
+        
+        const nuevoProducto = {
+            id: Date.now(),
+            productoBaseId: productoBaseId,
+            productoBaseNombre: productoBase.nombre,
+            cantidad: cantidad,
+            precioUnitario: productoBase.precio,
+            ingredientes: ingredientesConsumidos,
+            notas: notas,
+            hora: obtenerHoraActual(),
+            fecha: new Date().toISOString(),
+            montoTotal: productoBase.precio * cantidad,
+            tipo: 'producto'
+        };
+        
+        agregos.push(nuevoProducto);
+        
+        recalcularDisponibilidad();
+        guardarDatosCocina();
+        actualizarResumenCocina();
+        actualizarListaAgregos();
+        actualizarTablaCocina();
+        
+        document.getElementById('modal-agrego-compuesto').remove();
+        
+        showNotification(`Producto "${productoBase.nombre}" registrado correctamente`, 'success');
+    }
+    
     function guardarRelacionesDesdeModal() {
-        const productoId = parseInt(document.getElementById('seleccionar-producto-relacion').value);
-
+        const productoId = parseInt(document.getElementById('producto-relacion').value);
+        
         if (!productoId) {
             showNotification('Debes seleccionar un producto', 'error');
             return;
         }
-
+        
         const producto = cocinaData.find(p => p.id === productoId);
         if (!producto) {
             showNotification('Producto no encontrado', 'error');
             return;
         }
-
+        
         // Obtener ingredientes configurados
-        const ingredientesInputs = document.querySelectorAll('.relacion-ingrediente-cantidad');
+        const ingredientesInputs = document.querySelectorAll('.ingrediente-cantidad:not(:disabled)');
         const nuevasRelaciones = [];
-
+        
         ingredientesInputs.forEach(input => {
             const cantidad = parseInt(input.value) || 0;
             if (cantidad > 0) {
@@ -1537,15 +1298,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         });
-
+        
         if (nuevasRelaciones.length === 0) {
-            showNotification('Debes configurar al menos un ingrediente para establecer relaciones', 'warning');
+            showNotification('Debes configurar al menos un ingrediente', 'warning');
             return;
         }
-
-        // Eliminar relaciones existentes para este producto
+        
+        // Eliminar relaciones existentes
         relacionesProductos = relacionesProductos.filter(r => r.productoId !== productoId);
-
+        
         // Agregar nuevas relaciones
         nuevasRelaciones.forEach(rel => {
             relacionesProductos.push({
@@ -1555,105 +1316,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 cantidad: rel.cantidad
             });
         });
-
-        // Guardar relaciones
+        
         guardarRelacionesProductos();
-
-        // Recalcular consumos basados en las nuevas relaciones
         recalcularConsumosPorRelaciones();
-
-        // Actualizar tabla
         actualizarTablaCocina();
         actualizarResumenCocina();
-
-        document.getElementById('modal-configurar-relaciones').remove();
-
+        
+        document.getElementById('modal-agrego-compuesto').remove();
+        
         showNotification(`Relaciones configuradas para "${producto.nombre}"`, 'success');
     }
-
-    function eliminarRelacionesProducto() {
-        const productoId = parseInt(document.getElementById('seleccionar-producto-relacion').value);
-
-        if (!productoId) return;
-
-        const producto = cocinaData.find(p => p.id === productoId);
-
-        showConfirmationModal(
-            'Eliminar Relaciones',
-            `¿Estás seguro de eliminar todas las relaciones del producto "${producto.nombre}"?`,
-            'warning',
-            function () {
-                // Eliminar relaciones
-                relacionesProductos = relacionesProductos.filter(r => r.productoId !== productoId);
-
-                // Guardar relaciones
-                guardarRelacionesProductos();
-
-                // Recalcular consumos
-                recalcularConsumosPorRelaciones();
-
-                // Actualizar tabla
-                actualizarTablaCocina();
-                actualizarResumenCocina();
-
-                document.getElementById('modal-configurar-relaciones').remove();
-
-                showNotification(`Relaciones eliminadas para "${producto.nombre}"`, 'success');
-            }
-        );
-    }
-
-    function agregarNuevoAgregoSimple() {
-        // Función de compatibilidad para el formulario antiguo
-        const descripcion = document.getElementById('agrego-descripcion').value.trim();
-        const monto = parseFloat(document.getElementById('agrego-monto').value) || 0;
-        const notas = document.getElementById('agrego-notas').value.trim();
-
-        if (!descripcion || monto <= 0) {
-            showNotification('Por favor, complete todos los campos correctamente', 'error');
-            return;
-        }
-
-        const nuevoAgrego = {
-            id: Date.now(),
-            nombre: descripcion,
-            precio: monto,
-            cantidad: 1,
-            ingredientes: [],
-            notas: notas,
-            hora: obtenerHoraActual(),
-            fecha: new Date().toISOString(),
-            montoTotal: monto,
-            tipo: 'agrego-simple-legacy'
-        };
-
-        agregos.push(nuevoAgrego);
-
-        guardarDatosCocina();
-        actualizarResumenCocina();
-        actualizarListaAgregos();
-        ocultarFormularioAgrego();
-
-        showNotification('Agrego registrado correctamente', 'success');
-    }
-
-    function ocultarFormularioAgrego() {
-        if (agregoForm) agregoForm.style.display = 'none';
-        if (btnAgregarAgregoTop) btnAgregarAgregoTop.style.display = 'flex';
-        if (formNuevoAgrego) formNuevoAgrego.reset();
-    }
-
+    
     function eliminarAgrego(agregoId) {
         showConfirmationModal(
             'Eliminar Registro',
             '¿Estás seguro de eliminar este registro? Esta acción restaurará los ingredientes consumidos.',
             'warning',
-            function () {
+            function() {
                 const agregoIndex = agregos.findIndex(a => a.id === agregoId);
                 if (agregoIndex !== -1) {
                     const agrego = agregos[agregoIndex];
-
-                    // Restaurar ingredientes consumidos si es un producto compuesto o agrego con ingredientes
+                    
                     if (agrego.ingredientes && agrego.ingredientes.length > 0) {
                         agrego.ingredientes.forEach(ingrediente => {
                             const productoIndex = cocinaData.findIndex(p => p.id === ingrediente.id);
@@ -1663,29 +1346,28 @@ document.addEventListener('DOMContentLoaded', function () {
                                 if (ingredienteItem.vendido < 0) {
                                     ingredienteItem.vendido = 0;
                                 }
-                                // Recalcular el final
                                 ingredienteItem.final = Math.max(0, ingredienteItem.venta - ingredienteItem.vendido);
                             }
                         });
                     }
-
+                    
                     agregos.splice(agregoIndex, 1);
-
+                    
                     recalcularDisponibilidad();
                     guardarDatosCocina();
                     actualizarResumenCocina();
                     actualizarListaAgregos();
                     actualizarTablaCocina();
-
+                    
                     showNotification('Registro eliminado correctamente', 'success');
                 }
             }
         );
     }
-
+    
     function actualizarListaAgregos() {
         if (!listaAgregos) return;
-
+        
         if (agregos.length === 0) {
             listaAgregos.innerHTML = `
                 <div class="empty-state-card">
@@ -1698,7 +1380,13 @@ document.addEventListener('DOMContentLoaded', function () {
             agregos.forEach(agrego => {
                 let tipoBadge = '';
                 let ingredientesText = '';
-
+                
+                if (agrego.tipo === 'agrego') {
+                    tipoBadge = '<span class="badge-tipo badge-agrego">Agrego</span>';
+                } else if (agrego.tipo === 'producto') {
+                    tipoBadge = '<span class="badge-tipo badge-producto">Producto</span>';
+                }
+                
                 if (agrego.ingredientes && agrego.ingredientes.length > 0) {
                     ingredientesText = agrego.ingredientes.map(i => {
                         if (i.cantidadPorProducto) {
@@ -1707,7 +1395,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         return `${i.nombre} (${i.cantidad})`;
                     }).join(', ');
                 }
-
+                
                 html += `
                     <div class="agrego-card" data-id="${agrego.id}" data-tipo="${agrego.tipo}">
                         <div class="agrego-info">
@@ -1733,33 +1421,33 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 `;
             });
-
+            
             listaAgregos.innerHTML = html;
-
+            
             const botonesEliminar = listaAgregos.querySelectorAll('.eliminar-agrego-btn');
             botonesEliminar.forEach(btn => {
-                btn.addEventListener('click', function () {
+                btn.addEventListener('click', function() {
                     const agregoId = parseInt(this.dataset.id);
                     eliminarAgrego(agregoId);
                 });
             });
         }
-
+        
         const totalAgregosElement = document.getElementById('total-agregos');
         const total = agregos.reduce((sum, a) => sum + a.montoTotal, 0);
-
+        
         if (totalAgregosElement) {
             totalAgregosElement.textContent = `$${total.toFixed(2)}`;
         }
     }
-
+    
     function actualizarResumenCocina() {
         const totalProductos = cocinaData.length;
         const totalUnidadesVendidas = cocinaData.reduce((sum, p) => sum + p.vendido, 0);
         const totalImporte = cocinaData.reduce((sum, p) => sum + p.importe, 0);
         const totalAgregos = agregos.reduce((sum, a) => sum + a.montoTotal, 0);
         const ventasTotales = totalImporte + totalAgregos;
-
+        
         const elementos = {
             'total-productos-cocina': totalProductos,
             'total-unidades-vendidas-cocina': `${totalUnidadesVendidas} unidades`,
@@ -1770,20 +1458,20 @@ document.addEventListener('DOMContentLoaded', function () {
             'ultima-actualizacion-cocina': obtenerHoraActual(),
             'total-ventas-cocina': `$${ventasTotales.toFixed(2)}`
         };
-
+        
         Object.entries(elementos).forEach(([id, value]) => {
             const element = document.getElementById(id);
             if (element) element.textContent = value;
         });
-
+        
         if (typeof window.updateSummary === 'function') {
             window.updateSummary();
         }
     }
-
+    
     function mostrarCargandoCocina() {
         if (!cocinaTable) return;
-
+        
         cocinaTable.innerHTML = `
             <tr>
                 <td colspan="8" class="loading-state">
@@ -1793,147 +1481,28 @@ document.addEventListener('DOMContentLoaded', function () {
             </tr>
         `;
     }
-
+    
     function ocultarCargandoCocina() {
         const loadingDiv = document.querySelector('.loading-state');
         if (loadingDiv) loadingDiv.remove();
     }
-
-    // ===== FUNCIONES PARA GESTIONAR RELACIONES FIJAS =====
-
-    // Función para agregar relación fija
-    window.agregarRelacionFija = function (productoId, ingredienteId, cantidad) {
-        // Verificar si ya existe la relación
-        const existe = relacionesProductos.some(r =>
-            r.productoId === productoId && r.ingredienteId === ingredienteId
-        );
-
-        if (!existe) {
-            relacionesProductos.push({
-                id: Date.now(),
-                productoId: productoId,
-                ingredienteId: ingredienteId,
-                cantidad: cantidad
-            });
-
-            guardarRelacionesProductos();
-            recalcularConsumosPorRelaciones();
-            actualizarTablaCocina();
-            showNotification('Relación fija agregada correctamente', 'success');
-        } else {
-            showNotification('Esta relación ya existe', 'warning');
-        }
-    };
-
-    // Función para eliminar relación fija
-    window.eliminarRelacionFija = function (relacionId) {
-        const index = relacionesProductos.findIndex(r => r.id === relacionId);
-        if (index !== -1) {
-            relacionesProductos.splice(index, 1);
-            guardarRelacionesProductos();
-            recalcularConsumosPorRelaciones();
-            actualizarTablaCocina();
-            showNotification('Relación eliminada correctamente', 'success');
-        }
-    };
-
-    // Función para gestionar panes con ingredientes
-    window.agregarPanConIngredientes = function (panId, ingredientes) {
-        // Primero eliminar relaciones existentes para este pan
-        relacionesPanIngredientes = relacionesPanIngredientes.filter(r => r.panId !== panId);
-
-        // Agregar nuevas relaciones
-        ingredientes.forEach(ingrediente => {
-            relacionesPanIngredientes.push({
-                id: Date.now(),
-                panId: panId,
-                ingredienteId: ingrediente.id,
-                cantidad: ingrediente.cantidad
-            });
-        });
-
-        guardarRelacionesProductos();
-        actualizarTablaCocina();
-        showNotification('Pan con ingredientes configurado correctamente', 'success');
-    };
-
-    // Función para ver relaciones de un producto
-    window.verRelacionesProducto = function (productoId) {
-        const producto = cocinaData.find(p => p.id === productoId);
-        if (!producto) return;
-
-        const relaciones = relacionesProductos.filter(r => r.productoId === productoId);
-        const panRelaciones = relacionesPanIngredientes.filter(r => r.panId === productoId);
-
-        if (relaciones.length === 0 && panRelaciones.length === 0) {
-            showNotification(`${producto.nombre} no tiene ingredientes configurados`, 'info');
-            return;
-        }
-
-        let mensaje = `<strong>${producto.nombre}</strong><br><br>`;
-
-        if (relaciones.length > 0) {
-            mensaje += '<strong>Ingredientes fijos:</strong><br>';
-            relaciones.forEach(rel => {
-                const ingrediente = cocinaData.find(p => p.id === rel.ingredienteId);
-                if (ingrediente) {
-                    mensaje += `• ${ingrediente.nombre}: ${rel.cantidad} por unidad<br>`;
-                }
-            });
-            mensaje += '<br>';
-        }
-
-        if (panRelaciones.length > 0) {
-            mensaje += '<strong>Ingredientes para pan:</strong><br>';
-            panRelaciones.forEach(rel => {
-                const ingrediente = cocinaData.find(p => p.id === rel.ingredienteId);
-                if (ingrediente) {
-                    mensaje += `• ${ingrediente.nombre}: ${rel.cantidad}<br>`;
-                }
-            });
-        }
-
-        // Mostrar en modal
-        const modalHtml = `
-            <div class="modal active">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-list"></i> Ingredientes de ${producto.nombre}</h3>
-                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div style="padding: 10px;">
-                            ${mensaje}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
-                            Cerrar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    };
-
+    
     // ===== FUNCIONES AUXILIARES =====
-
+    
     function obtenerHoraActual() {
         const now = new Date();
-        return now.toLocaleTimeString('es-ES', {
-            hour: '2-digit',
+        return now.toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
             minute: '2-digit',
-            hour12: true
+            hour12: true 
         });
     }
-
+    
     function getTodayDate() {
         const now = new Date();
         return now.toISOString().split('T')[0];
     }
-
+    
     function showConfirmationModal(title, message, type, onConfirm) {
         if (typeof window.showConfirmationModal === 'function') {
             window.showConfirmationModal(title, message, type, onConfirm);
@@ -1943,7 +1512,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     }
-
+    
     function showNotification(message, type = 'success') {
         if (typeof window.showNotification === 'function') {
             window.showNotification(message, type);
@@ -1951,19 +1520,19 @@ document.addEventListener('DOMContentLoaded', function () {
             alert(message);
         }
     }
-
+    
     // Funciones disponibles globalmente
-    window.getCocinaVentasTotal = function () {
+    window.getCocinaVentasTotal = function() {
         const totalImporte = cocinaData.reduce((sum, p) => sum + p.importe, 0);
         const totalAgregos = agregos.reduce((sum, a) => sum + a.montoTotal, 0);
         return totalImporte + totalAgregos;
     };
-
-    window.getCocinaAgregosTotal = function () {
+    
+    window.getCocinaAgregosTotal = function() {
         return agregos.reduce((sum, a) => sum + a.montoTotal, 0);
     };
-
-    window.resetCocinaDia = function () {
+    
+    window.resetCocinaDia = function() {
         cocinaData.forEach(producto => {
             producto.inicio = producto.final;
             producto.entrada = 0;
@@ -1975,64 +1544,22 @@ document.addEventListener('DOMContentLoaded', function () {
             producto.historial = [];
             producto.ultimaActualizacion = obtenerHoraActual();
         });
-
+        
         editingFinalEnabled = false;
         agregos = [];
-
+        
         recalcularDisponibilidad();
         guardarDatosCocina();
         actualizarTablaCocina();
         actualizarResumenCocina();
         actualizarListaAgregos();
     };
-    // En la sección de "Funciones disponibles globalmente" agrega:
-function productoCocina() {
-    cargarProductosCocina().then(() => {
-        if (productosCocina.length === 0) {
-            showNotification('No hay productos en la cocina. Agrega productos primero.', 'warning');
-            verificarProductosCocina();
-        } else {
-            sincronizarConProductosCocina();
-            recalcularConsumosPorRelaciones();
-            guardarDatosCocina();
-            verificarProductosCocina();
-            actualizarTablaCocina();
-            actualizarResumenCocina();
-
-            showNotification(`Sincronizados ${productosCocina.length} productos de cocina`, 'success');
-        }
-    });
-};
-
-
+    
     // Exponer datos y funciones para uso global
     window.cocinaData = cocinaData;
     window.productosCocina = productosCocina;
     window.agregos = agregos;
     window.relacionesProductos = relacionesProductos;
-    window.relacionesPanIngredientes = relacionesPanIngredientes;
-    window.sincronizarProductosCocina = productoCocina;
-
-
-    console.log('Cocina cargada con validaciones avanzadas de disponibilidad y productos compuestos');
-
-
-});
-
-
-// Inicializar cuando se carga la sección de cocina
-document.addEventListener('DOMContentLoaded', function() {
-    // Escuchar cambios en la navegación
-    const cocinaLinks = document.querySelectorAll('a[data-section="cocina"]');
-    cocinaLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            // Recargar productos cuando se entra a la sección
-            setTimeout(() => {
-                if (typeof window.sincronizarProductosCocina === 'function') {
-                    console.log("aqui")
-                    window.sincronizarProductosCocina();
-                }
-            }, 500);
-        });
-    });
+    
+    console.log('Cocina cargada con validaciones mejoradas');
 });

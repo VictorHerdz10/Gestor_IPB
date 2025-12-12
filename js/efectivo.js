@@ -420,4 +420,28 @@ document.addEventListener('DOMContentLoaded', function () {
             modal.remove();
         });
     }
+
+    // Inicializar cuando se muestra la sección
+    function initEfectivo() {
+        console.log('Inicializando sección de efectivo...');
+        loadEfectivoData();
+
+    }
+
+    // Inicializar si ya estamos en la sección de efectivo
+    const efectivoSection = document.getElementById('efectivo-section');
+    if (efectivoSection && efectivoSection.classList.contains('active')) {
+        setTimeout(initEfectivo, 100);
+    }
+
+    // Inicializar cuando se haga clic en el enlace del sidebar
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest('a[data-section="efectivo"]');
+        if (link) {
+            setTimeout(initEfectivo, 100);
+        }
+    });
+
+    // Función para forzar inicialización desde fuera
+    window.initEfectivo = initEfectivo;
 });

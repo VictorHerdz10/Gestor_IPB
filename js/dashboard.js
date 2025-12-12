@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Toggle del sidebar
     if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function() {
+        sidebarToggle.addEventListener('click', function () {
             toggleSidebar();
         });
     }
@@ -107,8 +107,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function toggleSidebar() {
         sidebar.classList.toggle('active');
         if (sidebarToggle) {
-            sidebarToggle.innerHTML = sidebar.classList.contains('active') 
-                ? '<i class="fas fa-times"></i>' 
+            sidebarToggle.innerHTML = sidebar.classList.contains('active')
+                ? '<i class="fas fa-times"></i>'
                 : '<i class="fas fa-bars"></i>';
         }
     }
@@ -149,9 +149,25 @@ document.addEventListener('DOMContentLoaded', function () {
             if (item.importe) ventasSalon += parseFloat(item.importe) || 0;
         });
 
-        cocinaData.forEach(item => {
-            if (item.importe) ventasCocina += parseFloat(item.importe) || 0;
-        });
+        // Obtener ventas de cocina usando la función global
+        if (typeof window.getCocinaVentasTotal === 'function') {
+            ventasCocina = window.getCocinaVentasTotal();
+        } else {
+            // Si no existe la función, calcular manualmente desde localStorage
+            const today = new Date().toISOString().split('T')[0];
+            const agregosDataKey = `cocina_agregos_${today}`;
+            const agregosData = JSON.parse(localStorage.getItem(agregosDataKey) || '[]');
+
+            // Sumar productos
+            cocinaData.forEach(item => {
+                if (item.importe) ventasCocina += parseFloat(item.importe) || 0;
+            });
+
+            // Sumar agregos
+            agregosData.forEach(agrego => {
+                if (agrego.montoTotal) ventasCocina += parseFloat(agrego.montoTotal) || 0;
+            });
+        }
 
         const ventasTotal = ventasSalon + ventasCocina;
 
@@ -179,9 +195,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const dineroReal = consumoTotal + extraccionesTotal + transferenciasTotal + efectivoTotal;
         const diferencia = dineroReal - ventasTotal;
+        const dineroAporcentuar = ventasTotal - consumoTotal;
 
-        // Calcular 1% del dinero real (redondeado al entero más cercano)
-        const porciento = Math.floor(dineroReal * 0.01);
+        // Calcular cada 10000 el porciento seria 100 ese es el calculo abajo q necesito
+        const porciento = Math.floor(dineroAporcentuar / 10000) * 100;
 
         // Actualizar UI
         document.getElementById('total-ventas').textContent = `$${ventasTotal.toFixed(2)}`;
@@ -208,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
             diferenciaDesc.style.color = 'var(--gray-medium)';
         }
 
-        porcientoDesc.textContent = `1% de $${dineroReal.toFixed(2)}`;
+        porcientoDesc.textContent = `Calculado de (Ventas Totales - consumo), $100 cada $10000 de $${dineroAporcentuar.toFixed(2)} `;
 
         // Actualizar detalles
         document.getElementById('ventas-salon').textContent = `$${ventasSalon.toFixed(2)}`;
@@ -612,6 +629,109 @@ function showConfirmationModal(title, message, type, confirmCallback) {
         modal.remove();
     });
 }
+// Agregar esta función a cocina.js o crear un archivo separado relaciones.js
+window.gestionarRelacionesCocina = {
+    abrirModalRelaciones: function (productoId) {
+        // Mostrar modal para gestionar relaciones de un producto
+        const producto = window.productosCocina.find(p => p.id === productoId);
+        if (!producto) return;
+
+        // Obtener ingredientes disponibles (productos con precio 0)
+        const ingredientes = window.cocinaData.filter(p => p.precio === 0);
+        const relacionesActuales = window.relacionesProductos.filter(r => r.productoId === productoId);
+
+        // Crear modal
+        const modalHtml = `
+            <div class="modal active" id="modal-relaciones">
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-link"></i> Relaciones de "${producto.nombre}"</h3>
+                        <button class="modal-close" onclick="document.getElementById('modal-relaciones').remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <h4>Ingredientes Usados:</h4>
+                        <div id="lista-relaciones-actuales" style="margin-bottom: 20px;">
+                            ${relacionesActuales.length === 0 ?
+                '<p class="no-data">No hay ingredientes asignados</p>' :
+                relacionesActuales.map(r => {
+                    const ingrediente = window.cocinaData.find(p => p.id === r.ingredienteId);
+                    return `
+                                        <div class="relacion-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee;">
+                                            <span>${ingrediente?.nombre || 'Desconocido'}</span>
+                                            <div>
+                                                <span>Cantidad: ${r.cantidad}</span>
+                                                <button class="btn btn-sm btn-danger" onclick="window.gestionarRelacionesCocina.eliminarRelacion(${r.id})" style="margin-left: 10px;">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `;
+                }).join('')
+            }
+                        </div>
+                        
+                        <h4>Agregar Nuevo Ingrediente:</h4>
+                        <div class="form-group">
+                            <select id="select-ingrediente" class="form-control">
+                                <option value="">Seleccionar ingrediente...</option>
+                                ${ingredientes.map(i =>
+                `<option value="${i.id}">${i.nombre}</option>`
+            ).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cantidad-ingrediente">Cantidad:</label>
+                            <input type="number" id="cantidad-ingrediente" min="1" value="1" class="form-control">
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="window.gestionarRelacionesCocina.agregarRelacion(${productoId})">
+                            <i class="fas fa-plus"></i> Agregar Relación
+                        </button>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="document.getElementById('modal-relaciones').remove()">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    agregarRelacion: function (productoId) {
+        const ingredienteId = parseInt(document.getElementById('select-ingrediente').value);
+        const cantidad = parseInt(document.getElementById('cantidad-ingrediente').value);
+
+        if (!ingredienteId || cantidad < 1) {
+            showNotification('Seleccione un ingrediente y una cantidad válida', 'error');
+            return;
+        }
+
+        window.agregarRelacionProducto(productoId, ingredienteId, cantidad);
+
+        // Actualizar modal
+        setTimeout(() => {
+            document.getElementById('modal-relaciones').remove();
+            this.abrirModalRelaciones(productoId);
+        }, 500);
+    },
+
+    eliminarRelacion: function (relacionId) {
+        window.eliminarRelacionProducto(relacionId);
+
+        // Actualizar modal
+        const productoId = window.relacionesProductos.find(r => r.id === relacionId)?.productoId;
+        if (productoId) {
+            setTimeout(() => {
+                document.getElementById('modal-relaciones').remove();
+                this.abrirModalRelaciones(productoId);
+            }, 500);
+        }
+    }
+};
 
 window.showConfirmationModal = showConfirmationModal;
 window.showNotification = showNotification;

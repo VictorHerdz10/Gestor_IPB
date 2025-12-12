@@ -800,3 +800,367 @@
         margin-top: 10px;
     }
 }
+
+/* Estilos para ingredientes en cocina */
+.badge-ingrediente {
+    display: inline-block;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 0.7em;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 5px;
+    font-weight: bold;
+}
+
+.badge-precio-cero {
+    display: inline-block;
+    background-color: #FF9800;
+    color: white;
+    font-size: 0.7em;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 5px;
+    font-weight: bold;
+}
+
+/* Estilos para tarjetas de agregos */
+.agrego-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: #f9f9f9;
+    transition: all 0.3s ease;
+}
+
+.agrego-card:hover {
+    background: #f0f0f0;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.agrego-info {
+    flex: 1;
+    margin-right: 15px;
+}
+
+.agrego-descripcion {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.agrego-ingredientes {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 3px;
+}
+
+.agrego-notas {
+    font-size: 0.85em;
+    color: #888;
+    font-style: italic;
+}
+
+.agrego-monto {
+    font-weight: bold;
+    color: #2e7d32;
+    font-size: 1.1em;
+    min-width: 80px;
+    text-align: right;
+}
+
+.agrego-hora {
+    font-size: 0.85em;
+    color: #666;
+    min-width: 70px;
+    text-align: center;
+}
+
+
+/* Modal de ingredientes */
+.ingredientes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.ingrediente-item {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #fff;
+}
+
+.ingrediente-item label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* Estilos para tabla de cocina */
+.producto-cell {
+    position: relative;
+}
+
+.salon-table .producto-cell .badge-ingrediente,
+.salon-table .producto-cell .badge-precio-cero {
+    display: none;
+}
+
+.cocina-table .producto-cell .badge-ingrediente,
+.cocina-table .producto-cell .badge-precio-cero {
+    display: inline-block;
+}
+
+/* Estilos para el modal de agregos/compuestos */
+.modal .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.modal .form-group.full-width {
+    grid-column: span 2;
+}
+
+.modal .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+}
+
+.modal .form-select,
+.modal .form-input,
+.modal .form-textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.modal .form-input-sm {
+    width: 80px;
+    padding: 6px 8px;
+    text-align: center;
+}
+
+.modal .form-select:focus,
+.modal .form-input:focus,
+.modal .form-textarea:focus {
+    outline: none;
+    border-color: #4a6cf7;
+    box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.1);
+}
+
+.modal .ingredientes-grid {
+    margin-top: 10px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #f8f9fa;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.modal .ingrediente-item {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    background: white;
+    border-radius: 4px;
+}
+
+.modal .ingrediente-item.disabled {
+    opacity: 0.6;
+}
+
+.modal .ingrediente-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.modal .ingrediente-nombre {
+    font-weight: 500;
+}
+
+.modal .ingrediente-disponible {
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.modal .ingrediente-disponible.available {
+    background: #d4edda;
+    color: #155724;
+}
+
+.modal .ingrediente-disponible.unavailable {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.modal .ingrediente-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal .unidad-text {
+    font-size: 13px;
+    color: #666;
+}
+
+.modal .ingrediente-sin-disponibilidad {
+    font-size: 11px;
+    color: #dc3545;
+    margin-top: 5px;
+}
+
+.modal .small-text {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.modal .small-text i {
+    margin-right: 5px;
+}
+
+/* Badges para tipos */
+.badge-tipo {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.badge-agrego {
+    background: #4a6cf7;
+    color: white;
+}
+
+
+.badge-legacy {
+    background: #6c757d;
+    color: white;
+}
+
+/* Estilos para tarjetas de agregos */
+.agrego-card {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 15px;
+    align-items: center;
+    padding: 12px 15px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.agrego-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.agrego-info {
+    min-width: 0;
+}
+
+.agrego-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.agrego-descripcion {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+}
+
+.agrego-ingredientes {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.agrego-ingredientes i {
+    margin-right: 5px;
+}
+
+.agrego-notas {
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+    padding: 5px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+
+.agrego-monto {
+    font-weight: 600;
+    color: #28a745;
+    white-space: nowrap;
+}
+
+.agrego-hora {
+    font-size: 12px;
+    color: #666;
+    white-space: nowrap;
+}
+
+.eliminar-agrego-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+
+.empty-state-card {
+    text-align: center;
+    padding: 30px;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    color: #6c757d;
+}
+
+.empty-state-card i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    color: #adb5bd;
+}
+
+.empty-state-card p {
+    margin-bottom: 15px;
+    font-size: 16px;
+}

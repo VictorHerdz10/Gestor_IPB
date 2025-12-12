@@ -17,11 +17,11 @@ class ProductManager {
     loadProducts() {
         const savedProducts = localStorage.getItem('ipb_products');
         const savedCocinaProducts = localStorage.getItem('ipb_cocina_products'); // Nueva
-        
+
         if (savedProducts) {
             this.products = JSON.parse(savedProducts);
         }
-        
+
         if (savedCocinaProducts) {
             this.cocinaProducts = JSON.parse(savedCocinaProducts);
         }
@@ -84,16 +84,16 @@ class ProductManager {
     showForm() {
         const form = document.getElementById('producto-form');
         if (form) form.style.display = 'block';
-        
+
         const nombreInput = document.getElementById('producto-nombre');
         if (nombreInput) nombreInput.focus();
-        
+
         const alerta = document.getElementById('alerta-duplicado');
         if (alerta) alerta.style.display = 'none';
-        
+
         const warning = document.getElementById('similar-products-warning');
         if (warning) warning.style.display = 'none';
-        
+
         // Reset location selection
         const locationSelect = document.getElementById('producto-ubicacion');
         if (locationSelect) locationSelect.value = 'salon';
@@ -102,13 +102,13 @@ class ProductManager {
     hideForm() {
         const form = document.getElementById('producto-form');
         if (form) form.style.display = 'none';
-        
+
         const formElement = document.getElementById('form-nuevo-producto');
         if (formElement) formElement.reset();
-        
+
         const alerta = document.getElementById('alerta-duplicado');
         if (alerta) alerta.style.display = 'none';
-        
+
         const warning = document.getElementById('similar-products-warning');
         if (warning) warning.style.display = 'none';
     }
@@ -146,10 +146,10 @@ class ProductManager {
     findSimilarProducts(name) {
         const searchTerm = name.toLowerCase().trim();
         const allProducts = [...this.products, ...this.cocinaProducts];
-        
+
         return allProducts.filter(product => {
             const productName = product.nombre.toLowerCase();
-            
+
             // Check for exact match (excluding current edit)
             if (this.currentEditId !== product.id && productName === searchTerm) {
                 return true;
@@ -172,9 +172,9 @@ class ProductManager {
     calculateSimilarity(str1, str2) {
         const longer = str1.length > str2.length ? str1 : str2;
         const shorter = str1.length > str2.length ? str2 : str1;
-        
+
         if (longer.length === 0) return 1.0;
-        
+
         const distance = this.levenshteinDistance(longer, shorter);
         return (longer.length - distance) / parseFloat(longer.length);
     }
@@ -182,15 +182,15 @@ class ProductManager {
     levenshteinDistance(str1, str2) {
         const track = Array(str2.length + 1).fill(null).map(() =>
             Array(str1.length + 1).fill(null));
-        
+
         for (let i = 0; i <= str1.length; i += 1) {
             track[0][i] = i;
         }
-        
+
         for (let j = 0; j <= str2.length; j += 1) {
             track[j][0] = j;
         }
-        
+
         for (let j = 1; j <= str2.length; j += 1) {
             for (let i = 1; i <= str1.length; i += 1) {
                 const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
@@ -201,7 +201,7 @@ class ProductManager {
                 );
             }
         }
-        
+
         return track[str2.length][str1.length];
     }
 
@@ -209,28 +209,37 @@ class ProductManager {
         const nombreInput = document.getElementById('producto-nombre');
         const precioInput = document.getElementById('producto-precio');
         const ubicacionSelect = document.getElementById('producto-ubicacion');
-        
+
         if (!nombreInput || !precioInput || !ubicacionSelect) return;
-        
+
         const nombre = nombreInput.value.trim();
         const precio = parseFloat(precioInput.value);
         const ubicacion = ubicacionSelect.value; // 'salon' o 'cocina'
         const alerta = document.getElementById('alerta-duplicado');
 
         // Validation
-        if (!nombre || !precio || precio <= 0) {
-            this.showAlert('Por favor, complete todos los campos correctamente', 'warning');
-            return;
+        if (ubicacion === 'cocina') {
+            // En cocina, permitir precio 0 (para ingredientes)
+            if (!nombre || precio < 0) { // Cambiado de precio <= 0 a precio < 0
+                window.showNotification('Por favor, complete todos los campos correctamente', 'error');
+                return;
+            }
+        } else {
+            // En salón, mantener validación original
+            if (!nombre || !precio || precio <= 0) {
+                window.showNotification('Por favor, complete todos los campos correctamente', 'error');
+                return;
+            }
         }
 
         // Check for duplicates based on location
         let duplicate = null;
         if (ubicacion === 'salon') {
-            duplicate = this.products.find(p => 
+            duplicate = this.products.find(p =>
                 p.nombre.toLowerCase() === nombre.toLowerCase()
             );
         } else {
-            duplicate = this.cocinaProducts.find(p => 
+            duplicate = this.cocinaProducts.find(p =>
                 p.nombre.toLowerCase() === nombre.toLowerCase()
             );
         }
@@ -260,25 +269,12 @@ class ProductManager {
         } else {
             this.cocinaProducts.push(newProduct);
         }
-        
+
         this.saveProducts();
         this.renderProducts();
-        
-        this.showAlert(`Producto agregado exitosamente a ${ubicacion === 'cocina' ? 'Cocina' : 'Salón'}`, 'success');
+
+        window.showNotification(`Producto agregado exitosamente a ${ubicacion === 'cocina' ? 'Cocina' : 'Salón'}`, 'success');
         this.hideForm();
-    }
-
-    showAlert(message, type) {
-        const alertDiv = document.getElementById('form-alert');
-        if (alertDiv) {
-            alertDiv.textContent = message;
-            alertDiv.className = `alert-products alert-products-${type}`;
-            alertDiv.style.display = 'flex';
-
-            setTimeout(() => {
-                alertDiv.style.display = 'none';
-            }, 3000);
-        }
     }
 
     renderProducts(filteredProducts = null) {
@@ -309,7 +305,7 @@ class ProductManager {
 
         // Combine both product lists for display
         const allProducts = [...this.products, ...this.cocinaProducts];
-        
+
         // Calculate pagination
         const totalPages = Math.ceil(allProducts.length / this.itemsPerPage);
         const startIndex = (this.currentPage - 1) * this.itemsPerPage;
@@ -321,7 +317,7 @@ class ProductManager {
         pageProducts.forEach((product, index) => {
             const tr = document.createElement('tr');
             const rowNumber = startIndex + index + 1;
-            
+
             tr.innerHTML = `
                 <td class="row-number">${rowNumber}</td>
                 <td class="product-name">${product.nombre}</td>
@@ -450,7 +446,7 @@ class ProductManager {
         pageProducts.forEach((product, index) => {
             const tr = document.createElement('tr');
             const rowNumber = startIndex + index + 1;
-            
+
             tr.innerHTML = `
                 <td class="row-number">${rowNumber}</td>
                 <td class="product-name">${product.nombre}</td>
@@ -506,7 +502,7 @@ class ProductManager {
         } else {
             product = this.cocinaProducts.find(p => p.id === productId);
         }
-        
+
         if (!product) return;
 
         this.currentEditId = productId;
@@ -515,7 +511,7 @@ class ProductManager {
         const nombreInput = document.getElementById('edit-producto-nombre');
         const precioInput = document.getElementById('edit-producto-precio');
         const ubicacionSelect = document.getElementById('edit-producto-ubicacion');
-        
+
         if (nombreInput) nombreInput.value = product.nombre;
         if (precioInput) precioInput.value = product.precio;
         if (ubicacionSelect) ubicacionSelect.value = product.ubicacion;
@@ -552,10 +548,10 @@ class ProductManager {
     closeEditModal() {
         const modal = document.getElementById('modal-edit');
         if (modal) modal.classList.remove('active');
-        
+
         this.currentEditId = null;
         this.currentEditUbicacion = null;
-        
+
         const warningDiv = document.getElementById('similar-products-edit-warning');
         if (warningDiv) warningDiv.style.display = 'none';
     }
@@ -564,27 +560,36 @@ class ProductManager {
         const nombreInput = document.getElementById('edit-producto-nombre');
         const precioInput = document.getElementById('edit-producto-precio');
         const ubicacionSelect = document.getElementById('edit-producto-ubicacion');
-        
+
         if (!nombreInput || !precioInput || !ubicacionSelect) return;
-        
+
         const nombre = nombreInput.value.trim();
         const precio = parseFloat(precioInput.value);
         const nuevaUbicacion = ubicacionSelect.value;
 
-        if (!nombre || !precio || precio <= 0) {
-            this.showAlert('Por favor, complete todos los campos correctamente', 'warning');
-            return;
+        if (nuevaUbicacion === 'cocina') {
+            // En cocina, permitir precio 0
+            if (!nombre || precio < 0) { // Cambiado de precio <= 0 a precio < 0
+                window.showNotification('Por favor, complete todos los campos correctamente', 'error');
+                return;
+            }
+        } else {
+            // En salón, mantener validación original
+            if (!nombre || !precio || precio <= 0) {
+                window.showNotification('Por favor, complete todos los campos correctamente', 'error');
+                return;
+            }
         }
 
         // Check for duplicates in the new location (excluding current product)
         let duplicate = null;
         if (nuevaUbicacion === 'salon') {
-            duplicate = this.products.find(p => 
+            duplicate = this.products.find(p =>
                 p.id !== this.currentEditId &&
                 p.nombre.toLowerCase() === nombre.toLowerCase()
             );
         } else {
-            duplicate = this.cocinaProducts.find(p => 
+            duplicate = this.cocinaProducts.find(p =>
                 p.id !== this.currentEditId &&
                 p.nombre.toLowerCase() === nombre.toLowerCase()
             );
@@ -602,7 +607,7 @@ class ProductManager {
         // Find and update product
         let productArray;
         let otherArray;
-        
+
         if (this.currentEditUbicacion === 'salon') {
             productArray = this.products;
             otherArray = this.cocinaProducts;
@@ -610,17 +615,17 @@ class ProductManager {
             productArray = this.cocinaProducts;
             otherArray = this.products;
         }
-        
+
         const productIndex = productArray.findIndex(p => p.id === this.currentEditId);
-        
+
         if (productIndex !== -1) {
             const product = productArray[productIndex];
-            
+
             // If location changed, move product to other array
             if (this.currentEditUbicacion !== nuevaUbicacion) {
                 // Remove from current array
                 productArray.splice(productIndex, 1);
-                
+
                 // Add to new array
                 const updatedProduct = {
                     ...product,
@@ -629,7 +634,7 @@ class ProductManager {
                     ubicacion: nuevaUbicacion,
                     fechaActualizacion: new Date().toISOString()
                 };
-                
+
                 if (nuevaUbicacion === 'salon') {
                     this.products.push(updatedProduct);
                 } else {
@@ -644,11 +649,11 @@ class ProductManager {
                     fechaActualizacion: new Date().toISOString()
                 };
             }
-            
+
             this.saveProducts();
             this.renderProducts();
             this.closeEditModal();
-            this.showAlert('Producto actualizado exitosamente', 'success');
+            window.showNotification('Producto actualizado exitosamente', 'success');
         }
     }
 
@@ -659,7 +664,7 @@ class ProductManager {
         } else {
             product = this.cocinaProducts.find(p => p.id === productId);
         }
-        
+
         if (!product) return;
 
         // Usar el modal de confirmación existente del dashboard
@@ -680,19 +685,19 @@ class ProductManager {
 
     deleteProduct(productId, ubicacion) {
         let productArray;
-        
+
         if (ubicacion === 'salon') {
             productArray = this.products;
         } else {
             productArray = this.cocinaProducts;
         }
-        
+
         const productIndex = productArray.findIndex(p => p.id === productId);
         if (productIndex !== -1) {
             productArray.splice(productIndex, 1);
             this.saveProducts();
             this.renderProducts();
-            this.showAlert('Producto eliminado exitosamente', 'success');
+            window.showNotification('Producto eliminado exitosamente', 'success');
         }
     }
 
@@ -721,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if we're on the products section
     if (document.getElementById('productos-section')) {
         const productManager = new ProductManager();
-        
+
         // Make it available globally for other sections
         window.productManager = productManager;
     }

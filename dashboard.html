@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Gestor IPB</title>
+    <title>Dashboard | Gestor IPV</title>
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/billetes.css">
     <link rel="stylesheet" href="css/styles.css">
@@ -23,7 +23,7 @@
             <div class="sidebar-header">
                 <a href="index.html" class="logo">
                     <i class="fas fa-chart-line"></i>
-                    <h2>Gestor IPB</h2>
+                    <h2>Gestor IPV</h2>
                 </a>
             </div>
 
@@ -168,8 +168,7 @@
                         </div>
                         <div class="card-body">
                             <p class="amount" id="porciento-ventas">$0.00</p>
-                            <p class="description" id="porciento-desc">Calculado del dinero real (Extracciones +
-                                Transferencias + Efectivo)</p>
+                            <p class="description" id="porciento-desc"></p>
                         </div>
                     </div>
                 </div>
@@ -504,13 +503,10 @@
                         <div class="message-content">
                             <i class="fas fa-utensils"></i>
                             <h3>No hay productos en la cocina</h3>
-                            <p>Para comenzar, agrega productos desde la sección de Productos o sincronízalos aquí.</p>
+                            <p>Para comenzar, agrega productos desde la sección de Productos.</p>
                             <div class="message-actions">
                                 <button class="btn btn-primary" id="btn-ir-productos">
                                     <i class="fas fa-box"></i> Ir a Productos
-                                </button>
-                                <button class="btn btn-outline" id="btn-crear-producto-cocina">
-                                    <i class="fas fa-plus"></i> Crear Producto en Cocina
                                 </button>
                             </div>
                         </div>
@@ -579,17 +575,17 @@
                     <!-- Sección de Agregos (MANTENIDA) -->
                     <div class="agregos-section" id="agregos-section" style="display: none;">
                         <div class="agregos-header">
-                            <h3><i class="fas fa-plus-circle"></i> Agregos de Cocina</h3>
+                            <h3><i class="fas fa-plus-circle"></i> Agregos de Cocina y Productos Compuestos</h3>
                             <button class="btn btn-primary" id="btn-agregar-agrego-top">
                                 <i class="fas fa-plus"></i>
-                                <span class="btn-text">Nuevo Agrego</span>
+                                <span class="btn-text">Nuevo Agrego o Producto</span>
                             </button>
                         </div>
 
                         <!-- Formulario de Agregos -->
                         <div class="form-container" id="agrego-form" style="display: none;">
                             <div class="form-card">
-                                <h3><i class="fas fa-edit"></i> Registrar Agrego</h3>
+                                <h3><i class="fas fa-edit"></i> Registrar Agrego o Producto</h3>
                                 <form id="form-nuevo-agrego">
                                     <div class="form-grid">
                                         <div class="form-group">
@@ -632,16 +628,16 @@
 
                         <!-- Lista de Agregos CON SCROLL -->
                         <div class="agregos-list">
-                            <h4>Agregos de Hoy</h4>
+                            <h4>Agregos y Productos Compuestos de Hoy</h4>
                             <div id="lista-agregos" style="max-height: 200px; overflow-y: auto;">
                                 <!-- Los agregos se mostrarán aquí -->
                                 <div class="empty-state-card">
                                     <i class="fas fa-plus-circle"></i>
-                                    <p>No hay agregos registrados hoy</p>
+                                    <p>No hay agregos o productos compuestos registrados hoy</p>
                                 </div>
                             </div>
                             <div class="total-agregos">
-                                <span>Total Agregos:</span>
+                                <span>Importe total:</span>
                                 <span id="total-agregos">$0.00</span>
                             </div>
                         </div>
