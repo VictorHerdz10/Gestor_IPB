@@ -382,10 +382,6 @@
                                 <i class="fas fa-flag-checkered"></i>
                                 <span class="btn-text">Finalizar Día</span>
                             </button>
-                            <button class="btn btn-info" id="btn-sincronizar-productos">
-                                <i class="fas fa-sync-alt"></i>
-                                <span class="btn-text">Sincronizar</span>
-                            </button>
                             <button class="btn btn-secondary" id="btn-cambiar-orden">
                                 <i class="fas fa-sort-alpha-down"></i>
                                 <span class="btn-text">Ordenar Alfabético</span>
@@ -495,10 +491,6 @@
                                 <i class="fas fa-flag-checkered"></i>
                                 <span class="btn-text">Finalizar Día</span>
                             </button>
-                            <button class="btn btn-info" id="btn-sincronizar-productos-cocina">
-                                <i class="fas fa-sync-alt"></i>
-                                <span class="btn-text">Sincronizar Productos</span>
-                            </button>
                         </div>
                     </div>
 
@@ -558,7 +550,11 @@
                                 </tbody>
                             </table>
                         </div>
-
+ <!-- Indicador de guardado -->
+                        <div class="save-indicator" id="save-indicator-cocina" style="display: none;">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="save-time-cocina">Guardado</span>
+                        </div>
                         <!-- Estado vacío -->
                         <div class="empty-state" id="cocina-empty-state" style="display: none;">
                             <i class="fas fa-fire"></i>
@@ -569,11 +565,7 @@
                             </button>
                         </div>
 
-                        <!-- Indicador de guardado -->
-                        <div class="save-indicator" id="save-indicator-cocina" style="display: none;">
-                            <i class="fas fa-check-circle"></i>
-                            <span id="save-time-cocina">Guardado</span>
-                        </div>
+                       
                     </div>
 
                     <!-- Sección de Agregos (MANTENIDA) -->

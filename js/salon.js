@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const salonSearch = document.getElementById('salon-search');
     const btnConfigurarSalida = document.getElementById('btn-configurar-salida');
     const btnFinalizarDia = document.getElementById('btn-finalizar-dia');
-    const btnSincronizarProductos = document.getElementById('btn-sincronizar-productos');
     const btnSincronizarEmpty = document.getElementById('btn-sincronizar-empty');
     const salonEmptyState = document.getElementById('salon-empty-state');
     const saveIndicator = document.getElementById('save-indicator');
@@ -603,13 +602,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         showNotification('Día finalizado correctamente', 'success');
                     }
                 );
-            });
-        }
-
-        // Sincronizar productos
-        if (btnSincronizarProductos) {
-            btnSincronizarProductos.addEventListener('click', function () {
-                sincronizarProductos();
             });
         }
 

@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const cocinaSearch = document.getElementById('cocina-search');
     const btnEditarFinalCocina = document.getElementById('btn-agregar-agrego');
     const btnFinalizarDiaCocina = document.getElementById('btn-finalizar-dia-cocina');
-    const btnSincronizarProductosCocina = document.getElementById('btn-sincronizar-productos-cocina');
     const btnSincronizarEmptyCocina = document.getElementById('btn-sincronizar-empty-cocina');
     const cocinaEmptyState = document.getElementById('cocina-empty-state');
     const saveIndicatorCocina = document.getElementById('save-indicator-cocina');
@@ -35,33 +34,45 @@ document.addEventListener('DOMContentLoaded', function () {
     async function initCocina() {
         try {
             mostrarCargandoCocina();
+
+            // 1. Cargar productos primero
             await cargarProductosCocina();
             await cargarRelacionesProductos();
-            await cargarRelacionesPanIngredientes();
+
+            // 2. Sincronizar estructura (sin reiniciar vendidos)
+            await sincronizarConProductosCocina();
+
+            // 3. CARGAR DATOS después de sincronizar estructura
             await cargarDatosCocina();
             await cargarAgregos();
+
+            console.log('Datos cargados - Estado inicial:', {
+                cocinaData: cocinaData.map(p => ({
+                    nombre: p.nombre,
+                    inicio: p.inicio,
+                    entrada: p.entrada,
+                    venta: p.venta,
+                    final: p.final,
+                    vendido: p.vendido,  // ← Verificar este valor
+                    precio: p.precio
+                }))
+            });
+
+            // 4. Reconstruir consumos
+            reconstruirConsumosDesdeAgregos();
+
             setupEventListeners();
             verificarProductosCocina();
 
-            // Sincronizar productos automáticamente al cargar
-            await sincronizarConProductosCocina();
-
-            // Recalcular relaciones automáticas
-            recalcularConsumosPorRelaciones();
+            // 5. Recalcular todo
             recalcularDisponibilidad();
-
             actualizarTablaCocina();
             actualizarResumenCocina();
             actualizarListaAgregos();
             ocultarCargandoCocina();
 
-            console.log('Cocina inicializada correctamente:', {
-                productos: productosCocina.length,
-                cocinaData: cocinaData.length,
-                agregos: agregos.length,
-                relaciones: relacionesProductos.length,
-                panes: relacionesPanIngredientes.length
-            });
+            console.log('Cocina inicializada correctamente');
+
         } catch (error) {
             console.error('Error inicializando cocina:', error);
             showNotification('Error al cargar datos de cocina', 'error');
@@ -113,14 +124,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function cargarRelacionesPanIngredientes() {
-        return new Promise((resolve) => {
-            const relacionesGuardadas = localStorage.getItem('cocina_relaciones_panes');
-            relacionesPanIngredientes = relacionesGuardadas ? JSON.parse(relacionesGuardadas) : [];
-            resolve();
-        });
-    }
-
     function guardarRelacionesProductos() {
         localStorage.setItem('cocina_relaciones_fijas', JSON.stringify(relacionesProductos));
         localStorage.setItem('cocina_relaciones_panes', JSON.stringify(relacionesPanIngredientes));
@@ -131,24 +134,44 @@ document.addEventListener('DOMContentLoaded', function () {
             const datosGuardados = localStorage.getItem('ipb_cocina');
 
             if (datosGuardados) {
-                cocinaData = JSON.parse(datosGuardados);
+                const datosCargados = JSON.parse(datosGuardados);
+
+                // Fusionar datos cargados con la estructura actual
+                datosCargados.forEach(datoCargado => {
+                    const productoExistente = cocinaData.find(p => p.id === datoCargado.id);
+                    if (productoExistente) {
+                        // Preservar TODOS los valores importantes
+                        Object.assign(productoExistente, {
+                            inicio: datoCargado.inicio || 0,
+                            entrada: datoCargado.entrada || 0,
+                            venta: datoCargado.venta || 0,
+                            final: datoCargado.final || 0,
+                            vendido: datoCargado.vendido || 0,  // ← CRÍTICO
+                            importe: datoCargado.importe || 0,
+                            disponible: datoCargado.disponible || 0,
+                            historial: datoCargado.historial || [],
+                            ultimaActualizacion: datoCargado.ultimaActualizacion || obtenerHoraActual(),
+                            finalEditado: datoCargado.finalEditado || false  // ← CRÍTICO
+                        });
+
+                        // Recalcular para asegurar consistencia
+                        recalcularProductoCocina(productoExistente);
+                    }
+                });
             } else {
-                cocinaData = productosCocina.map(producto => ({
-                    id: producto.id,
-                    nombre: producto.nombre,
-                    precio: producto.precio,
-                    esIngrediente: producto.precio === 0,
-                    inicio: 0,
-                    entrada: 0,
-                    venta: 0,
-                    final: 0,
-                    finalEditado: false,
-                    vendido: 0,
-                    importe: 0,
-                    disponible: 0, // Nuevo campo: cantidad disponible para usar
-                    historial: [],
-                    ultimaActualizacion: obtenerHoraActual()
-                }));
+                // Si no hay datos guardados, inicializar con valores por defecto
+                cocinaData.forEach(producto => {
+                    producto.inicio = 0;
+                    producto.entrada = 0;
+                    producto.venta = 0;
+                    producto.final = 0;
+                    producto.vendido = 0;  // ← Iniciar en 0
+                    producto.importe = 0;
+                    producto.disponible = 0;
+                    producto.historial = [];
+                    producto.ultimaActualizacion = obtenerHoraActual();
+                    producto.finalEditado = false;  // ← Iniciar en false
+                });
             }
 
             resolve();
@@ -177,6 +200,60 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function reconstruirConsumosDesdeAgregos() {
+        console.log('Reconstruyendo consumos desde agregos...', agregos.length);
+
+        // PRIMERO: Calcular total consumido por cada ingrediente desde agregos
+        const consumoDesdeAgregos = {};
+
+        // Inicializar contador
+        cocinaData.forEach(producto => {
+            if (producto.esIngrediente) {
+                consumoDesdeAgregos[producto.id] = 0;
+            }
+        });
+
+        // Calcular consumo desde agregos
+        agregos.forEach(agrego => {
+            if (agrego.ingredientes && agrego.ingredientes.length > 0) {
+                agrego.ingredientes.forEach(ingrediente => {
+                    if (consumoDesdeAgregos[ingrediente.id] !== undefined) {
+                        consumoDesdeAgregos[ingrediente.id] += ingrediente.cantidad;
+                    }
+                });
+            }
+        });
+
+        // SEGUNDO: Actualizar vendidos SIN perder ventas de productos principales
+        cocinaData.forEach(producto => {
+            if (producto.esIngrediente) {
+                // Solo actualizar vendido para ingredientes
+                const consumoAgregos = consumoDesdeAgregos[producto.id] || 0;
+
+                // Calcular ventas desde productos principales (si existen relaciones)
+                let consumoProductosPrincipales = 0;
+                const relaciones = relacionesProductos.filter(r => r.ingredienteId === producto.id);
+
+                relaciones.forEach(rel => {
+                    const productoPrincipal = cocinaData.find(p => p.id === rel.productoId);
+                    if (productoPrincipal && !productoPrincipal.esIngrediente) {
+                        consumoProductosPrincipales += productoPrincipal.vendido * rel.cantidad;
+                    }
+                });
+
+                // Vendido total = consumo desde agregos + consumo desde productos principales
+                producto.vendido = consumoAgregos + consumoProductosPrincipales;
+
+                // Recalcular final
+                producto.final = Math.max(0, producto.venta - producto.vendido);
+            }
+        });
+
+        console.log('Consumo desde agregos:', consumoDesdeAgregos);
+
+        // Recalcular disponibilidad
+        recalcularDisponibilidad();
+    }
     function guardarAgregos() {
         const today = getTodayDate();
         localStorage.setItem(`cocina_agregos_${today}`, JSON.stringify(agregos));
@@ -213,6 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function crearFilaProductoCocina(producto, index) {
+        console.log(producto)
         const row = document.createElement('tr');
         row.dataset.id = producto.id;
         row.dataset.index = index;
@@ -224,8 +302,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // Determinar valor a mostrar en campo final
         let valorFinal = producto.final;
 
-        // Solo auto-establecer si es 0, NO estamos editando y hay ventas
-        if (valorFinal === 0 && !editingFinalEnabled && producto.venta > 0) {
+        // MODIFICACIÓN: Solo auto-establecer si NO es ingrediente, es 0, NO estamos editando y hay ventas
+        // NO auto-ajustar ingredientes (precio = 0)
+        if (valorFinal === 0 && !editingFinalEnabled && producto.venta > 0 && producto.precio > 0) {
             valorFinal = producto.venta;
             producto.final = valorFinal;
             // Recalcular con el nuevo valor
@@ -238,59 +317,59 @@ document.addEventListener('DOMContentLoaded', function () {
         const esProductoConIngredientes = relacionesProductos.filter(r => r.productoId === producto.id).length > 0;
 
         row.innerHTML = `
-            <td class="producto-cell">
-                <span class="product-name">${producto.nombre}</span>
-                ${producto.esIngrediente ? '<span class="badge-ingrediente">Ingrediente</span>' : ''}
-                ${esUsadoEn ? '<span class="badge-relacion" title="Usado en otros productos">✓</span>' : ''}
-                ${esPan ? '<span class="badge-pan" title="Pan con ingredientes">🍞</span>' : ''}
-                ${esProductoConIngredientes ? '<span class="badge-producto" title="Producto con ingredientes fijos">⭐</span>' : ''}
-            </td>
-            <td class="numeric-cell currency-cell">
-                <span class="price-display">$${producto.precio.toFixed(2)}</span>
-            </td>
-            <td class="numeric-cell">
-                <input type="number" 
-                       min="0" 
-                       value="${producto.inicio}" 
-                       data-field="inicio" 
-                       data-id="${producto.id}"
-                       class="editable-input inicio-input"
-                       placeholder="0"
-                       autocomplete="off">
-            </td>
-            <td class="numeric-cell">
-                <input type="number" 
-                       min="0" 
-                       value="${producto.entrada}" 
-                       data-field="entrada" 
-                       data-id="${producto.id}"
-                       class="editable-input entrada-input"
-                       placeholder="0"
-                       autocomplete="off">
-            </td>
-            <td class="calculated-cell venta-cell">
-                <span class="venta-display">${producto.venta}</span>
-            </td>
-            <td class="numeric-cell">
-                <input type="number" 
-                       min="0" 
-                       max="${producto.venta}"
-                       value="${valorFinal}" 
-                       data-field="final" 
-                       data-id="${producto.id}"
-                       data-venta="${producto.venta}"
-                       class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
-                       placeholder="0"
-                       autocomplete="off"
-                       ${!editingFinalEnabled ? 'disabled' : ''}>
-            </td>
-            <td class="calculated-cell vendido-cell">
-                <span class="vendido-display">${producto.vendido}</span>
-            </td>
-            <td class="currency-cell importe-cell">
-                <span class="importe-display">${producto.precio > 0 ? `$${producto.importe.toFixed(2)}` : '$0.00'}</span>
-            </td>
-        `;
+        <td class="producto-cell">
+            <span class="product-name">${producto.nombre}</span>
+            ${producto.esIngrediente ? '<span class="badge-ingrediente">Ingrediente</span>' : ''}
+            ${esUsadoEn ? '<span class="badge-relacion" title="Usado en otros productos">✓</span>' : ''}
+            ${esPan ? '<span class="badge-pan" title="Pan con ingredientes">🍞</span>' : ''}
+            ${esProductoConIngredientes ? '<span class="badge-producto" title="Producto con ingredientes fijos">⭐</span>' : ''}
+        </td>
+        <td class="numeric-cell currency-cell">
+            <span class="price-display">$${producto.precio.toFixed(2)}</span>
+        </td>
+        <td class="numeric-cell">
+            <input type="number" 
+                   min="0" 
+                   value="${producto.inicio}" 
+                   data-field="inicio" 
+                   data-id="${producto.id}"
+                   class="editable-input inicio-input"
+                   placeholder="0"
+                   autocomplete="off">
+        </td>
+        <td class="numeric-cell">
+            <input type="number" 
+                   min="0" 
+                   value="${producto.entrada}" 
+                   data-field="entrada" 
+                   data-id="${producto.id}"
+                   class="editable-input entrada-input"
+                   placeholder="0"
+                   autocomplete="off">
+        </td>
+        <td class="calculated-cell venta-cell">
+            <span class="venta-display">${producto.venta}</span>
+        </td>
+        <td class="numeric-cell">
+            <input type="number" 
+                   min="0" 
+                   max="${producto.venta}"
+                   value="${valorFinal}" 
+                   data-field="final" 
+                   data-id="${producto.id}"
+                   data-venta="${producto.venta}"
+                   class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
+                   placeholder="0"
+                   autocomplete="off"
+                   ${!editingFinalEnabled ? 'disabled' : ''}>
+        </td>
+        <td class="calculated-cell vendido-cell">
+            <span class="vendido-display">${producto.vendido}</span>
+        </td>
+        <td class="currency-cell importe-cell">
+            <span class="importe-display">${producto.precio > 0 ? `$${producto.importe.toFixed(2)}` : '$0.00'}</span>
+        </td>
+    `;
 
         agregarEventListenersFila(row, producto);
 
@@ -342,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (newValue !== oldValue) {
                     this.classList.add('edited');
                     actualizarProductoCocinaDesdeInput(this);
-
+                    productoCocina();
                     programarAutoSaveCocina();
 
                     setTimeout(() => {
@@ -447,7 +526,42 @@ document.addEventListener('DOMContentLoaded', function () {
         producto.vendido = Math.max(0, producto.venta - producto.final);
         producto.importe = producto.precio > 0 ? producto.vendido * producto.precio : 0;
 
+        // Si es un producto con ingredientes, validar disponibilidad automáticamente
+        if (!producto.esIngrediente && producto.vendido > 0) {
+            const puedeVender = validarDisponibilidadIngredientes(producto, producto.final, false); // false para no mostrar notificación
+            if (!puedeVender) {
+                // Ajustar automáticamente a lo máximo que puede vender
+                const maxPuedeVender = calcularMaximoVendible(producto);
+                producto.final = Math.max(0, producto.venta - maxPuedeVender);
+                producto.vendido = maxPuedeVender;
+                producto.importe = producto.precio > 0 ? producto.vendido * producto.precio : 0;
+            }
+        }
+
         return producto;
+    }
+
+    function calcularMaximoVendible(producto) {
+        if (producto.esIngrediente) return producto.venta; // Los ingredientes no tienen restricciones
+
+        const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
+        if (relaciones.length === 0) return producto.venta; // Sin relaciones, puede vender todo
+
+        let maxVendible = producto.venta; // Inicializar con el máximo teórico
+
+        relaciones.forEach(relacion => {
+            const ingrediente = cocinaData.find(p => p.id === relacion.ingredienteId);
+            if (ingrediente) {
+                // Calcular cuántas unidades se pueden hacer con este ingrediente
+                const disponibles = ingrediente.disponible;
+                const maxConEsteIngrediente = Math.floor(disponibles / relacion.cantidad);
+
+                // Tomar el mínimo entre todos los ingredientes
+                maxVendible = Math.min(maxVendible, maxConEsteIngrediente);
+            }
+        });
+
+        return Math.max(0, maxVendible); // No puede ser negativo
     }
 
     function actualizarProductoCocinaDesdeInput(input, realTime = false) {
@@ -467,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Si se está editando el campo "final", marcar como editado
                 if (field === 'final') {
                     producto.finalEditado = true;
-                };
+                }
 
                 // Recalcular primero
                 recalcularProductoCocina(producto);
@@ -527,39 +641,49 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     }
+
     function recalcularConsumosPorRelaciones() {
-        // Primero resetear vendidos de ingredientes (excepto los usados en agregos)
+        // PRIMERO: Calcular cuánto deberían haber consumido los ingredientes basado en productos vendidos
+        const consumoPorIngrediente = {};
+
+        // Inicializar el objeto de consumo
         cocinaData.forEach(producto => {
             if (producto.esIngrediente) {
-                // Guardar vendido por agregos
-                const vendidoAgregos = producto.vendido;
-                producto.vendido = 0;
-
-                // Recalcular ventas del producto
-                recalcularProductoCocina(producto);
-
-                // Restaurar vendido por agregos
-                producto.vendido = vendidoAgregos;
+                consumoPorIngrediente[producto.id] = {
+                    id: producto.id,
+                    nombre: producto.nombre,
+                    consumoTotal: 0,
+                    vendidoActual: producto.vendido
+                };
             }
         });
 
-        // Recalcular consumos por relaciones fijas
+        // SEGUNDO: Calcular el consumo teórico basado en productos vendidos
         cocinaData.forEach(producto => {
             if (!producto.esIngrediente) {
-                // Buscar relaciones donde este producto use ingredientes
                 const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
 
                 relaciones.forEach(relacion => {
-                    const ingrediente = cocinaData.find(p => p.id === relacion.ingredienteId);
-                    if (ingrediente) {
-                        // El ingrediente se descuenta automáticamente según vendido del producto
-                        const consumo = producto.vendido * relacion.cantidad;
-                        ingrediente.vendido += consumo;
-
-                        // Ajustar el final para mantener consistencia
-                        ingrediente.final = Math.max(0, ingrediente.venta - ingrediente.vendido);
+                    if (consumoPorIngrediente[relacion.ingredienteId]) {
+                        // Solo sumar el consumo de lo que se ha vendido AHORA, no acumular
+                        consumoPorIngrediente[relacion.ingredienteId].consumoTotal +=
+                            producto.vendido * relacion.cantidad;
                     }
                 });
+            }
+        });
+
+        // TERCERO: Ajustar los vendidos de los ingredientes SOLO si es necesario
+        Object.values(consumoPorIngrediente).forEach(ing => {
+            const ingrediente = cocinaData.find(p => p.id === ing.id);
+            if (ingrediente) {
+                // Si el consumo teórico es diferente a lo que ya está registrado, ajustar
+                if (ingrediente.vendido !== ing.consumoTotal) {
+                    ingrediente.vendido = ing.consumoTotal;
+                    // Recalcular el final del ingrediente
+                    ingrediente.final = Math.max(0, ingrediente.venta - ingrediente.vendido);
+                    recalcularProductoCocina(ingrediente);
+                }
             }
         });
 
@@ -729,26 +853,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Sincronizar productos
-        if (btnSincronizarProductosCocina) {
-            btnSincronizarProductosCocina.addEventListener('click', function () {
-                cargarProductosCocina().then(() => {
-                    if (productosCocina.length === 0) {
-                        showNotification('No hay productos en la cocina. Agrega productos primero.', 'warning');
-                        verificarProductosCocina();
-                    } else {
-                        sincronizarConProductosCocina();
-                        recalcularConsumosPorRelaciones();
-                        guardarDatosCocina();
-                        verificarProductosCocina();
-                        actualizarTablaCocina();
-                        actualizarResumenCocina();
-
-                        showNotification(`Sincronizados ${productosCocina.length} productos de cocina`, 'success');
-                    }
-                });
-            });
-        }
 
         if (btnSincronizarEmptyCocina) {
             btnSincronizarEmptyCocina.addEventListener('click', function () {
@@ -756,6 +860,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (productosCocina.length > 0) {
                         sincronizarConProductosCocina();
                         recalcularConsumosPorRelaciones();
+                        reconstruirConsumosDesdeAgregos();
                         guardarDatosCocina();
                         verificarProductosCocina();
                         actualizarTablaCocina();
@@ -804,6 +909,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         productosCocina.forEach(producto => {
             if (!cocinaIds.includes(producto.id)) {
+                // NUEVO producto: crear con valores por defecto
                 cocinaData.push({
                     id: producto.id,
                     nombre: producto.nombre,
@@ -813,25 +919,57 @@ document.addEventListener('DOMContentLoaded', function () {
                     entrada: 0,
                     venta: 0,
                     final: 0,
-                    vendido: 0,
+                    vendido: 0,  // ← Iniciar en 0
                     importe: 0,
                     disponible: 0,
                     historial: [],
-                    ultimaActualizacion: obtenerHoraActual()
+                    ultimaActualizacion: obtenerHoraActual(),
+                    finalEditado: false  // ← Agregar esta propiedad
                 });
+            } else {
+                // Producto EXISTENTE: actualizar solo nombre y precio
+                const productoExistente = cocinaData.find(p => p.id === producto.id);
+                if (productoExistente) {
+                    // Guardar valores críticos ANTES de actualizar
+                    const valoresPreservados = {
+                        inicio: productoExistente.inicio,
+                        entrada: productoExistente.entrada,
+                        venta: productoExistente.venta,
+                        final: productoExistente.final,
+                        vendido: productoExistente.vendido,  // ← CRÍTICO: Preservar vendido
+                        importe: productoExistente.importe,
+                        disponible: productoExistente.disponible,
+                        historial: productoExistente.historial,
+                        ultimaActualizacion: productoExistente.ultimaActualizacion,
+                        finalEditado: productoExistente.finalEditado
+                    };
+
+                    // Actualizar solo nombre y precio
+                    productoExistente.nombre = producto.nombre;
+                    productoExistente.precio = producto.precio;
+                    productoExistente.esIngrediente = producto.precio === 0;
+
+                    // Restaurar valores preservados
+                    Object.assign(productoExistente, valoresPreservados);
+
+                    // Recalcular venta si es necesario
+                    const nuevaVenta = productoExistente.inicio + productoExistente.entrada;
+                    if (productoExistente.venta !== nuevaVenta) {
+                        productoExistente.venta = nuevaVenta;
+                        // Ajustar final si no ha sido editado
+                        if (!productoExistente.finalEditado) {
+                            productoExistente.final = productoExistente.venta;
+                        }
+                    }
+
+                    // Recalcular el producto completo
+                    recalcularProductoCocina(productoExistente);
+                }
             }
         });
 
+        // Eliminar productos que ya no existen
         cocinaData = cocinaData.filter(item => productosIds.includes(item.id));
-
-        cocinaData.forEach(item => {
-            const productoActual = productosCocina.find(p => p.id === item.id);
-            if (productoActual) {
-                item.nombre = productoActual.nombre;
-                item.precio = productoActual.precio;
-                item.esIngrediente = productoActual.precio === 0;
-            }
-        });
 
         return Promise.resolve();
     }
@@ -1106,7 +1244,6 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(actualizarTotalIngredientes, 100);
     }
 
-
     function showModalConfigurarRelaciones() {
         // Filtrar productos
         const productosBase = cocinaData.filter(p => p.precio > 0);
@@ -1246,26 +1383,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Validación 1: Nombre requerido
         if (!nombre) {
-            showNotification('El nombre  es requerido', 'error');
+            showNotification('El nombre es requerido', 'error');
             document.getElementById('agrego-nombre').focus();
             return;
         }
 
-        // Validación 3: Precio válido
+        // Validación 2: Precio válido
         if (precio <= 0) {
             showNotification('El precio debe ser mayor a 0', 'error');
             document.getElementById('agrego-precio').focus();
             return;
         }
 
-        // Validación 5: Cantidad válida
+        // Validación 3: Cantidad válida
         if (cantidad <= 0) {
             showNotification('La cantidad debe ser mayor a 0', 'error');
             document.getElementById('agrego-cantidad').focus();
             return;
         }
 
-        // Validación 6: Notas (opcional pero con límite)
+        // Validación 4: Notas (opcional pero con límite)
         if (notas.length > 500) {
             showNotification('Las notas no pueden exceder 500 caracteres', 'warning');
             document.getElementById('agrego-notas').focus();
@@ -1277,7 +1414,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const ingredientesConsumidos = [];
         let hayIngredientes = false;
 
-        // Validación 7: Revisar cada ingrediente
+        // Validación 5: Revisar cada ingrediente
         ingredientesInputs.forEach(input => {
             const cantidadUsada = parseInt(input.value) || 0;
             const inputId = input.id || input.dataset.ingredienteId;
@@ -1313,8 +1450,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-
-        // Validación 8: Al menos un ingrediente
+        // Validación 6: Al menos un ingrediente
         if (!hayIngredientes) {
             showNotification('Debe seleccionar al menos un ingrediente consumido', 'warning');
 
@@ -1327,7 +1463,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Validación 10: Verificar que no haya valores NaN en los inputs
+        // Validación 7: Verificar que no haya valores NaN en los inputs
         let hayValoresInvalidos = false;
         document.querySelectorAll('.ingrediente-cantidad').forEach(input => {
             const valor = input.value;
@@ -1342,7 +1478,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-
         // Descontar del ingrediente en la tabla
         ingredientesConsumidos.forEach(ingrediente => {
             const productoIndex = cocinaData.findIndex(p => p.id === ingrediente.id);
@@ -1351,6 +1486,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ingredienteItem.vendido += ingrediente.cantidad;
                 // Ajustar el final para mantener consistencia
                 ingredienteItem.final = Math.max(0, ingredienteItem.venta - ingredienteItem.vendido);
+                console.log(ingredienteItem.final)
             }
         });
 
@@ -1379,7 +1515,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('modal-agrego-simple').remove();
 
-        showNotification('Agrego simple registrado correctamente', 'success');
+        showNotification('Agrego o producto compuesto registrado correctamente', 'success');
 
         // Limpiar formulario si es necesario
         if (typeof resetFormularioAgrego === 'function') {
@@ -1530,24 +1666,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (agregoIndex !== -1) {
                     const agrego = agregos[agregoIndex];
 
-                    // Restaurar ingredientes consumidos si es un producto compuesto o agrego con ingredientes
+                    // Restaurar ingredientes consumidos
                     if (agrego.ingredientes && agrego.ingredientes.length > 0) {
                         agrego.ingredientes.forEach(ingrediente => {
-                            const productoIndex = cocinaData.findIndex(p => p.id === ingrediente.id);
-                            if (productoIndex !== -1) {
-                                const ingredienteItem = cocinaData[productoIndex];
-                                ingredienteItem.vendido -= ingrediente.cantidad;
-                                if (ingredienteItem.vendido < 0) {
-                                    ingredienteItem.vendido = 0;
+                            const producto = cocinaData.find(p => p.id === ingrediente.id);
+                            if (producto && producto.esIngrediente) {
+                                producto.vendido -= ingrediente.cantidad;
+                                if (producto.vendido < 0) {
+                                    producto.vendido = 0;
                                 }
-                                // Recalcular el final
-                                ingredienteItem.final = Math.max(0, ingredienteItem.venta - ingredienteItem.vendido);
+                                producto.final = Math.max(0, producto.venta - producto.vendido);
                             }
                         });
                     }
 
                     agregos.splice(agregoIndex, 1);
 
+                    // Recalcular disponibilidad y guardar
                     recalcularDisponibilidad();
                     guardarDatosCocina();
                     actualizarResumenCocina();
@@ -1829,6 +1964,44 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function productoCocina() {
+        cargarProductosCocina().then(() => {
+            if (productosCocina.length === 0) {
+                showNotification('No hay productos en la cocina. Agrega productos primero.', 'warning');
+                verificarProductosCocina();
+            } else {
+                sincronizarConProductosCocina();
+                recalcularConsumosPorRelaciones();
+                reconstruirConsumosDesdeAgregos();
+                guardarDatosCocina();
+                verificarProductosCocina();
+                actualizarTablaCocina();
+                actualizarResumenCocina();
+            }
+        });
+    }
+
+    function actualizarTotalIngredientes() {
+        // Función auxiliar para actualizar el total de ingredientes seleccionados
+        const inputs = document.querySelectorAll('.ingrediente-cantidad:not(:disabled)');
+        let total = 0;
+        let contador = 0;
+
+        inputs.forEach(input => {
+            const valor = parseInt(input.value) || 0;
+            if (valor > 0) {
+                total += valor;
+                contador++;
+            }
+        });
+
+        // Actualizar algún elemento del DOM si es necesario
+        const totalElement = document.getElementById('total-ingredientes-seleccionados');
+        if (totalElement) {
+            totalElement.textContent = `${contador} ingrediente(s) seleccionado(s) - Total: ${total} unidad(es)`;
+        }
+    }
+
     // Funciones disponibles globalmente
     window.getCocinaVentasTotal = function () {
         const totalImporte = cocinaData.reduce((sum, p) => sum + p.importe, 0);
@@ -1870,23 +2043,6 @@ document.addEventListener('DOMContentLoaded', function () {
         actualizarResumenCocina();
         actualizarListaAgregos();
     };
-    // En la sección de "Funciones disponibles globalmente" agrega:
-    function productoCocina() {
-        cargarProductosCocina().then(() => {
-            if (productosCocina.length === 0) {
-                showNotification('No hay productos en la cocina. Agrega productos primero.', 'warning');
-                verificarProductosCocina();
-            } else {
-                sincronizarConProductosCocina();
-                recalcularConsumosPorRelaciones();
-                guardarDatosCocina();
-                verificarProductosCocina();
-                actualizarTablaCocina();
-                actualizarResumenCocina();
-            }
-        });
-    };
-
 
     // Exponer datos y funciones para uso global
     window.cocinaData = cocinaData;
@@ -1895,13 +2051,10 @@ document.addEventListener('DOMContentLoaded', function () {
     window.relacionesProductos = relacionesProductos;
     window.relacionesPanIngredientes = relacionesPanIngredientes;
     window.sincronizarProductosCocina = productoCocina;
-
+    window.guardarAgregoSimpleDesdeModal = guardarAgregoSimpleDesdeModal;
 
     console.log('Cocina cargada con validaciones avanzadas de disponibilidad y productos compuestos');
-
-
 });
-
 
 // Inicializar cuando se carga la sección de cocina
 document.addEventListener('DOMContentLoaded', function () {
