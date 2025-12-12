@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     entrada: 0,
                     venta: 0,
                     final: 0,
+                    finalEditado: false,
                     vendido: 0,
                     importe: 0,
                     historial: [],
@@ -126,8 +127,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function actualizarFinalesIniciales() {
         salonData.forEach(producto => {
-            // Si el final es 0 y no estamos en modo edición, establecerlo igual a venta
-            if (producto.final === 0 && producto.venta > 0) {
+            // Inicializar final igual a venta si no está editado
+            if (!producto.finalEditado && producto.venta > 0) {
                 producto.final = producto.venta;
                 console.log(`Final inicializado para ${producto.nombre}: ${producto.final}`);
             }
@@ -175,61 +176,63 @@ document.addEventListener('DOMContentLoaded', function () {
         // Determinar el valor a mostrar en el campo final
         let valorFinal = producto.final;
 
-        // Si el modo de edición está deshabilitado Y el final es 0 Y hay ventas disponibles
-        // Mostrar el total de ventas como valor inicial
-        if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
+        // IMPORTANTE: Solo auto-establecer final si es 0 y NO estamos en modo edición
+        // Pero respetar si ya tiene un valor diferente de 0
+        if (valorFinal === 0 && !editingFinalEnabled && producto.venta > 0) {
             valorFinal = producto.venta;
+            // Actualizar el dato también en memoria
+            producto.final = valorFinal;
         }
 
         row.innerHTML = `
-        <td class="producto-cell">
-            <span class="product-name">${producto.nombre}</span>
-        </td>
-        <td class="numeric-cell currency-cell">
-            <span class="price-display">$${producto.precio.toFixed(2)}</span>
-        </td>
-        <td class="numeric-cell">
-            <input type="number" 
-                   min="0" 
-                   value="${producto.inicio}" 
-                   data-field="inicio" 
-                   data-id="${producto.id}"
-                   class="editable-input inicio-input"
-                   placeholder="0"
-                   autocomplete="off">
-        </td>
-        <td class="numeric-cell">
-            <input type="number" 
-                   min="0" 
-                   value="${producto.entrada}" 
-                   data-field="entrada" 
-                   data-id="${producto.id}"
-                   class="editable-input entrada-input"
-                   placeholder="0"
-                   autocomplete="off">
-        </td>
-        <td class="calculated-cell venta-cell">
-            <span class="venta-display">${producto.venta}</span>
-        </td>
-        <td class="numeric-cell">
-            <input type="number" 
-                   min="0" 
-                   max="${producto.venta}"  <!-- AQUÍ ESTÁ LA VALIDACIÓN MÁXIMA -->
-                   value="${valorFinal}" 
-                   data-field="final" 
-                   data-id="${producto.id}"
-                   class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
-                   placeholder="0"
-                   autocomplete="off"
-                   ${!editingFinalEnabled ? 'disabled' : ''}>
-        </td>
-        <td class="calculated-cell vendido-cell">
-            <span class="vendido-display">${producto.vendido}</span>
-        </td>
-        <td class="currency-cell importe-cell">
-            <span class="importe-display">$${producto.importe.toFixed(2)}</span>
-        </td>
-    `;
+    <td class="producto-cell">
+        <span class="product-name">${producto.nombre}</span>
+    </td>
+    <td class="numeric-cell currency-cell">
+        <span class="price-display">$${producto.precio.toFixed(2)}</span>
+    </td>
+    <td class="numeric-cell">
+        <input type="number" 
+               min="0" 
+               value="${producto.inicio}" 
+               data-field="inicio" 
+               data-id="${producto.id}"
+               class="editable-input inicio-input"
+               placeholder="0"
+               autocomplete="off">
+    </td>
+    <td class="numeric-cell">
+        <input type="number" 
+               min="0" 
+               value="${producto.entrada}" 
+               data-field="entrada" 
+               data-id="${producto.id}"
+               class="editable-input entrada-input"
+               placeholder="0"
+               autocomplete="off">
+    </td>
+    <td class="calculated-cell venta-cell">
+        <span class="venta-display">${producto.venta}</span>
+    </td>
+    <td class="numeric-cell">
+        <input type="number" 
+               min="0" 
+               max="${producto.venta}"
+               value="${valorFinal}" 
+               data-field="final" 
+               data-id="${producto.id}"
+               class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
+               placeholder="0"
+               autocomplete="off"
+               ${!editingFinalEnabled ? 'readonly' : ''}>
+    </td>
+    <td class="calculated-cell vendido-cell">
+        <span class="vendido-display">${producto.vendido}</span>
+    </td>
+    <td class="currency-cell importe-cell">
+        <span class="importe-display">$${producto.importe.toFixed(2)}</span>
+    </td>
+`;
 
         // Agregar event listeners a los inputs editables
         const inputs = row.querySelectorAll('.editable-input:not(:disabled)');
@@ -323,18 +326,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function recalcularProducto(producto) {
-        // CORREGIDO: venta = inicio + entrada (total disponible para vender)
-        producto.venta = producto.inicio + producto.entrada;
+        // Calcular venta
+        const nuevaVenta = producto.inicio + producto.entrada;
 
-        // Si el final no ha sido establecido y hay ventas disponibles, establecerlo igual a venta
-        if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
-            producto.final = producto.venta;
+        // Si la venta cambió
+        if (producto.venta !== nuevaVenta) {
+            producto.venta = nuevaVenta;
+
+            // Si el final NO ha sido editado por el usuario, ajustarlo automáticamente
+            if (!producto.finalEditado) {
+                producto.final = producto.venta;
+            } else {
+                // Si ya fue editado, asegurar que no sea mayor que la venta
+                if (producto.final > producto.venta) {
+                    producto.final = producto.venta;
+                }
+            }
         }
 
-        // CORREGIDO: vendido = venta - final (lo que se vendió)
+        // Calcular vendido e importe
         producto.vendido = Math.max(0, producto.venta - producto.final);
-
-        // CORREGIDO: importe = vendido * precio
         producto.importe = producto.vendido * producto.precio;
 
         return producto;
@@ -354,6 +365,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Actualizar valor
                 producto[field] = value;
                 producto.ultimaActualizacion = obtenerHoraActual();
+
+                // Si se está editando el campo "final", marcar como editado
+                if (field === 'final') {
+                    producto.finalEditado = true;
+                }
 
                 // Recalcular todos los valores derivados
                 recalcularProducto(producto);

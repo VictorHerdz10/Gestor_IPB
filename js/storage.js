@@ -8,7 +8,7 @@ const StorageManager = {
         COCINA: 'ipb_cocina',
         CONSUMO: 'ipb_consumo_data',
         EXTRACCIONES: 'ipb_extracciones',
-        TRANSFERENCIAS: 'ipb_transferencias',
+        TRANSFERENCIAS: 'ipb_transferencias_data',
         DAILY_DATA: 'ipb_daily_data'
     },
     

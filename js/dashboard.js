@@ -312,34 +312,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function resetDay() {
-        // Guardar productos actuales ANTES de limpiar
-        const salonData = StorageManager.getSalonData();
-        const cocinaData = StorageManager.getCocinaData();
-
-        // Filtrar para mantener solo los productos (sin importe/contador)
-        const productosSalon = salonData.map(item => {
-            return {
-                descripcion: item.descripcion || '',
-                // Mantener solo los campos del producto, eliminar datos del día
-                importe: 0,
-                cantidad: 0
-            };
-        });
-
-        const productosCocina = cocinaData.map(item => {
-            return {
-                descripcion: item.descripcion || '',
-                importe: 0,
-                cantidad: 0
-            };
-        });
 
         // Ahora limpiar los datos del día
         StorageManager.clearDailyData();
-
-        // Restaurar los productos (solo estructura) con valores en 0
-        localStorage.setItem('ipb_salon_data', JSON.stringify(productosSalon));
-        localStorage.setItem('ipb_cocina_data', JSON.stringify(productosCocina));
 
         // Resetear contador de billetes
         if (typeof window.resetBilletes === 'function') {
@@ -367,10 +342,16 @@ document.addEventListener('DOMContentLoaded', function () {
         // Resetear efectivo
         localStorage.setItem('ipb_efectivo_data', JSON.stringify([]));
 
+        // Resetear consumo, extracciones, transferencias
+        localStorage.removeItem('ipb_consumo_data');
+        localStorage.removeItem('ipb_extracciones');
+        localStorage.removeItem('ipb_transferencias_data');
+
         updateSummary();
-        showNotification('Nuevo día iniciado. Los productos se mantienen, valores reiniciados.', 'success');
+        showNotification('Nuevo día iniciado correctamente en todas las secciones', 'success');
 
         localStorage.setItem('ipb_last_reset', hoy);
+        location.reload();
     }
 
     function saveAllData() {

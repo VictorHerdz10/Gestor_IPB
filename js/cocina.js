@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     entrada: 0,
                     venta: 0,
                     final: 0,
+                    finalEditado: false,
                     vendido: 0,
                     importe: 0,
                     disponible: 0, // Nuevo campo: cantidad disponible para usar
@@ -216,13 +217,19 @@ document.addEventListener('DOMContentLoaded', function () {
         row.dataset.id = producto.id;
         row.dataset.index = index;
 
+        // Recalcular primero
         recalcularProductoCocina(producto);
         recalcularDisponibilidad();
 
+        // Determinar valor a mostrar en campo final
         let valorFinal = producto.final;
 
-        if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
+        // Solo auto-establecer si es 0, NO estamos editando y hay ventas
+        if (valorFinal === 0 && !editingFinalEnabled && producto.venta > 0) {
             valorFinal = producto.venta;
+            producto.final = valorFinal;
+            // Recalcular con el nuevo valor
+            recalcularProductoCocina(producto);
         }
 
         // Verificar si tiene relaciones (se usa en otros productos)
@@ -418,12 +425,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function recalcularProductoCocina(producto) {
-        producto.venta = producto.inicio + producto.entrada;
+        // Calcular venta
+        const nuevaVenta = producto.inicio + producto.entrada;
 
-        if (!editingFinalEnabled && producto.final === 0 && producto.venta > 0) {
-            producto.final = producto.venta;
+        // Si la venta cambió
+        if (producto.venta !== nuevaVenta) {
+            producto.venta = nuevaVenta;
+
+            // Si el final NO ha sido editado por el usuario, ajustarlo automáticamente
+            if (!producto.finalEditado) {
+                producto.final = producto.venta;
+            } else {
+                // Si ya fue editado, asegurar que no sea mayor que la venta
+                if (producto.final > producto.venta) {
+                    producto.final = producto.venta;
+                }
+            }
         }
 
+        // Calcular vendido e importe
         producto.vendido = Math.max(0, producto.venta - producto.final);
         producto.importe = producto.precio > 0 ? producto.vendido * producto.precio : 0;
 
@@ -444,22 +464,46 @@ document.addEventListener('DOMContentLoaded', function () {
                 producto[field] = value;
                 producto.ultimaActualizacion = obtenerHoraActual();
 
+                // Si se está editando el campo "final", marcar como editado
+                if (field === 'final') {
+                    producto.finalEditado = true;
+                };
+
+                // Recalcular primero
                 recalcularProductoCocina(producto);
 
-                // Si es un producto principal (no ingrediente), recalcular ingredientes relacionados
-                if (!producto.esIngrediente) {
-                    // Validar disponibilidad antes de actualizar
-                    if (field === 'final') {
-                        if (!validarDisponibilidadIngredientes(producto, value)) {
-                            // Revertir el cambio si no hay disponibilidad
-                            producto[field] = oldValue;
-                            recalcularProductoCocina(producto);
-                            return;
-                        }
+                // Si es un producto principal (no ingrediente) y cambió el FINAL
+                if (!producto.esIngrediente && field === 'final') {
+                    // Calcular cuánto se vendió realmente
+                    const nuevoVendido = producto.venta - value;
+
+                    // Validar disponibilidad de ingredientes
+                    if (!validarDisponibilidadIngredientes(producto, value)) {
+                        // Revertir el cambio si no hay disponibilidad
+                        producto[field] = oldValue;
+                        recalcularProductoCocina(producto);
+                        // Restaurar el valor en el input
+                        input.value = oldValue;
+                        return;
                     }
-                    recalcularConsumosPorRelaciones();
+
+                    // Actualizar ingredientes relacionados
+                    const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
+                    relaciones.forEach(relacion => {
+                        const ingrediente = cocinaData.find(p => p.id === relacion.ingredienteId);
+                        if (ingrediente) {
+                            const consumoAnterior = producto.vendido * relacion.cantidad;
+                            const consumoNuevo = nuevoVendido * relacion.cantidad;
+                            const diferencia = consumoNuevo - consumoAnterior;
+
+                            ingrediente.vendido += diferencia;
+                            // Recalcular el ingrediente
+                            recalcularProductoCocina(ingrediente);
+                        }
+                    });
                 }
 
+                // Agregar al historial
                 producto.historial.push({
                     fecha: new Date().toISOString(),
                     hora: obtenerHoraActual(),
@@ -475,11 +519,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     actualizarFilaCompletaCocina(id);
                 }
 
+                // Recalcular disponibilidad después de todos los cambios
+                recalcularDisponibilidad();
+
+                // Guardar cambios
                 guardarDatosCocina();
             }
         }
     }
-
     function recalcularConsumosPorRelaciones() {
         // Primero resetear vendidos de ingredientes (excepto los usados en agregos)
         cocinaData.forEach(producto => {
@@ -892,22 +939,25 @@ document.addEventListener('DOMContentLoaded', function () {
         document.head.appendChild(style);
     }
 
-   function showModalAgregoSimple() {
-    // Filtrar solo ingredientes (productos con precio 0)
-    const ingredientes = cocinaData.filter(p => p.precio === 0);
+    function showModalAgregoSimple() {
+        // Asegurarse de que la disponibilidad esté actualizada ANTES de abrir el modal
+        recalcularDisponibilidad();
 
-    if (ingredientes.length === 0) {
-        showNotification('No hay ingredientes disponibles. Agrega productos con precio 0 primero.', 'warning');
-        return;
-    }
+        // Filtrar solo ingredientes (productos con precio 0)
+        const ingredientes = cocinaData.filter(p => p.precio === 0);
 
-    // Crear modal con gestión de disponibilidad
-    const modalHtml = `
+        if (ingredientes.length === 0) {
+            showNotification('No hay ingredientes disponibles. Agrega productos con precio 0 primero.', 'warning');
+            return;
+        }
+
+        // Crear modal con gestión de disponibilidad
+        const modalHtml = `
         <div class="modal active" id="modal-agrego-simple">
             <div class="modal-content" style="max-width: 800px;">
                 <div class="modal-header">
                     <h3><i class="fas fa-hamburger"></i> Registrar Agrego Simple o Producto Compuesto</h3>
-                    <button class="modal-close" onclick="document.getElementById('modal-agrego-simple').remove()">&times;</button>
+                    <button class="modal-close" onclick="cerrarModalAgrego()">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-row">
@@ -929,13 +979,20 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                     <h4>Seleccionar Ingredientes Consumidos:</h4>
                     <p class="small-text"><i class="fas fa-info-circle"></i> Solo puedes usar ingredientes disponibles</p>
+                    
+                    <div style="margin-bottom: 10px; text-align: right;">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="actualizarDisponibilidadModal()">
+                            <i class="fas fa-sync-alt"></i> Actualizar Disponibilidad
+                        </button>
+                    </div>
+                    
                     <div class="ingredientes-grid" id="ingredientes-list" style="max-height: 300px; overflow-y: auto;">
                         ${ingredientes.map(ing => `
-                            <div class="ingrediente-item ${ing.disponible <= 0 ? 'disabled' : ''}">
+                            <div class="ingrediente-item ${ing.disponible <= 0 ? 'disabled' : ''}" id="ingrediente-${ing.id}">
                                 <div class="ingrediente-info">
                                     <span class="ingrediente-nombre">${ing.nombre}</span>
                                     <span class="ingrediente-disponible ${ing.disponible > 0 ? 'available' : 'unavailable'}">
-                                        Disponible: ${ing.disponible}
+                                        Disponible: <span id="disponible-${ing.id}">${ing.disponible}</span>
                                     </span>
                                 </div>
                                 <div class="ingrediente-controls">
@@ -947,7 +1004,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                            data-ingrediente-nombre="${ing.nombre}"
                                            data-ingrediente-disponible="${ing.disponible}"
                                            class="ingrediente-cantidad form-input-sm"
-                                           ${ing.disponible <= 0 ? 'disabled' : ''}>
+                                           ${ing.disponible <= 0 ? 'disabled' : ''}
+                                           oninput="validarCantidadIngrediente(this)">
                                     <span class="unidad-text">unidad(es)</span>
                                 </div>
                                 ${ing.disponible <= 0 ? '<div class="ingrediente-sin-disponibilidad">Sin disponibilidad</div>' : ''}
@@ -963,10 +1021,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="document.getElementById('modal-agrego-simple').remove()">
+                    <button class="btn btn-secondary" onclick="cerrarModalAgrego()">
                         Cancelar
                     </button>
-                    <button class="btn btn-primary" id="guardar-agrego-simple-modal">
+                    <button class="btn btn-primary" id="guardar-agrego-simple-modal" onclick="guardarAgregoSimpleDesdeModal()">
                         <i class="fas fa-save"></i> Guardar
                     </button>
                 </div>
@@ -974,260 +1032,79 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     `;
 
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // Añadir estilos específicos similares al otro modal
-    const style = document.createElement('style');
-    style.textContent = `
-        .modal .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .modal .form-group.full-width {
-            grid-column: span 2;
-        }
-        
-        .modal .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #333;
-        }
-        
-        .modal .form-input,
-        .modal .form-textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        
-        .modal .form-input-sm {
-            width: 80px;
-            padding: 6px 8px;
-            text-align: center;
-        }
-        
-        .modal .form-input:focus,
-        .modal .form-textarea:focus {
-            outline: none;
-            border-color: #4a6cf7;
-            box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.1);
-        }
-        
-        .modal .ingredientes-grid {
-            margin-top: 10px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background: #f8f9fa;
-        }
-        
-        .modal .ingrediente-item {
-            padding: 10px;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #eee;
-            background: white;
-            border-radius: 4px;
-        }
-        
-        .modal .ingrediente-item.disabled {
-            opacity: 0.6;
-        }
-        
-        .modal .ingrediente-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        .modal .ingrediente-nombre {
-            font-weight: 500;
-        }
-        
-        .modal .ingrediente-disponible {
-            font-size: 12px;
-            padding: 2px 6px;
-            border-radius: 10px;
-        }
-        
-        .modal .ingrediente-disponible.available {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .modal .ingrediente-disponible.unavailable {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .modal .ingrediente-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .modal .unidad-text {
-            font-size: 13px;
-            color: #666;
-        }
-        
-        .modal .ingrediente-sin-disponibilidad {
-            font-size: 11px;
-            color: #dc3545;
-            margin-top: 5px;
-        }
-        
-        .modal .small-text {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        
-        .modal .small-text i {
-            margin-right: 5px;
-        }
-        
-        /* Estilos adicionales para validación */
-        .modal .form-input:invalid,
-        .modal .ingrediente-cantidad:invalid {
-            border-color: #dc3545;
-            background-color: rgba(220, 53, 69, 0.05);
-        }
-        
-        .modal .ingrediente-cantidad:disabled {
-            background-color: #e9ecef;
-            cursor: not-allowed;
-        }
-        
-        .modal .has-error {
-            border-color: #dc3545 !important;
-            background-color: rgba(220, 53, 69, 0.05) !important;
-        }
-        
-        .modal .error-message {
-            color: #dc3545;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-        
-        .modal .total-ingredientes {
-            margin-top: 15px;
-            padding: 10px;
-            background: #e9f7fe;
-            border-radius: 4px;
-            text-align: center;
-            font-weight: 500;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // Configurar el botón de guardar
-    document.getElementById('guardar-agrego-simple-modal').addEventListener('click', function () {
-        guardarAgregoSimpleDesdeModal();
-    });
-    
-    // Validación en tiempo real para inputs de ingredientes (igual que en el otro modal)
-    document.querySelectorAll('.ingrediente-cantidad').forEach(input => {
-        input.addEventListener('input', function() {
-            const max = parseInt(this.max) || 0;
-            const value = parseInt(this.value) || 0;
-            
-            if (value > max) {
-                this.value = max;
-                showNotification(`No puedes usar más de ${max} unidades de ${this.dataset.ingredienteNombre}`, 'error');
-            }
-            
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Añadir funciones globales para el modal
+        window.cerrarModalAgrego = function () {
+            const modal = document.getElementById('modal-agrego-simple');
+            if (modal) modal.remove();
+        };
+
+        window.actualizarDisponibilidadModal = function () {
+            // Recalcular disponibilidad global
+            recalcularDisponibilidad();
+
+            // Actualizar cada ingrediente en el modal
+            ingredientes.forEach(ing => {
+                const disponibleSpan = document.getElementById(`disponible-${ing.id}`);
+                const input = document.querySelector(`[data-ingrediente-id="${ing.id}"]`);
+                const itemDiv = document.getElementById(`ingrediente-${ing.id}`);
+
+                if (disponibleSpan) {
+                    disponibleSpan.textContent = ing.disponible;
+                }
+
+                if (input) {
+                    // Actualizar el máximo permitido
+                    input.max = ing.disponible;
+                    input.dataset.ingredienteDisponible = ing.disponible;
+
+                    // Si el valor actual excede la nueva disponibilidad, ajustarlo
+                    const currentValue = parseInt(input.value) || 0;
+                    if (currentValue > ing.disponible) {
+                        input.value = ing.disponible;
+                        showNotification(`Ajustado ${ing.nombre} a ${ing.disponible} unidades (máximo disponible)`, 'warning');
+                    }
+
+                    // Habilitar/deshabilitar según disponibilidad
+                    if (ing.disponible <= 0) {
+                        input.disabled = true;
+                        input.value = 0;
+                        if (itemDiv) itemDiv.classList.add('disabled');
+                    } else {
+                        input.disabled = false;
+                        if (itemDiv) itemDiv.classList.remove('disabled');
+                    }
+                }
+            });
+
+            showNotification('Disponibilidad actualizada', 'info');
+        };
+
+        window.validarCantidadIngrediente = function (input) {
+            const max = parseInt(input.max) || 0;
+            let value = parseInt(input.value) || 0;
+
             // Evitar valores negativos
             if (value < 0) {
-                this.value = 0;
+                value = 0;
+                input.value = 0;
             }
-            
-            // Mostrar total actual de ingredientes
-            actualizarTotalIngredientes();
-        });
-        
-        input.addEventListener('blur', function() {
-            const max = parseInt(this.max) || 0;
-            const value = parseInt(this.value) || 0;
-            
+
+            // Validar que no exceda el máximo
             if (value > max) {
-                this.value = max;
-                showNotification(`Ajustado a ${max} unidades de ${this.dataset.ingredienteNombre} (máximo disponible)`, 'warning');
+                value = max;
+                input.value = max;
+                showNotification(`No puedes usar más de ${max} unidades de ${input.dataset.ingredienteNombre}`, 'error');
             }
-        });
-    });
-    
-    // Validación en tiempo real para precio
-    const precioInput = document.getElementById('agrego-precio');
-    if (precioInput) {
-        precioInput.addEventListener('input', function() {
-            const value = parseFloat(this.value) || 0;
-            
-            if (value < 0) {
-                this.value = 0;
-                showNotification('El precio no puede ser negativo', 'error');
-            }
-        });
+
+            // Actualizar total de ingredientes seleccionados
+            actualizarTotalIngredientes();
+        };
+
+        // Inicializar el contador de ingredientes
+        setTimeout(actualizarTotalIngredientes, 100);
     }
-    
-    // Validación en tiempo real para cantidad
-    const cantidadInput = document.getElementById('agrego-cantidad');
-    if (cantidadInput) {
-        cantidadInput.addEventListener('input', function() {
-            const value = parseInt(this.value) || 0;
-            
-            if (value < 1) {
-                this.value = 1;
-                showNotification('La cantidad mínima es 1', 'error');
-            }
-        });
-    }
-    
-    // Función para actualizar el total de ingredientes seleccionados
-    function actualizarTotalIngredientes() {
-        let total = 0;
-        let totalElement = document.getElementById('total-ingredientes-actual');
-        
-        if (!totalElement) {
-            // Crear elemento si no existe
-            const ingredientesGrid = document.getElementById('ingredientes-list');
-            totalElement = document.createElement('div');
-            totalElement.id = 'total-ingredientes-actual';
-            totalElement.className = 'total-ingredientes';
-            ingredientesGrid.parentNode.insertBefore(totalElement, ingredientesGrid.nextSibling);
-        }
-        
-        document.querySelectorAll('.ingrediente-cantidad:not(:disabled)').forEach(input => {
-            const value = parseInt(input.value) || 0;
-            total += value;
-        });
-        
-        totalElement.textContent = `Total de ingredientes seleccionados: ${total} unidad(es)`;
-        
-        // Cambiar color si se excede un límite
-        if (total > 100) {
-            totalElement.style.background = '#f8d7da';
-            totalElement.style.color = '#721c24';
-        } else if (total > 0) {
-            totalElement.style.background = '#d4edda';
-            totalElement.style.color = '#155724';
-        } else {
-            totalElement.style.background = '#e9f7fe';
-            totalElement.style.color = '#0c5460';
-        }
-    }
-    
-    // Inicializar el contador de ingredientes
-    setTimeout(actualizarTotalIngredientes, 100);
-}
 
 
     function showModalConfigurarRelaciones() {
@@ -1964,7 +1841,9 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     window.resetCocinaDia = function () {
+        // Resetear datos de cocina
         cocinaData.forEach(producto => {
+            // Guardar el final del día anterior como inicio del nuevo día
             producto.inicio = producto.final;
             producto.entrada = 0;
             producto.venta = producto.inicio + producto.entrada;
@@ -1976,33 +1855,37 @@ document.addEventListener('DOMContentLoaded', function () {
             producto.ultimaActualizacion = obtenerHoraActual();
         });
 
-        editingFinalEnabled = false;
+        // Limpiar todos los agregos del día
         agregos = [];
 
+        // Resetear estado de edición
+        editingFinalEnabled = false;
+
+        // Guardar cambios
         recalcularDisponibilidad();
         guardarDatosCocina();
+
+        // Actualizar UI
         actualizarTablaCocina();
         actualizarResumenCocina();
         actualizarListaAgregos();
     };
     // En la sección de "Funciones disponibles globalmente" agrega:
-function productoCocina() {
-    cargarProductosCocina().then(() => {
-        if (productosCocina.length === 0) {
-            showNotification('No hay productos en la cocina. Agrega productos primero.', 'warning');
-            verificarProductosCocina();
-        } else {
-            sincronizarConProductosCocina();
-            recalcularConsumosPorRelaciones();
-            guardarDatosCocina();
-            verificarProductosCocina();
-            actualizarTablaCocina();
-            actualizarResumenCocina();
-
-            showNotification(`Sincronizados ${productosCocina.length} productos de cocina`, 'success');
-        }
-    });
-};
+    function productoCocina() {
+        cargarProductosCocina().then(() => {
+            if (productosCocina.length === 0) {
+                showNotification('No hay productos en la cocina. Agrega productos primero.', 'warning');
+                verificarProductosCocina();
+            } else {
+                sincronizarConProductosCocina();
+                recalcularConsumosPorRelaciones();
+                guardarDatosCocina();
+                verificarProductosCocina();
+                actualizarTablaCocina();
+                actualizarResumenCocina();
+            }
+        });
+    };
 
 
     // Exponer datos y funciones para uso global
@@ -2021,15 +1904,14 @@ function productoCocina() {
 
 
 // Inicializar cuando se carga la sección de cocina
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Escuchar cambios en la navegación
     const cocinaLinks = document.querySelectorAll('a[data-section="cocina"]');
     cocinaLinks.forEach(link => {
-        link.addEventListener('click', function() {
+        link.addEventListener('click', function () {
             // Recargar productos cuando se entra a la sección
             setTimeout(() => {
                 if (typeof window.sincronizarProductosCocina === 'function') {
-                    console.log("aqui")
                     window.sincronizarProductosCocina();
                 }
             }, 500);
