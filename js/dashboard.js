@@ -341,7 +341,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Resetear efectivo
         localStorage.setItem('ipb_efectivo_data', JSON.stringify([]));
-
+        const day = getTodayDate();
+        localStorage.removeItem(`cocina_agregos_${day}`);
         // Resetear consumo, extracciones, transferencias
         localStorage.removeItem('ipb_consumo_data');
         localStorage.removeItem('ipb_extracciones');
@@ -353,7 +354,13 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem('ipb_last_reset', hoy);
         location.reload();
     }
-
+    function getTodayDate() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
     function saveAllData() {
         const data = {
             lastSaved: new Date().toISOString(),
