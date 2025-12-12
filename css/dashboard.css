@@ -564,16 +564,6 @@ body {
     display: flex;
 }
 
-.modal-content {
-    background: white;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
 @keyframes slideInUp {
     from {
@@ -624,17 +614,9 @@ body {
     overflow-y: auto;
 }
 
-.modal-footer {
-    padding: 1.5rem;
-    border-top: 1px solid var(--gray-light);
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-}
-
 /* ===== MODAL DE CONFIRMACIÓN ===== */
-.modal-confirm .modal-content {
-    max-width: 450px;
+.modal-confirm{
+    max-width: 500px;
 }
 
 .modal-confirm .modal-body {
@@ -830,10 +812,6 @@ body {
         width: 100%;
     }
     
-    .modal-content {
-        width: 95%;
-        max-width: 95%;
-    }
 }
 
 /* Desktop hover effects */

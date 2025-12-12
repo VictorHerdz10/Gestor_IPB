@@ -1255,66 +1255,380 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const modalHtml = `
-            <div class="modal active" id="modal-configurar-relaciones">
-                <div class="modal-content" style="max-width: 900px;">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-cogs"></i> Configurar Relaciones de Productos</h3>
-                        <button class="modal-close" onclick="document.getElementById('modal-configurar-relaciones').remove()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="seleccionar-producto-relacion">Seleccionar Producto *</label>
-                            <select id="seleccionar-producto-relacion" required>
-                                <option value="">Selecciona un producto...</option>
-                                ${productosBase.map(p => {
+        <div class="modal active" id="modal-configurar-relaciones">
+            <div class="modal-content configurar-relaciones-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-cogs"></i> Configurar Relaciones de Productos</h3>
+                    <button class="modal-close" onclick="document.getElementById('modal-configurar-relaciones').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="seleccionar-producto-relacion" class="form-label">Seleccionar Producto *</label>
+                        <select id="seleccionar-producto-relacion" class="form-select" required>
+                            <option value="">Selecciona un producto...</option>
+                            ${productosBase.map(p => {
             const tieneRelaciones = relacionesProductos.filter(r => r.productoId === p.id).length > 0;
-            return `<option value="${p.id}" ${tieneRelaciones ? 'data-tiene-relaciones="true"' : ''}>${p.nombre} ${tieneRelaciones ? '(ya configurado)' : ''}</option>`;
+            return `<option value="${p.id}" ${tieneRelaciones ? 'data-tiene-relaciones="true"' : ''}>
+                                    ${p.nombre} ${tieneRelaciones ? '(ya configurado)' : ''}
+                                </option>`;
         }).join('')}
-                            </select>
-                        </div>
+                        </select>
+                    </div>
+                    
+                    <div id="relaciones-actuales" class="relaciones-actuales-container">
+                        <h4><i class="fas fa-list-check"></i> Relaciones Actuales:</h4>
+                        <ul id="lista-relaciones-actuales" class="relaciones-lista"></ul>
+                    </div>
+                    
+                    <div class="configuracion-ingredientes-section">
+                        <h4><i class="fas fa-utensils"></i> Configurar Ingredientes Fijos</h4>
+                        <p class="descripcion-configuracion">
+                            <i class="fas fa-info-circle"></i> 
+                            Define cuánto de cada ingrediente usa <strong>UNA unidad</strong> de este producto
+                        </p>
                         
-                        <div id="relaciones-actuales" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; display: none;">
-                            <h4>Relaciones Actuales:</h4>
-                            <ul id="lista-relaciones-actuales"></ul>
-                        </div>
-                        
-                        <h4>Configurar Ingredientes Fijos:</h4>
-                        <p class="small-text"><i class="fas fa-info-circle"></i> Define cuánto de cada ingrediente usa UNA unidad de este producto</p>
-                        <div class="ingredientes-grid" id="ingredientes-relaciones-list" style="max-height: 300px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <div class="ingredientes-relaciones-container" id="ingredientes-relaciones-list">
                             ${ingredientes.map(ing => `
-                                <div class="ingrediente-item" style="margin-bottom: 10px; padding: 10px; border-bottom: 1px solid #eee;">
-                                    <label style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span>${ing.nombre}</span>
-                                        <div>
+                                <div class="ingrediente-relacion-item">
+                                    <div class="ingrediente-relacion-info">
+                                        <span class="ingrediente-relacion-nombre">${ing.nombre}</span>
+                                        <span class="ingrediente-disponibilidad">
+                                            <i class="fas fa-box"></i> Disponible: ${ing.disponible}
+                                        </span>
+                                    </div>
+                                    <div class="ingrediente-relacion-controls">
+                                        <div class="cantidad-input-group">
                                             <input type="number" 
                                                    min="0" 
                                                    max="10"
                                                    value="0"
                                                    data-ingrediente-id="${ing.id}"
                                                    data-ingrediente-nombre="${ing.nombre}"
-                                                   class="relacion-ingrediente-cantidad"
-                                                   style="width: 80px; text-align: center;">
-                                            <span style="margin-left: 5px;">por producto</span>
+                                                   class="relacion-ingrediente-cantidad form-input-sm"
+                                                   placeholder="0">
+                                            <span class="cantidad-unidad">por producto</span>
                                         </div>
-                                    </label>
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" onclick="document.getElementById('modal-configurar-relaciones').remove()">
-                            Cancelar
-                        </button>
-                        <button class="btn btn-primary" id="guardar-relaciones-modal">
-                            <i class="fas fa-save"></i> Guardar Relaciones
-                        </button>
-                        <button class="btn btn-danger" id="eliminar-relaciones-modal" style="display: none;">
-                            <i class="fas fa-trash"></i> Eliminar Relaciones
-                        </button>
-                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="document.getElementById('modal-configurar-relaciones').remove()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button class="btn btn-danger" id="eliminar-relaciones-modal" style="display: none;">
+                        <i class="fas fa-trash"></i> Eliminar Relaciones
+                    </button>
+                    <button class="btn btn-primary" id="guardar-relaciones-modal">
+                        <i class="fas fa-save"></i> Guardar Relaciones
+                    </button>
                 </div>
             </div>
-        `;
+        </div>
+        
+        <style>
+            /* Estilos específicos para el modal de configuración de relaciones */
+            .configurar-relaciones-modal {
+                max-width: 800px;
+                max-height: 85vh;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .modal-body {
+                overflow-y: auto;
+                flex: 1;
+                padding: 20px;
+            }
+            
+            .form-select {
+                width: 100%;
+                padding: 10px 15px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 16px;
+                background-color: white;
+                transition: all 0.3s ease;
+                margin-bottom: 20px;
+            }
+            
+            .form-select:focus {
+                outline: none;
+                border-color: #4a6cf7;
+                box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+            }
+            
+            .relaciones-actuales-container {
+                margin: 20px 0;
+                padding: 15px;
+                background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+                border-radius: 10px;
+                border-left: 4px solid #4a6cf7;
+                display: none;
+            }
+            
+            .relaciones-actuales-container h4 {
+                margin: 0 0 10px 0;
+                color: #333;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .relaciones-lista {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .relaciones-lista li {
+                padding: 8px 12px;
+                margin: 5px 0;
+                background: white;
+                border-radius: 6px;
+                border: 1px solid #e8e8e8;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            
+            .relaciones-lista li:before {
+                content: "✓";
+                color: #4a6cf7;
+                font-weight: bold;
+                margin-right: 10px;
+            }
+            
+            .configuracion-ingredientes-section {
+                margin-top: 25px;
+                background: white;
+                border-radius: 10px;
+                padding: 20px;
+                border: 1px solid #e8e8e8;
+            }
+            
+            .configuracion-ingredientes-section h4 {
+                margin: 0 0 10px 0;
+                color: #333;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .descripcion-configuracion {
+                color: #666;
+                font-size: 14px;
+                margin: 0 0 20px 0;
+                padding: 10px;
+                background: #f9f9f9;
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .ingredientes-relaciones-container {
+                max-height: 350px;
+                overflow-y: auto;
+                border: 1px solid #eee;
+                border-radius: 8px;
+                padding: 10px;
+            }
+            
+            .ingrediente-relacion-item {
+                padding: 15px;
+                margin-bottom: 10px;
+                background: white;
+                border-radius: 8px;
+                border: 1px solid #f0f0f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                transition: all 0.3s ease;
+            }
+            
+            .ingrediente-relacion-item:hover {
+                border-color: #4a6cf7;
+                box-shadow: 0 2px 8px rgba(74, 108, 247, 0.1);
+                transform: translateY(-1px);
+            }
+            
+            .ingrediente-relacion-info {
+                flex: 1;
+            }
+            
+            .ingrediente-relacion-nombre {
+                font-weight: 600;
+                color: #333;
+                font-size: 15px;
+                display: block;
+                margin-bottom: 5px;
+            }
+            
+            .ingrediente-disponibilidad {
+                font-size: 13px;
+                color: #666;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            
+            .ingrediente-relacion-controls {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .cantidad-input-group {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .relacion-ingrediente-cantidad {
+                width: 80px;
+                padding: 8px 12px;
+                text-align: center;
+                border: 2px solid #e0e0e0;
+                border-radius: 6px;
+                font-size: 15px;
+                font-weight: 500;
+            }
+            
+            .relacion-ingrediente-cantidad:focus {
+                outline: none;
+                border-color: #4a6cf7;
+                box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+            }
+            
+            .cantidad-unidad {
+                font-size: 13px;
+                color: #666;
+                white-space: nowrap;
+            }
+            
+            /* Estilos para botones del modal footer */
+            .modal-footer {
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 20px;
+                border-top: 1px solid #eee;
+                background: #fafafa;
+            }
+            
+            .modal-footer .btn {
+                min-width: 140px;
+                padding: 10px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                font-weight: 500;
+            }
+            
+            /* Responsive */
+            @media (max-width: 768px) {
+                .configurar-relaciones-modal {
+                    max-width: 95%;
+                    max-height: 90vh;
+                    margin: 10px;
+                }
+                
+                .ingrediente-relacion-item {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 15px;
+                }
+                
+                .ingrediente-relacion-controls {
+                    width: 100%;
+                    justify-content: space-between;
+                }
+                
+                .modal-footer {
+                    flex-direction: column;
+                }
+                
+                .modal-footer .btn {
+                    width: 100%;
+                }
+                
+                .cantidad-input-group {
+                    width: 100%;
+                    justify-content: flex-end;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .modal-body {
+                    padding: 15px;
+                }
+                
+                .ingredientes-relaciones-container {
+                    max-height: 300px;
+                }
+                
+                .configuracion-ingredientes-section {
+                    padding: 15px;
+                }
+                
+                .relacion-ingrediente-cantidad {
+                    width: 70px;
+                    padding: 6px 10px;
+                }
+            }
+            
+            /* Scrollbar personalizado */
+            .ingredientes-relaciones-container::-webkit-scrollbar {
+                width: 6px;
+            }
+            
+            .ingredientes-relaciones-container::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 3px;
+            }
+            
+            .ingredientes-relaciones-container::-webkit-scrollbar-thumb {
+                background: #c1c1c1;
+                border-radius: 3px;
+            }
+            
+            .ingredientes-relaciones-container::-webkit-scrollbar-thumb:hover {
+                background: #a1a1a1;
+            }
+            
+            /* Animaciones */
+            .relaciones-actuales-container {
+                animation: slideIn 0.3s ease;
+            }
+            
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            /* Estado cuando no hay disponibilidad */
+            .ingrediente-relacion-item.sin-disponibilidad {
+                opacity: 0.6;
+                background: #f9f9f9;
+            }
+            
+            .ingrediente-relacion-item.sin-disponibilidad .ingrediente-relacion-nombre {
+                color: #999;
+            }
+        </style>
+    `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -1336,11 +1650,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 const lista = document.getElementById('lista-relaciones-actuales');
                 lista.innerHTML = '';
 
+                // Actualizar el título con el nombre del producto
+                const titulo = relacionesActualesDiv.querySelector('h4');
+                if (titulo) {
+                    titulo.innerHTML = `<i class="fas fa-list-check"></i> Relaciones de "${producto.nombre}":`;
+                }
+
                 relacionesActuales.forEach(rel => {
                     const ingrediente = cocinaData.find(p => p.id === rel.ingredienteId);
                     if (ingrediente) {
                         const li = document.createElement('li');
-                        li.textContent = `${ingrediente.nombre}: ${rel.cantidad} por unidad`;
+                        li.innerHTML = `
+                        <span>${ingrediente.nombre}</span>
+                        <strong>${rel.cantidad} por unidad</strong>
+                    `;
                         lista.appendChild(li);
                     }
                 });
@@ -1353,16 +1676,55 @@ document.addEventListener('DOMContentLoaded', function () {
                     const ingredienteId = parseInt(input.dataset.ingredienteId);
                     const relacion = relacionesActuales.find(r => r.ingredienteId === ingredienteId);
                     input.value = relacion ? relacion.cantidad : 0;
+
+                    // Resaltar ingredientes configurados
+                    if (relacion) {
+                        const item = input.closest('.ingrediente-relacion-item');
+                        if (item) {
+                            item.style.borderColor = '#4a6cf7';
+                            item.style.backgroundColor = '#f8f9ff';
+                        }
+                    }
                 });
             } else {
                 relacionesActualesDiv.style.display = 'none';
                 document.getElementById('eliminar-relaciones-modal').style.display = 'none';
 
-                // Limpiar inputs
+                // Limpiar inputs y estilos
                 document.querySelectorAll('.relacion-ingrediente-cantidad').forEach(input => {
                     input.value = 0;
+                    const item = input.closest('.ingrediente-relacion-item');
+                    if (item) {
+                        item.style.borderColor = '';
+                        item.style.backgroundColor = '';
+                    }
                 });
             }
+        });
+
+        // Añadir validación en tiempo real a los inputs
+        document.querySelectorAll('.relacion-ingrediente-cantidad').forEach(input => {
+            input.addEventListener('input', function () {
+                const valor = parseInt(this.value) || 0;
+                if (valor < 0) {
+                    this.value = 0;
+                } else if (valor > 10) {
+                    this.value = 10;
+                    showNotification('La cantidad máxima por producto es 10', 'warning');
+                }
+
+                // Resaltar si tiene valor
+                const item = this.closest('.ingrediente-relacion-item');
+                if (item) {
+                    if (valor > 0) {
+                        item.style.borderColor = '#4a6cf7';
+                        item.style.backgroundColor = '#f8f9ff';
+                    } else {
+                        item.style.borderColor = '';
+                        item.style.backgroundColor = '';
+                    }
+                }
+            });
         });
 
         document.getElementById('guardar-relaciones-modal').addEventListener('click', function () {
@@ -1372,6 +1734,11 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('eliminar-relaciones-modal').addEventListener('click', function () {
             eliminarRelacionesProducto();
         });
+
+        // Mostrar notificación inicial
+        setTimeout(() => {
+            showNotification('Selecciona un producto para configurar sus ingredientes', 'info');
+        }, 300);
     }
 
     function guardarAgregoSimpleDesdeModal() {

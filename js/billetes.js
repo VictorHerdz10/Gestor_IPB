@@ -217,9 +217,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 background: white;
                 border-radius: 15px;
                 width: 90%;
-                max-width: 500px;
+                max-width: 600px;
                 max-height: 80vh;
-                overflow-y: auto;
                 z-index: 2001;
                 box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
                 animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -474,6 +473,7 @@ document.addEventListener('DOMContentLoaded', function () {
             bottom: 0;
             background: white;
             z-index: 1;
+            justify-content: space-between;
         }
         
         .destino-modal .modal-footer .btn {
@@ -1410,7 +1410,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-      document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         const link = e.target.closest('a[data-section="extracciones"]');
         if (link) {
             setTimeout(initExtracciones, 100);
@@ -1419,7 +1419,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Inicializar cuando cambie la sección (si existe el evento)
     if (typeof window.addEventListener === 'function') {
-        window.addEventListener('sectionChanged', function(e) {
+        window.addEventListener('sectionChanged', function (e) {
             if (e.detail && e.detail.section === 'extracciones') {
                 setTimeout(initExtracciones, 100);
             }
@@ -1427,7 +1427,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Función para recargar datos (similar a reloadEfectivoData)
-    window.reloadExtraccionesData = function() {
+    window.reloadExtraccionesData = function () {
         cargarExtracciones();
         actualizarListaExtracciones();
         actualizarResumen();
