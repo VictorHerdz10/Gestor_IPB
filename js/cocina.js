@@ -719,6 +719,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Si se está editando el campo "final", marcar como editado
                 if (field === 'final') {
                     producto.finalEditado = true; // ← Asegurar que se marque como editado
+                }
 
                 // Recalcular primero
                 recalcularProductoCocina(producto);
