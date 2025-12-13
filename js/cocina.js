@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function cargarAgregos() {
         return new Promise((resolve) => {
             const today = getTodayDate();
-            const agregosGuardados = localStorage.getItem(`cocina_agregos_${today}`);
+            const agregosGuardados = localStorage.getItem(`cocina_agregos`);
 
             agregos = agregosGuardados ? JSON.parse(agregosGuardados) : [];
             resolve();
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     function guardarAgregos() {
         const today = getTodayDate();
-        localStorage.setItem(`cocina_agregos_${today}`, JSON.stringify(agregos));
+        localStorage.setItem(`cocina_agregos`, JSON.stringify(agregos));
     }
 
     function recalcularDisponibilidad() {
@@ -417,7 +417,13 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     function crearFilaProductoCocina(producto, index) {
-        console.log(producto)
+        console.log('Creando fila para:', producto.nombre, {
+            final: producto.final,
+            finalEditado: producto.finalEditado,
+            venta: producto.venta,
+            vendido: producto.vendido
+        });
+
         const row = document.createElement('tr');
         row.dataset.id = producto.id;
         row.dataset.index = index;
@@ -429,15 +435,34 @@ document.addEventListener('DOMContentLoaded', function () {
         // Determinar valor a mostrar en campo final
         let valorFinal = producto.final;
 
-        // MODIFICACIÓN: Solo auto-establecer si NO es ingrediente, es 0, NO estamos editando y hay ventas
-        // NO auto-ajustar ingredientes (precio = 0)
-        if (valorFinal === 0 && !editingFinalEnabled && producto.venta > 0 && producto.precio > 0) {
+        // MODIFICACIÓN CRÍTICA: Solo auto-ajustar si:
+        // 1. NO es ingrediente (precio > 0)
+        // 2. El final es 0 (no se ha vendido nada)
+        // 3. NO estamos en modo edición de final
+        // 4. El usuario NO ha editado manualmente el final (finalEditado === false)
+        // 5. Hay ventas disponibles
+        if (producto.precio > 0 &&
+            valorFinal === 0 &&
+            !editingFinalEnabled &&
+            !producto.finalEditado &&
+            producto.venta > 0) {
+
+            console.log(`Auto-ajustando ${producto.nombre}: final de 0 a ${producto.venta}`);
             valorFinal = producto.venta;
             producto.final = valorFinal;
             // Recalcular con el nuevo valor
             recalcularProductoCocina(producto);
         }
 
+        // Si el usuario YA editó el final (finalEditado = true), respetar su valor
+        if (producto.finalEditado) {
+            console.log(`Respetando valor editado de usuario para ${producto.nombre}: ${producto.final}`);
+            // Asegurar que no sea mayor que la venta
+            if (producto.final > producto.venta) {
+                producto.final = producto.venta;
+                recalcularProductoCocina(producto);
+            }
+        }
         // Verificar si tiene relaciones (se usa en otros productos)
         const esUsadoEn = relacionesProductos.filter(r => r.ingredienteId === producto.id).length > 0;
         const esPan = relacionesPanIngredientes.filter(r => r.panId === producto.id).length > 0;
@@ -528,8 +553,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (field === 'final') {
                     const venta = parseInt(this.dataset.venta) || 0;
 
+                    // Permitir 0 (vender todo) - CORRECCIÓN AQUÍ: usar newValue en lugar de value
+                    if (newValue === 0) {
+                        // Si es 0, está bien - significa vender todo
+                        // No hacer nada especial, dejar que pase
+                    }
                     // Si el valor es mayor a la venta, ajustar y mostrar notificación
-                    if (newValue > venta) {
+                    else if (newValue > venta) {
                         newValue = venta;
                         this.value = venta;
 
@@ -541,7 +571,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Validar disponibilidad de ingredientes si es un producto con ingredientes fijos
                     if (!producto.esIngrediente) {
-                        validarDisponibilidadIngredientes(producto, newValue);
+                        // Pasar el nuevo valor a la validación
+                        const puedeVender = validarDisponibilidadIngredientes(producto, newValue);
+                        if (!puedeVender) {
+                            // Si no puede vender, restaurar el valor anterior
+                            newValue = oldValue;
+                            this.value = oldValue;
+                        }
                     }
                 }
 
@@ -592,7 +628,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function validarDisponibilidadIngredientes(producto, nuevoFinal) {
+    function validarDisponibilidadIngredientes(producto, nuevoFinal, mostrarNotificacion = true) {
         // Calcular cuántas unidades se quieren vender
         const venta = producto.venta;
         const nuevoVendido = venta - nuevoFinal;
@@ -602,6 +638,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Buscar relaciones de ingredientes para este producto
         const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
+
+        // Si no tiene relaciones, puede vender todo
+        if (relaciones.length === 0) return true;
 
         let hayDisponibilidad = true;
         let mensajeError = '';
@@ -619,7 +658,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        if (!hayDisponibilidad) {
+        if (!hayDisponibilidad && mostrarNotificacion) {
             showNotification(
                 `No hay suficientes ingredientes para vender ${diferenciaVendido} ${producto.nombre}:${mensajeError}\n\nPor favor, da entrada a más ingredientes o ajusta el valor final.`,
                 'error'
@@ -627,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return false;
         }
 
-        return true;
+        return hayDisponibilidad;
     }
 
     function recalcularProductoCocina(producto) {
@@ -667,28 +706,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
         return producto;
     }
-
     function calcularMaximoVendible(producto) {
-        if (producto.esIngrediente) return producto.venta; // Los ingredientes no tienen restricciones
+        if (producto.esIngrediente) return producto.venta;
 
         const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
-        if (relaciones.length === 0) return producto.venta; // Sin relaciones, puede vender todo
+        if (relaciones.length === 0) return producto.venta;
 
-        let maxVendible = producto.venta; // Inicializar con el máximo teórico
+        let maxVendible = producto.venta;
 
         relaciones.forEach(relacion => {
             const ingrediente = cocinaData.find(p => p.id === relacion.ingredienteId);
             if (ingrediente) {
-                // Calcular cuántas unidades se pueden hacer con este ingrediente
-                const disponibles = ingrediente.disponible;
-                const maxConEsteIngrediente = Math.floor(disponibles / relacion.cantidad);
+                // Calcular lo que REALMENTE queda del ingrediente
+                // Esto es más confiable que usar disponible o final
+                const ventaDelIngrediente = ingrediente.venta || 0;
+                const vendidoDelIngrediente = ingrediente.vendido || 0;
+                const realmenteQueda = Math.max(0, ventaDelIngrediente - vendidoDelIngrediente);
 
-                // Tomar el mínimo entre todos los ingredientes
+                const maxConEsteIngrediente = Math.floor(realmenteQueda / relacion.cantidad);
+
+                console.log(`Para ${producto.nombre}, ingrediente ${ingrediente.nombre}:`);
+                console.log(`- Venta: ${ventaDelIngrediente}, Vendido: ${vendidoDelIngrediente}`);
+                console.log(`- Realmente queda: ${realmenteQueda}`);
+                console.log(`- Relación: ${relacion.cantidad} por producto`);
+                console.log(`- Máximo con este ingrediente: ${maxConEsteIngrediente}`);
+
                 maxVendible = Math.min(maxVendible, maxConEsteIngrediente);
             }
         });
 
-        return Math.max(0, maxVendible); // No puede ser negativo
+        console.log(`${producto.nombre} puede vender máximo: ${maxVendible}`);
+        return Math.max(0, maxVendible);
     }
 
     function actualizarProductoCocinaDesdeInput(input, realTime = false) {
@@ -707,7 +755,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Si se está editando el campo "final", marcar como editado
                 if (field === 'final') {
-                    producto.finalEditado = true;
+                    producto.finalEditado = true; // ← Asegurar que se marque como editado
+                    console.log(`Producto ${producto.nombre} marcado como finalEditado = true`);
                 }
 
                 // Recalcular primero
@@ -719,7 +768,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const nuevoVendido = producto.venta - value;
 
                     // Validar disponibilidad de ingredientes
-                    if (!validarDisponibilidadIngredientes(producto, value)) {
+                    if (!validarDisponibilidadIngredientes(producto, value, true)) {
                         // Revertir el cambio si no hay disponibilidad
                         producto[field] = oldValue;
                         recalcularProductoCocina(producto);
@@ -770,54 +819,122 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function recalcularConsumosPorRelaciones() {
-        // PRIMERO: Calcular cuánto deberían haber consumido los ingredientes basado en productos vendidos
-        const consumoPorIngrediente = {};
+        console.log('Recalculando consumos por relaciones...');
 
-        // Inicializar el objeto de consumo
-        cocinaData.forEach(producto => {
-            if (producto.esIngrediente) {
-                consumoPorIngrediente[producto.id] = {
-                    id: producto.id,
-                    nombre: producto.nombre,
-                    consumoTotal: 0,
-                    vendidoActual: producto.vendido
-                };
-            }
-        });
-
-        // SEGUNDO: Calcular el consumo teórico basado en productos vendidos
-        cocinaData.forEach(producto => {
-            if (!producto.esIngrediente) {
-                const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
-
-                relaciones.forEach(relacion => {
-                    if (consumoPorIngrediente[relacion.ingredienteId]) {
-                        // Solo sumar el consumo de lo que se ha vendido AHORA, no acumular
-                        consumoPorIngrediente[relacion.ingredienteId].consumoTotal +=
-                            producto.vendido * relacion.cantidad;
+        // 1. Calcular consumo total desde AGREGOS
+        const consumoDesdeAgregos = {};
+        agregos.forEach(agrego => {
+            if (agrego.ingredientes && agrego.ingredientes.length > 0) {
+                agrego.ingredientes.forEach(ingrediente => {
+                    if (!consumoDesdeAgregos[ingrediente.id]) {
+                        consumoDesdeAgregos[ingrediente.id] = 0;
                     }
+                    consumoDesdeAgregos[ingrediente.id] += ingrediente.cantidad;
                 });
             }
         });
 
-        // TERCERO: Ajustar los vendidos de los ingredientes SOLO si es necesario
-        Object.values(consumoPorIngrediente).forEach(ing => {
-            const ingrediente = cocinaData.find(p => p.id === ing.id);
-            if (ingrediente) {
-                // Si el consumo teórico es diferente a lo que ya está registrado, ajustar
-                if (ingrediente.vendido !== ing.consumoTotal) {
-                    ingrediente.vendido = ing.consumoTotal;
-                    // Recalcular el final del ingrediente
-                    ingrediente.final = Math.max(0, ingrediente.venta - ingrediente.vendido);
-                    recalcularProductoCocina(ingrediente);
+        console.log('Consumo desde agregos:', consumoDesdeAgregos);
+
+        // 2. Para cada PRODUCTO NO INGREDIENTE, verificar consistencia
+        cocinaData.forEach(producto => {
+            if (!producto.esIngrediente) {
+                const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
+
+                if (relaciones.length > 0) {
+                    // Calcular máximo que puede vender basado en disponibilidad de ingredientes
+                    const maxVendible = calcularMaximoVendible(producto);
+
+                    // Lo que el usuario QUIERE vender (según el campo final)
+                    const quiereVender = producto.venta - producto.final;
+
+                    console.log(`Producto ${producto.nombre}:`, {
+                        vendidoActual: producto.vendido,
+                        quiereVender: quiereVender,
+                        maxVendible: maxVendible,
+                        venta: producto.venta,
+                        final: producto.final,
+                        finalEditado: producto.finalEditado
+                    });
+
+                    // MODIFICACIÓN CRÍTICA: Solo ajustar si el usuario NO ha editado manualmente
+                    // O si está intentando vender más de lo que puede
+                    if (quiereVender > maxVendible) {
+                        console.log(`Producto ${producto.nombre}: quiere vender ${quiereVender} pero máximo es ${maxVendible}`);
+
+                        // Si el usuario NO ha editado manualmente, ajustamos automáticamente
+                        if (!producto.finalEditado) {
+                            console.log(`Ajustando automáticamente ${producto.nombre}: quiere vender ${quiereVender} pero máximo es ${maxVendible}`);
+
+                            // Ajustar a lo máximo que puede vender
+                            const nuevoVendido = maxVendible;
+                            const nuevoFinal = Math.max(0, producto.venta - nuevoVendido);
+
+                            // Solo ajustar si hay cambio
+                            if (producto.final !== nuevoFinal) {
+                                producto.final = nuevoFinal;
+                                producto.vendido = nuevoVendido;
+                                producto.importe = producto.precio > 0 ? producto.vendido * producto.precio : 0;
+                                console.log(`Ajustado ${producto.nombre}: final=${producto.final}, vendido=${producto.vendido}`);
+                            }
+                        } else {
+                            // Si el usuario YA editó manualmente, mostrar advertencia pero no ajustar
+                            console.log(`Usuario editó manualmente ${producto.nombre}, no se ajustará automáticamente`);
+                            // Podrías mostrar una notificación opcional aquí
+                            // showNotification(`${producto.nombre}: Quieres vender ${quiereVender} pero solo hay ingredientes para ${maxVendible}`, 'warning');
+                        }
+                    }
                 }
             }
         });
 
-        // Recalcular disponibilidad
-        recalcularDisponibilidad();
-    }
+        // 3. Para cada INGREDIENTE, calcular consumo total y ajustar si es necesario
+        cocinaData.forEach(ingrediente => {
+            if (ingrediente.esIngrediente) {
+                let consumoTotal = 0;
 
+                // A. Consumo desde agregos
+                const consumoAgregos = consumoDesdeAgregos[ingrediente.id] || 0;
+                consumoTotal += consumoAgregos;
+
+                // B. Consumo desde productos vendidos
+                const relacionesComoIngrediente = relacionesProductos.filter(r => r.ingredienteId === ingrediente.id);
+                relacionesComoIngrediente.forEach(rel => {
+                    const producto = cocinaData.find(p => p.id === rel.productoId);
+                    if (producto && !producto.esIngrediente) {
+                        consumoTotal += producto.vendido * rel.cantidad;
+                    }
+                });
+
+                console.log(`Ingrediente ${ingrediente.nombre}:`, {
+                    consumoAgregos,
+                    consumoProductos: consumoTotal - consumoAgregos,
+                    consumoTotal,
+                    vendidoActual: ingrediente.vendido,
+                    final: ingrediente.final
+                });
+
+                // MODIFICACIÓN: Solo ajustar ingredientes si el consumoTotal es diferente
+                // Pero respetar si el ingrediente fue editado manualmente
+                if (consumoTotal !== ingrediente.vendido) {
+                    // Si el ingrediente NO ha sido editado manualmente, ajustamos
+                    if (!ingrediente.finalEditado) {
+                        console.log(`Ajustando ${ingrediente.nombre}: vendido ${ingrediente.vendido} -> ${consumoTotal}`);
+                        ingrediente.vendido = consumoTotal;
+                        ingrediente.final = Math.max(0, ingrediente.venta - ingrediente.vendido);
+                        recalcularProductoCocina(ingrediente);
+                    } else {
+                        console.log(`Ingrediente ${ingrediente.nombre} fue editado manualmente, no se ajustará`);
+                    }
+                }
+            }
+        });
+
+        // 4. Recalcular disponibilidad final
+        recalcularDisponibilidad();
+
+        console.log('Recálculo de consumos completado');
+    }
     function actualizarFilaUICocina(productoId) {
         const producto = cocinaData.find(p => p.id === productoId);
         if (!producto) return;
@@ -1043,12 +1160,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     entrada: 0,
                     venta: 0,
                     final: 0,
-                    vendido: 0,  // ← Iniciar en 0
+                    vendido: 0,
                     importe: 0,
                     disponible: 0,
                     historial: [],
                     ultimaActualizacion: obtenerHoraActual(),
-                    finalEditado: false  // ← Agregar esta propiedad
+                    finalEditado: false // ← Iniciar en false
                 });
             } else {
                 // Producto EXISTENTE: actualizar solo nombre y precio
@@ -1060,12 +1177,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         entrada: productoExistente.entrada,
                         venta: productoExistente.venta,
                         final: productoExistente.final,
-                        vendido: productoExistente.vendido,  // ← CRÍTICO: Preservar vendido
+                        vendido: productoExistente.vendido,
                         importe: productoExistente.importe,
                         disponible: productoExistente.disponible,
                         historial: productoExistente.historial,
                         ultimaActualizacion: productoExistente.ultimaActualizacion,
-                        finalEditado: productoExistente.finalEditado
+                        finalEditado: productoExistente.finalEditado // ← Preservar este valor
                     };
 
                     // Actualizar solo nombre y precio
@@ -1080,7 +1197,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const nuevaVenta = productoExistente.inicio + productoExistente.entrada;
                     if (productoExistente.venta !== nuevaVenta) {
                         productoExistente.venta = nuevaVenta;
-                        // Ajustar final si no ha sido editado
+                        // Ajustar final solo si no ha sido editado
                         if (!productoExistente.finalEditado) {
                             productoExistente.final = productoExistente.venta;
                         }
@@ -1090,17 +1207,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     recalcularProductoCocina(productoExistente);
                 }
             }
-            // Eliminar productos que ya no existen
-            cocinaData = cocinaData.filter(item => productosIds.includes(item.id));
-
-            // Actualizar datos filtrados
-            datosFiltradosCocina = [...cocinaData];
-
-            return Promise.resolve();
         });
 
         // Eliminar productos que ya no existen
         cocinaData = cocinaData.filter(item => productosIds.includes(item.id));
+
+        // Actualizar datos filtrados
+        datosFiltradosCocina = [...cocinaData];
 
         return Promise.resolve();
     }

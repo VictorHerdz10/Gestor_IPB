@@ -203,14 +203,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // Determinar el valor a mostrar en el campo final
         let valorFinal = producto.final;
 
-        // IMPORTANTE: Solo auto-establecer final si es 0 y NO estamos en modo edición
-        // Pero respetar si ya tiene un valor diferente de 0
-        if (valorFinal === 0 && !editingFinalEnabled && producto.venta > 0) {
-            valorFinal = producto.venta;
-            // Actualizar el dato también en memoria
-            producto.final = valorFinal;
-        }
-
+        // RESPETAR SIEMPRE el valor que tenga el producto
+        // NO auto-ajustar a venta aunque sea 0
+        // Si el usuario pone 0, significa que se vendió todo
         row.innerHTML = `
     <td class="producto-cell">
         <span class="product-name">${producto.nombre}</span>
@@ -360,8 +355,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (producto.venta !== nuevaVenta) {
             producto.venta = nuevaVenta;
 
-            // Si el final NO ha sido editado por el usuario, ajustarlo automáticamente
+            // Si la venta cambió y el final NO ha sido editado por el usuario
             if (!producto.finalEditado) {
+                // En salón también respetamos si el usuario puso 0 manualmente
+                // Pero ajustamos si la venta cambia y aún no ha sido editado
                 producto.final = producto.venta;
             } else {
                 // Si ya fue editado, asegurar que no sea mayor que la venta
@@ -571,15 +568,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         input.disabled = false;
                         input.classList.add('editing-enabled');
 
-                        // Si el valor es 0, establecerlo igual al total de ventas
-                        if (parseInt(input.value) === 0) {
-                            const id = parseInt(input.dataset.id);
-                            const producto = salonData.find(p => p.id === id);
-                            if (producto && producto.venta > 0) {
-                                input.value = producto.venta;
-                                actualizarProductoDesdeInput(input, false);
-                            }
-                        }
+                        
                     });
 
                     this.innerHTML = '<i class="fas fa-times"></i><span class="btn-text">Cancelar Edición</span>';

@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             // Si no existe la función, calcular manualmente desde localStorage
             const today = new Date().toISOString().split('T')[0];
-            const agregosDataKey = `cocina_agregos_${today}`;
+            const agregosDataKey = `cocina_agregos`;
             const agregosData = JSON.parse(localStorage.getItem(agregosDataKey) || '[]');
 
             // Sumar productos
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Resetear efectivo
         localStorage.setItem('ipb_efectivo_data', JSON.stringify([]));
         const day = getTodayDate();
-        localStorage.removeItem(`cocina_agregos_${day}`);
+        localStorage.removeItem(`cocina_agregos`);
         // Resetear consumo, extracciones, transferencias
         localStorage.removeItem('ipb_consumo_data');
         localStorage.removeItem('ipb_extracciones');
