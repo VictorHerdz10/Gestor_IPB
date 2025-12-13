@@ -32,10 +32,6 @@ document.addEventListener('DOMContentLoaded', function () {
             actualizarResumen();
             ocultarCargando();
 
-            console.log('Salón inicializado correctamente:', {
-                productos: productos.length,
-                salonData: salonData.length
-            });
         } catch (error) {
             console.error('Error inicializando salón:', error);
             showNotification('Error al cargar datos del salón', 'error');
@@ -60,7 +56,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (datosGuardados.length > 0) {
                 salonData = datosGuardados;
-                console.log('Datos cargados del almacenamiento:', salonData);
             } else {
                 // Crear datos iniciales desde productos
                 salonData = productos.map(producto => ({
@@ -77,7 +72,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     historial: [],
                     ultimaActualizacion: obtenerHoraActual()
                 }));
-                console.log('Datos iniciales creados:', salonData);
             }
 
             // Sincronizar con productos actuales
@@ -110,7 +104,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     historial: [],
                     ultimaActualizacion: obtenerHoraActual()
                 });
-                console.log('Producto agregado al salón:', producto.nombre);
             }
         });
 
@@ -132,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function () {
             // Inicializar final igual a venta si no está editado
             if (!producto.finalEditado && producto.venta > 0) {
                 producto.final = producto.venta;
-                console.log(`Final inicializado para ${producto.nombre}: ${producto.final}`);
             }
         });
     }
@@ -184,12 +176,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Actualizar controles de paginación
         actualizarControlesPaginacionSalon();
 
-        console.log('Tabla actualizada:', {
-            total: datosOrdenados.length,
-            pagina: paginaActualSalon,
-            productosPorPagina: productosPorPaginaSalon,
-            mostrando: productosPagina.length
-        });
     }
 
     function crearFilaProducto(producto, index) {
@@ -415,13 +401,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Si no es tiempo real, actualizar toda la fila
                     actualizarFilaCompleta(id);
                 }
-
-                console.log(`Producto ${id} actualizado: ${field} = ${value}`, {
-                    venta: producto.venta,
-                    final: producto.final,
-                    vendido: producto.vendido,
-                    importe: producto.importe
-                });
             }
         }
     }
@@ -478,7 +457,6 @@ document.addEventListener('DOMContentLoaded', function () {
             StorageManager.saveSalonData(salonData);
             mostrarIndicadorGuardado();
 
-            console.log('Datos guardados a las:', obtenerHoraActual());
         } catch (error) {
             console.error('Error guardando datos:', error);
             showNotification('Error al guardar datos', 'error');
@@ -529,7 +507,6 @@ document.addEventListener('DOMContentLoaded', function () {
             window.updateSummary();
         }
 
-        console.log('Resumen actualizado:', { totalProductos, totalUnidadesVendidas, totalImporte });
     }
 
     function setupEventListeners() {
@@ -636,7 +613,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function sincronizarProductos() {
-        console.log('Sincronizando salón con productos...');
         cargarProductos();
         sincronizarConProductos();
         actualizarFinalesIniciales();
@@ -720,7 +696,6 @@ document.addEventListener('DOMContentLoaded', function () {
         actualizarTabla();
         actualizarResumen();
 
-        console.log('Salón reseteado para nuevo día');
     };
 
     // Exponer datos para depuración

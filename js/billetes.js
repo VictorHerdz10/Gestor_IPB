@@ -654,7 +654,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.updateSummary();
             }
 
-            console.log('Extracción guardada desde conteo:', nuevaExtraccion);
         } catch (error) {
             console.error('Error al guardar como extracción:', error);
             showNotification('Error al guardar como extracción', 'error');
@@ -699,7 +698,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.loadEfectivoData();
             }
 
-            console.log('Efectivo guardado desde conteo:', nuevoEfectivo);
         } catch (error) {
             console.error('Error al guardar como efectivo:', error);
             showNotification('Error al guardar como efectivo', 'error');
@@ -1432,6 +1430,5 @@ document.addEventListener('DOMContentLoaded', function () {
         cargarExtracciones();
         actualizarListaExtracciones();
         actualizarResumen();
-        console.log('Datos de extracciones recargados');
     };
 });

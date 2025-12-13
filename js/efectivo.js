@@ -423,7 +423,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Inicializar cuando se muestra la sección
     function initEfectivo() {
-        console.log('Inicializando sección de efectivo...');
         loadEfectivoData();
 
     }

@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Cargar librerías CDN
     loadPDFLibraries().then(() => {
-        console.log('Librerías PDF cargadas');
 
         exportPdfBtn.addEventListener('click', function () {
             showPDFOptionsModal();

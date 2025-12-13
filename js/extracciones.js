@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function initExtracciones() {
         if (isInitialized) return;
         
-        console.log('Inicializando sección de extracciones...');
         
         try {
             cargarExtracciones();
@@ -37,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             isInitialized = true;
-            console.log('Extracciones inicializadas correctamente');
         } catch (error) {
             console.error('Error inicializando extracciones:', error);
         }
@@ -68,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function cargarExtracciones() {
         try {
             extracciones = StorageManager.getExtraccionesData();
-            console.log('Extracciones cargadas:', extracciones);
         } catch (error) {
             console.error('Error cargando extracciones:', error);
             extracciones = [];
@@ -76,13 +73,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function setupEventListeners() {
-        console.log('Configurando event listeners para extracciones...');
         
         // Mostrar formulario
         if (btnAgregarExtraccion) {
             btnAgregarExtraccion.removeEventListener('click', mostrarFormulario);
             btnAgregarExtraccion.addEventListener('click', mostrarFormulario);
-            console.log('Event listener agregado a btnAgregarExtraccion');
         }
         
         // Cancelar formulario
@@ -99,7 +94,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function mostrarFormulario() {
-        console.log('Mostrando formulario de extracción');
         if (extraccionForm) {
             extraccionForm.style.display = 'block';
             // Desplazar hacia el formulario
@@ -115,7 +109,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function ocultarFormulario() {
-        console.log('Ocultando formulario de extracción');
         if (extraccionForm) {
             extraccionForm.style.display = 'none';
         }
@@ -123,7 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function guardarExtraccion(e) {
         e.preventDefault();
-        console.log('Guardando extracción...');
         
         const descripcionInput = document.getElementById('extraccion-descripcion');
         const montoInput = document.getElementById('extraccion-monto');
@@ -181,7 +173,6 @@ document.addEventListener('DOMContentLoaded', function() {
             window.updateSummary();
         }
         
-        console.log('Extracción guardada:', nuevaExtraccion);
     }
     
     function actualizarListaExtracciones() {
@@ -189,8 +180,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('No se encontró el elemento extraccion-list');
             return;
         }
-        
-        console.log('Actualizando lista de extracciones...');
         extraccionList.innerHTML = '';
         
         if (extracciones.length === 0) {
@@ -304,7 +293,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.updateSummary();
                     }
                     
-                    console.log('Extracción eliminada:', extraccionEliminada);
                 }
             }
         );
@@ -366,7 +354,6 @@ document.addEventListener('DOMContentLoaded', function() {
         StorageManager.saveExtraccionesData(extracciones);
         actualizarListaExtracciones();
         actualizarResumen();
-        console.log('Extracciones reseteadas para nuevo día');
     };
     
     // Función para forzar inicialización
