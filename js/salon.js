@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let ordenActual = 'alfabetico';
     let paginaActualSalon = 1;
     let productosPorPaginaSalon = 10;
-    let datosFiltradosSalon = [];
+    let datosFiltrados = [];
 
     // Inicializar
     initSalon();

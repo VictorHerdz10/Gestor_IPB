@@ -693,3 +693,57 @@ footer {
 .delay-2 { animation-delay: 0.4s; }
 .delay-3 { animation-delay: 0.6s; }
 .delay-4 { animation-delay: 0.8s; }
+
+/* Sección Beta */
+.beta-section {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    color: white;
+    padding: 80px 0;
+    text-align: center;
+}
+
+.beta-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.beta-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: #ffde59;
+}
+
+.btn-beta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffde59;
+    color: #333;
+    padding: 15px 30px;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    margin: 25px 0;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+}
+
+.btn-beta:hover {
+    background: #ffd32a;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.beta-info {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 30px;
+    text-align: left;
+}
+
+.beta-info p {
+    margin: 10px 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
