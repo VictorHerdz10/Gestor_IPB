@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
         doc.line(margin, 90, pageWidth - margin, 90);
 
         doc.setFontSize(12);
-        doc.text('Sistema de Gestión IPV - www.gestoripv.com', pageWidth / 2, 100, { align: 'center' });
+        doc.text('Sistema de Gestión IPV - https://gestoripv.netlify.app', pageWidth / 2, 100, { align: 'center' });
 
         updateProgress(60, 'Agregando resumen...');
 
