@@ -362,11 +362,23 @@ class BackupManager {
             this.showSuccess('Productos restaurados exitosamente');
             this.updateSystemInfo();
             this.updateStats();
+            this.triggerProductUpdate();
 
             // Recargar secciones si es necesario
             if (typeof window.productManager?.renderProducts === 'function') {
                 window.productManager.renderProducts();
             }
+
+            // DISPARAR EVENTO GLOBAL
+            document.dispatchEvent(new CustomEvent('restoreCompleted', {
+                detail: { type: 'productos' }
+            }));
+
+            // ACTUALIZAR SECCIONES VISIBLES
+            if (typeof window.updateAllVisibleSections === 'function') {
+                window.updateAllVisibleSections('productos');
+            }
+
 
         } catch (error) {
             console.error('Error en restore de productos:', error);
@@ -451,6 +463,11 @@ class BackupManager {
             if (typeof window.historialIPV?.cargarHistorial === 'function') {
                 window.historialIPV.cargarHistorial();
             }
+
+            // DISPARAR EVENTO GLOBAL
+            document.dispatchEvent(new CustomEvent('restoreCompleted', {
+                detail: { type: 'reportes' }
+            }));
 
         } catch (error) {
             console.error('Error en restore de reportes:', error);
@@ -576,6 +593,26 @@ class BackupManager {
             // Recargar secciones
             if (typeof window.updateSummary === 'function') {
                 window.updateSummary();
+            }
+            // ACTUALIZAR SECCIONES ESPECÍFICAS
+            if (typeof window.actualizarSalonDesdeProductos === 'function') {
+                setTimeout(() => window.actualizarSalonDesdeProductos(), 300);
+            }
+            if (typeof window.cargarDatosCocina === 'function') {
+                setTimeout(() => window.cargarDatosCocina(), 400);
+            }
+            if (typeof window.updateSummary === 'function') {
+                setTimeout(() => window.updateSummary(), 500);
+            }
+
+            // DISPARAR EVENTO GLOBAL
+            document.dispatchEvent(new CustomEvent('restoreCompleted', {
+                detail: { type: 'dia_actual' }
+            }));
+
+            // ACTUALIZAR SECCIONES VISIBLES
+            if (typeof window.updateAllVisibleSections === 'function') {
+                window.updateAllVisibleSections('dia_actual');
             }
 
         } catch (error) {
@@ -712,6 +749,16 @@ class BackupManager {
 
             this.showSuccess('Sistema restaurado exitosamente. Recargando...');
             this.updateSystemInfo();
+
+            // DISPARAR EVENTO GLOBAL
+            document.dispatchEvent(new CustomEvent('restoreCompleted', {
+                detail: { type: 'completo' }
+            }));
+
+            // ACTUALIZAR TODAS LAS SECCIONES VISIBLES
+            if (typeof window.updateAllVisibleSections === 'function') {
+                window.updateAllVisibleSections('completo');
+            }
 
             // Recargar página después de 2 segundos
             setTimeout(() => {
@@ -1421,6 +1468,62 @@ class BackupManager {
 
         // Mostrar que esta funcionalidad requiere el archivo físico
         this.showError('Para restaurar desde el historial, necesita el archivo físico del backup.');
+    }
+    triggerProductUpdate() {
+        if (typeof window.forceReloadProducts === 'function') {
+            setTimeout(() => {
+                window.forceReloadProducts();
+                console.log('✅ Productos actualizados con force reload');
+            }, 300);
+        } else if (typeof window.productManager?.renderProducts === 'function') {
+            setTimeout(() => {
+                window.productManager.renderProducts();
+                console.log('✅ Productos actualizados');
+            }, 300);
+        }
+    }
+
+    triggerSalonUpdate() {
+        // Actualizar salón si está visible
+        if (typeof window.actualizarSalonDesdeProductos === 'function') {
+            setTimeout(() => {
+                window.actualizarSalonDesdeProductos();
+                console.log('✅ Salón actualizado después de restore');
+            }, 400);
+        }
+    }
+
+    triggerCocinaUpdate() {
+        // Actualizar cocina si está visible
+        if (typeof window.cargarDatosCocina === 'function') {
+            setTimeout(() => {
+                window.cargarDatosCocina();
+                if (typeof window.actualizarTablaCocina === 'function') {
+                    window.actualizarTablaCocina();
+                }
+                console.log('✅ Cocina actualizada después de restore');
+            }, 500);
+        }
+    }
+
+    triggerAllUpdates() {
+        // Disparar todos los eventos de actualización
+        this.triggerProductUpdate();
+        this.triggerSalonUpdate();
+        this.triggerCocinaUpdate();
+
+        // Actualizar otras secciones si existen
+        setTimeout(() => {
+            if (typeof window.updateSummary === 'function') {
+                window.updateSummary();
+            }
+            if (typeof window.actualizarResumen === 'function') {
+                window.actualizarResumen();
+            }
+            if (typeof window.cargarHistorial === 'function') {
+                window.cargarHistorial();
+            }
+        }, 1000);
     }
 
     refreshHistory() {

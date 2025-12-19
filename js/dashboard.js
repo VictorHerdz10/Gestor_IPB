@@ -130,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
             sidebarToggle.innerHTML = '<i class="fas fa-bars"></i>';
         }
     }
+setupRestoreListeners();
 
     // Actualizar resumen
     function updateSummary() {
@@ -1320,6 +1321,74 @@ async function asegurarHistorialDisponible() {
         }
     });
 }
+function setupRestoreListeners() {
+    // Escuchar eventos personalizados de restore
+    document.addEventListener('restoreCompleted', function(event) {
+        const detail = event.detail || {};
+        console.log('🔄 Restore detectado:', detail.type);
+        
+        // Actualizar todas las secciones visibles
+        updateAllVisibleSections(detail.type);
+    });
+}
+
+function updateAllVisibleSections(restoreType) {
+    // Verificar qué sección está activa y actualizarla
+    const activeSection = document.querySelector('.content-section.active');
+    
+    if (!activeSection) return;
+    
+    const sectionId = activeSection.id;
+    console.log(`🔄 Actualizando sección activa: ${sectionId}`);
+    
+    // Actualizar según la sección activa
+    switch(sectionId) {
+        case 'salon-section':
+            if (typeof window.actualizarSalonDesdeProductos === 'function') {
+                window.actualizarSalonDesdeProductos();
+            }
+            break;
+            
+        case 'cocina-section':
+            if (typeof window.cargarDatosCocina === 'function') {
+                window.cargarDatosCocina();
+                if (typeof window.actualizarTablaCocina === 'function') {
+                    window.actualizarTablaCocina();
+                }
+            }
+            break;
+            
+        case 'productos-section':
+            if (typeof window.productManager?.renderProducts === 'function') {
+                window.productManager.renderProducts();
+            }
+            break;
+            
+        case 'historial-section':
+            if (typeof window.cargarHistorial === 'function') {
+                window.cargarHistorial();
+            }
+            break;
+            
+        case 'resumen-section':
+            if (typeof window.updateSummary === 'function') {
+                window.updateSummary();
+            }
+            break;
+    }
+    
+    // Siempre actualizar el resumen del dashboard
+    setTimeout(() => {
+        if (typeof window.updateSummary === 'function') {
+            window.updateSummary();
+        }
+        showNotification(`✅ Restore de ${restoreType} completado. Datos actualizados.`, 'success');
+    }, 500);
+}
+
+// Hacer disponible globalmente
+window.updateAllVisibleSections = updateAllVisibleSections;
+
 
 window.showConfirmationModal = showConfirmationModal;
 window.showNotification = showNotification;

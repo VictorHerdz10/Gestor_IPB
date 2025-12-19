@@ -735,6 +735,11 @@ class ProductManager {
             }
         }
     }
+    forceReloadProducts() {
+        console.log('🔄 Forzando recarga de productos...');
+        this.loadProducts();
+        this.renderProducts();
+    }
 }
 
 // Initialize when DOM is loaded
@@ -745,5 +750,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Make it available globally for other sections
         window.productManager = productManager;
+        window.forceReloadProducts = () => {
+            if (window.productManager) {
+                window.productManager.forceReloadProducts();
+            }
+        };
     }
 });
