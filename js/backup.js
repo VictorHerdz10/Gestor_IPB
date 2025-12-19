@@ -14,13 +14,13 @@ class BackupManager {
         this.app = this.isMobile ? window.Capacitor.Plugins?.App : null;
         this.preferences = this.isMobile ? window.Capacitor.Plugins?.Preferences : null;
         this.backupHistory = [];
-        
+
         // Configuración de extensión personalizada
         this.CUSTOM_EXTENSION = '.ipvbak';
         this.MAGIC_HEADER = 'IPV_BACKUP_v1.0';
         this.FILE_SIGNATURE = 'GestorIPV_Backup_Format';
         this.APP_IDENTIFIER = 'com.gestoripv.backup';
-        
+
         // Metadatos del archivo
         this.FILE_METADATA = {
             creator: 'Gestor IPV Backup System',
@@ -31,7 +31,7 @@ class BackupManager {
             compressionSupported: true,
             maxFileSize: 10485760 // 10MB
         };
-        
+
         this.init();
     }
 
@@ -60,24 +60,24 @@ class BackupManager {
 
     async setupMobileFileHandling() {
         if (!this.isMobile || !this.app) return;
-        
+
         try {
             // Escuchar eventos de apertura de archivo (deep linking)
             this.app.addListener('appUrlOpen', async (data) => {
                 console.log('App opened with URL:', data.url);
                 await this.handleFileOpen(data.url);
             });
-            
+
             // Escuchar eventos cuando la app vuelve a primer plano
             this.app.addListener('appStateChange', async (state) => {
                 if (state.isActive) {
                     await this.checkPendingFileOperations();
                 }
             });
-            
+
             // Registrar asociación de archivo
             await this.registerFileAssociation();
-            
+
         } catch (error) {
             console.warn('Error setting up mobile file handling:', error);
         }
@@ -85,22 +85,22 @@ class BackupManager {
 
     async registerFileAssociation() {
         if (!this.isMobile || !this.preferences) return;
-        
+
         try {
             console.log('Registrando asociación para archivos .ipvbak');
-            
+
             // Guardar configuración en preferences
             await this.preferences.set({
                 key: 'file_association_registered',
                 value: 'true'
             });
-            
+
             // Guardar el MIME type personalizado
             await this.preferences.set({
                 key: 'custom_mime_type',
                 value: 'application/vnd.gestoripv.backup'
             });
-            
+
             // Guardar configuración de la app
             await this.preferences.set({
                 key: 'app_config',
@@ -111,9 +111,9 @@ class BackupManager {
                     version: '1.0'
                 })
             });
-            
+
             console.log('Asociación de archivos registrada exitosamente');
-            
+
         } catch (error) {
             console.warn('No se pudo registrar asociación de archivo:', error);
         }
@@ -121,23 +121,23 @@ class BackupManager {
 
     async handleFileOpen(url) {
         if (!url || !url.includes(this.CUSTOM_EXTENSION)) return;
-        
+
         try {
             this.showNotification('Archivo de backup detectado', 'info');
-            
+
             const fileName = url.split('/').pop();
             const filePath = decodeURIComponent(url);
-            
+
             const confirm = await this.showConfirmationModal(
                 'Archivo de Backup Detectado',
                 `Se detectó el archivo de backup: ${fileName}\n\n¿Desea restaurar este backup?`,
                 'info'
             );
-            
+
             if (confirm) {
                 await this.restoreFromFilePath(filePath);
             }
-            
+
         } catch (error) {
             console.error('Error handling file open:', error);
             this.showError('Error al procesar el archivo: ' + error.message);
@@ -146,29 +146,29 @@ class BackupManager {
 
     async checkPendingFileOperations() {
         if (!this.isMobile || !this.preferences) return;
-        
+
         try {
             const pendingOp = await this.preferences.get({ key: 'pending_file_operation' });
-            
+
             if (pendingOp && pendingOp.value) {
                 const operation = JSON.parse(pendingOp.value);
-                
+
                 if (operation.type === 'restore' && operation.filePath) {
                     const confirm = await this.showConfirmationModal(
                         'Operación Pendiente',
                         `Se detectó una operación de restore pendiente para: ${operation.fileName}\n\n¿Continuar?`,
                         'info'
                     );
-                    
+
                     if (confirm) {
                         await this.restoreFromFilePath(operation.filePath);
                     }
-                    
+
                     // Limpiar operación pendiente
                     await this.preferences.remove({ key: 'pending_file_operation' });
                 }
             }
-            
+
         } catch (error) {
             console.warn('Error checking pending operations:', error);
         }
@@ -606,9 +606,9 @@ class BackupManager {
                     itemCount: {
                         productos: StorageManager.getProducts().length + StorageManager.getCocinaProducts().length,
                         reportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]').length,
-                        registros: StorageManager.getConsumoData().length + 
-                                  StorageManager.getExtraccionesData().length + 
-                                  StorageManager.getTransferenciasData().length
+                        registros: StorageManager.getConsumoData().length +
+                            StorageManager.getExtraccionesData().length +
+                            StorageManager.getTransferenciasData().length
                     }
                 },
                 data: {
@@ -746,7 +746,7 @@ class BackupManager {
 
         // Agregar cabecera mágica y firma
         const enhancedData = this.createEnhancedBackupData(jsonString, type);
-        
+
         // Convertir a base64
         const base64Data = btoa(unescape(encodeURIComponent(enhancedData)));
 
@@ -782,7 +782,7 @@ class BackupManager {
 
     createEnhancedBackupData(jsonString, type) {
         const backupData = JSON.parse(jsonString);
-        
+
         // Crear estructura mejorada con cabecera mágica
         const enhancedData = {
             _header: this.MAGIC_HEADER,
@@ -816,14 +816,14 @@ class BackupManager {
     async setFileProperties(filePath, type) {
         try {
             console.log(`Archivo guardado con propiedades especiales: ${filePath}`);
-            
+
             // Guardar información de asociación
             if (this.preferences) {
                 await this.preferences.set({
                     key: 'last_backup_file',
                     value: filePath
                 });
-                
+
                 // Guardar metadatos adicionales
                 await this.preferences.set({
                     key: 'backup_metadata',
@@ -849,7 +849,7 @@ class BackupManager {
         try {
             // Obtener el último backup guardado
             const lastBackup = await this.preferences.get({ key: 'last_backup_file' });
-            
+
             if (!lastBackup || !lastBackup.value) {
                 this.showError('No hay backups recientes para compartir');
                 return;
@@ -867,14 +867,14 @@ class BackupManager {
             for (let i = 0; i < binaryString.length; i++) {
                 bytes[i] = binaryString.charCodeAt(i);
             }
-            
-            const blob = new Blob([bytes.buffer], { 
-                type: 'application/octet-stream' 
+
+            const blob = new Blob([bytes.buffer], {
+                type: 'application/octet-stream'
             });
 
             // Crear archivo temporal para compartir
             const fileName = lastBackup.value.split('/').pop();
-            
+
             // Compartir usando Share API
             await this.share.share({
                 title: 'Compartir Backup Gestor IPV',
@@ -896,27 +896,27 @@ class BackupManager {
     downloadBackup(jsonString, type) {
         const date = new Date();
         const timestamp = date.toISOString().split('T')[0];
-        
+
         // Usar extensión personalizada
         const fileName = `${type}_${timestamp}${this.CUSTOM_EXTENSION}`;
 
         // Agregar cabecera mágica y firma
         const enhancedData = this.createEnhancedBackupData(jsonString, type);
-        
-        const blob = new Blob([enhancedData], { 
-            type: 'application/octet-stream' 
+
+        const blob = new Blob([enhancedData], {
+            type: 'application/octet-stream'
         });
-        
+
         const url = URL.createObjectURL(blob);
 
         const link = document.createElement('a');
         link.href = url;
         link.download = fileName;
-        
+
         // Agregar atributos personalizados
         link.setAttribute('data-file-type', 'gestoripv-backup');
         link.setAttribute('data-app-identifier', this.APP_IDENTIFIER);
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -931,10 +931,10 @@ class BackupManager {
         return new Promise((resolve, reject) => {
             const input = document.createElement('input');
             input.type = 'file';
-            
+
             // Solo aceptar archivos con nuestra extensión personalizada
             input.accept = this.CUSTOM_EXTENSION;
-            
+
             input.style.display = 'none';
 
             input.onchange = async (event) => {
@@ -991,12 +991,12 @@ class BackupManager {
     parseBackupFile(text) {
         try {
             const data = JSON.parse(text);
-            
+
             // Verificar si tiene la estructura mejorada
             if (data._header === this.MAGIC_HEADER) {
                 return data;
             }
-            
+
             // Si no tiene cabecera, podría ser un backup antiguo
             return data;
         } catch (error) {
@@ -1006,9 +1006,9 @@ class BackupManager {
     }
 
     verifyBackupHeader(backupData) {
-        return backupData._header === this.MAGIC_HEADER && 
-               backupData._signature === this.FILE_SIGNATURE &&
-               backupData._appIdentifier === this.APP_IDENTIFIER;
+        return backupData._header === this.MAGIC_HEADER &&
+            backupData._signature === this.FILE_SIGNATURE &&
+            backupData._appIdentifier === this.APP_IDENTIFIER;
     }
 
     async verifyBackupFile() {
@@ -1017,7 +1017,7 @@ class BackupManager {
             if (!backupData) return;
 
             const isValid = this.verifyBackupHeader(backupData);
-            
+
             if (isValid) {
                 const metadata = backupData._metadata || {};
                 const infoHtml = `
@@ -1033,7 +1033,7 @@ class BackupManager {
                         </div>
                     </div>
                 `;
-                
+
                 this.showCustomModal('Verificación de Backup', infoHtml);
             } else {
                 this.showError('El archivo no es un backup válido de Gestor IPV');
@@ -1334,7 +1334,7 @@ class BackupManager {
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', () => this.deleteFromHistory(item.id));
             }
-            
+
             if (restoreBtn) {
                 restoreBtn.addEventListener('click', () => this.restoreFromHistory(item.id));
             }
@@ -1478,7 +1478,7 @@ class BackupManager {
         const overlay = modal.querySelector('.modal-overlay');
 
         const closeModal = () => modal.remove();
-        
+
         closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
         overlay?.addEventListener('click', closeModal);
     }
@@ -1553,7 +1553,7 @@ class BackupManager {
         const overlay = modal.querySelector('.modal-overlay');
 
         const closeModal = () => modal.remove();
-        
+
         closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
         overlay?.addEventListener('click', closeModal);
     }
@@ -1668,7 +1668,7 @@ class BackupManager {
                 z-index: 10000;
                 animation: slideIn 0.3s ease;
             `;
-            
+
             if (type === 'success') {
                 notification.style.backgroundColor = '#2ecc71';
             } else if (type === 'error') {
@@ -1678,10 +1678,10 @@ class BackupManager {
             } else {
                 notification.style.backgroundColor = '#f39c12';
             }
-            
+
             notification.textContent = message;
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.style.animation = 'slideOut 0.3s ease';
                 setTimeout(() => notification.remove(), 300);
@@ -1894,16 +1894,15 @@ const backupCSS = `
     }
 `;
 
-// Agregar CSS al documento
-const style = document.createElement('style');
-style.textContent = backupCSS;
-document.head.appendChild(style);
+const backupStyle = document.createElement('style');
+backupStyle.textContent = backupCSS;
+document.head.appendChild(backupStyle);
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('backup-section')) {
         window.backupManager = new BackupManager();
-        
+
         // Agregar botones adicionales si no existen
         const backupHeader = document.querySelector('#backup-section .section-header');
         if (backupHeader) {
@@ -1916,7 +1915,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 verifyBtn.style.marginLeft = '10px';
                 backupHeader.appendChild(verifyBtn);
             }
-            
+
             // Botón para compartir (solo en móvil)
             if (window.Capacitor && !document.getElementById('btn-share-backup')) {
                 const shareBtn = document.createElement('button');
@@ -1926,7 +1925,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 shareBtn.style.marginLeft = '10px';
                 backupHeader.appendChild(shareBtn);
             }
-            
+
             // Re-bind events para incluir los nuevos botones
             window.backupManager.bindEvents();
         }
