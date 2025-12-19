@@ -1894,7 +1894,14 @@ document.head.appendChild(backupStyle);
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('backup-section')) {
         window.backupManager = new BackupManager();
+        modal.querySelector('.cancel-btn').addEventListener('click', () => {
+            modal.remove();
+        });
 
+        modal.querySelector('.confirm-btn').addEventListener('click', () => {
+            confirmCallback();
+            modal.remove();
+        });
         // Agregar botones adicionales si no existen
         const backupHeader = document.querySelector('#backup-section .section-header');
         if (backupHeader) {
