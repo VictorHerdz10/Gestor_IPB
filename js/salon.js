@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
             resolve();
         });
     }
+    
 
     function sincronizarConProductos() {
         const productosIds = productos.map(p => p.id);
@@ -110,12 +111,31 @@ document.addEventListener('DOMContentLoaded', function () {
         // Eliminar productos que ya no existen
         salonData = salonData.filter(item => productosIds.includes(item.id));
 
-        // Actualizar nombres y precios
+        // Actualizar nombres y precios (ESTA ES LA PARTE CLAVE)
         salonData.forEach(item => {
             const productoActual = productos.find(p => p.id === item.id);
             if (productoActual) {
-                item.nombre = productoActual.nombre;
-                item.precio = productoActual.precio;
+                // Guardar cambios si hay diferencia en precio
+                const precioAnterior = item.precio;
+                const precioNuevo = productoActual.precio;
+
+                if (precioAnterior !== precioNuevo) {
+                    item.nombre = productoActual.nombre;
+                    item.precio = precioNuevo;
+
+                    // Recalcular importe con nuevo precio
+                    item.importe = item.vendido * precioNuevo;
+
+                    // Agregar al historial
+                    item.historial.push({
+                        fecha: new Date().toISOString(),
+                        hora: obtenerHoraActual(),
+                        campo: 'precio',
+                        valorAnterior: precioAnterior,
+                        valorNuevo: precioNuevo,
+                        accion: 'sincronización'
+                    });
+                }
             }
         });
     }
@@ -545,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         input.disabled = false;
                         input.classList.add('editing-enabled');
 
-                        
+
                     });
 
                     this.innerHTML = '<i class="fas fa-times"></i><span class="btn-text">Cancelar Edición</span>';
@@ -682,13 +702,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.resetSalonDia = function () {
         salonData.forEach(producto => {
-            producto.inicio = producto.final; // El final del día anterior es el inicio del nuevo
+            producto.inicio = producto.final;
             producto.entrada = 0;
-            producto.venta = 0;
-            producto.final = 0;
+            producto.venta = producto.final;
+            producto.final = producto.final;
             producto.vendido = 0;
             producto.importe = 0;
-            producto.historial = [];
+            producto.historial = producto.historial;
+            producto.finalEditado = false;
             producto.ultimaActualizacion = obtenerHoraActual();
         });
 
@@ -783,6 +804,42 @@ document.addEventListener('DOMContentLoaded', function () {
 
         paginacionContainer.innerHTML = html;
     }
+
+    window.actualizarPrecioEnSalon = function (productId, nuevoPrecio) {
+        const productoIndex = salonData.findIndex(p => p.id === productId);
+
+        if (productoIndex !== -1) {
+            const producto = salonData[productoIndex];
+
+            // Guardar el precio anterior para historial
+            const precioAnterior = producto.precio;
+
+            // Actualizar precio
+            producto.precio = nuevoPrecio;
+
+            // Recalcular importe con nuevo precio
+            producto.importe = producto.vendido * nuevoPrecio;
+            producto.ultimaActualizacion = obtenerHoraActual();
+
+            // Agregar al historial
+            producto.historial.push({
+                fecha: new Date().toISOString(),
+                hora: obtenerHoraActual(),
+                campo: 'precio',
+                valorAnterior: precioAnterior,
+                valorNuevo: nuevoPrecio,
+                accion: 'actualización desde productos'
+            });
+
+            // Actualizar UI
+            actualizarFilaUI(productoId);
+
+            // Guardar cambios
+            guardarDatosSalon();
+
+            console.log(`Precio actualizado en salón: ${producto.nombre} - $${nuevoPrecio}`);
+        }
+    };
 
     // Función global para cambiar página
     window.cambiarPaginaSalon = function (nuevaPagina) {
