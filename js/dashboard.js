@@ -942,31 +942,47 @@ function showNotification(message, type = 'info') {
         }, 3000);
     });
 }
-function showConfirmationModal(title, message, type, confirmCallback) {
+// dashboard.js - REEMPLAZAR LA FUNCIÓN ACTUAL CON ESTA VERSIÓN MEJORADA
+function showConfirmationModal(title, message, type, confirmCallback, cancelCallback) {
+    // Evitar duplicados - cerrar cualquier modal existente primero
+    const existingModals = document.querySelectorAll('.confirmation-modal');
+    existingModals.forEach(modal => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    });
+
+    // Crear el modal
     const modal = document.createElement('div');
     modal.className = 'confirmation-modal';
+    modal.setAttribute('data-confirmation-modal', 'true');
     modal.innerHTML = `
-            <div class="modal-overlay"></div>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>${title}</h3>
-                    <button class="modal-close"><i class="fas fa-times"></i></button>
-                </div>
-                <div class="modal-body">
-                    <div class="modal-icon ${type}">
-                        <i class="fas fa-${type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
-                    </div>
-                    <p>${message}</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary cancel-btn">Cancelar</button>
-                    <button class="btn btn-primary confirm-btn">Confirmar</button>
-                </div>
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>${title}</h3>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
             </div>
-        `;
+            <div class="modal-body">
+                <div class="modal-icon ${type}">
+                    <i class="fas fa-${type === 'warning' ? 'exclamation-triangle' : 
+                                        type === 'error' ? 'exclamation-circle' : 
+                                        type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                </div>
+                <p>${message}</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary cancel-btn">Cancelar</button>
+                <button class="btn btn-primary confirm-btn">Confirmar</button>
+            </div>
+        </div>
+    `;
 
-    const style = document.createElement('style');
-    style.textContent = `
+    // Si ya existen los estilos CSS, no agregarlos de nuevo
+    if (!document.querySelector('#confirmation-modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'confirmation-modal-styles';
+        style.textContent = `
             .confirmation-modal {
                 position: fixed;
                 top: 0;
@@ -980,7 +996,12 @@ function showConfirmationModal(title, message, type, confirmCallback) {
                 animation: fadeIn 0.3s ease-out;
             }
             
-            .modal-overlay {
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            .confirmation-modal .modal-overlay {
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -990,7 +1011,7 @@ function showConfirmationModal(title, message, type, confirmCallback) {
                 backdrop-filter: blur(5px);
             }
             
-            .modal-content {
+            .confirmation-modal .modal-content {
                 background: white;
                 border-radius: 15px;
                 width: 90%;
@@ -1000,7 +1021,7 @@ function showConfirmationModal(title, message, type, confirmCallback) {
                 animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             }
             
-            .modal-header {
+            .confirmation-modal .modal-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -1008,12 +1029,12 @@ function showConfirmationModal(title, message, type, confirmCallback) {
                 border-bottom: 1px solid var(--gray-light);
             }
             
-            .modal-header h3 {
+            .confirmation-modal .modal-header h3 {
                 color: var(--secondary-color);
                 font-size: 1.3rem;
             }
             
-            .modal-close {
+            .confirmation-modal .modal-close {
                 background: none;
                 border: none;
                 color: var(--gray-medium);
@@ -1023,16 +1044,16 @@ function showConfirmationModal(title, message, type, confirmCallback) {
                 transition: var(--transition);
             }
             
-            .modal-close:hover {
+            .confirmation-modal .modal-close:hover {
                 color: var(--danger-color);
             }
             
-            .modal-body {
+            .confirmation-modal .modal-body {
                 padding: 2rem 1.5rem;
                 text-align: center;
             }
             
-            .modal-icon {
+            .confirmation-modal .modal-icon {
                 width: 80px;
                 height: 80px;
                 border-radius: 50%;
@@ -1043,25 +1064,40 @@ function showConfirmationModal(title, message, type, confirmCallback) {
                 font-size: 2rem;
             }
             
-            .modal-icon.warning {
+            .confirmation-modal .modal-icon.warning {
                 background-color: rgba(247, 37, 133, 0.1);
                 color: var(--warning-color);
             }
             
-            .modal-body p {
+            .confirmation-modal .modal-icon.info {
+                background-color: rgba(23, 162, 184, 0.1);
+                color: var(--info-color);
+            }
+            
+            .confirmation-modal .modal-icon.error {
+                background-color: rgba(220, 53, 69, 0.1);
+                color: var(--danger-color);
+            }
+            
+            .confirmation-modal .modal-icon.success {
+                background-color: rgba(40, 167, 69, 0.1);
+                color: var(--success-color);
+            }
+            
+            .confirmation-modal .modal-body p {
                 color: var(--dark-color);
                 line-height: 1.6;
                 font-size: 1.1rem;
             }
             
-            .modal-footer {
+            .confirmation-modal .modal-footer {
                 display: flex;
                 gap: 1rem;
                 padding: 1.5rem;
                 border-top: 1px solid var(--gray-light);
             }
             
-            .modal-footer .btn {
+            .confirmation-modal .modal-footer .btn {
                 flex: 1;
             }
             
@@ -1076,27 +1112,57 @@ function showConfirmationModal(title, message, type, confirmCallback) {
                 }
             }
         `;
-    document.head.appendChild(style);
+        document.head.appendChild(style);
+    }
 
     document.body.appendChild(modal);
 
+    // Función para cerrar el modal
+    const closeModal = () => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    };
+
+    // Event listeners
     modal.querySelector('.modal-close').addEventListener('click', () => {
-        modal.remove();
+        if (cancelCallback) cancelCallback();
+        closeModal();
     });
 
     modal.querySelector('.cancel-btn').addEventListener('click', () => {
-        modal.remove();
+        if (cancelCallback) cancelCallback();
+        closeModal();
     });
 
     modal.querySelector('.confirm-btn').addEventListener('click', () => {
-        confirmCallback();
-        modal.remove();
+        if (confirmCallback) confirmCallback();
+        closeModal();
     });
 
     modal.querySelector('.modal-overlay').addEventListener('click', () => {
-        modal.remove();
+        if (cancelCallback) cancelCallback();
+        closeModal();
     });
+
+    // Retornar funciones para control externo
+    return {
+        modal,
+        closeModal,
+        confirm: () => {
+            if (confirmCallback) confirmCallback();
+            closeModal();
+        },
+        cancel: () => {
+            if (cancelCallback) cancelCallback();
+            closeModal();
+        }
+    };
 }
+
+// Asegurar que esté disponible globalmente
+window.showConfirmationModal = showConfirmationModal;
+
 // Agregar esta función a cocina.js o crear un archivo separado relaciones.js
 window.gestionarRelacionesCocina = {
     abrirModalRelaciones: function (productoId) {
