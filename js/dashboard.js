@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span>$${granTotal.toLocaleString('es-ES')} CUP</span>
                 </div>
                 <div class="detalle-item">
-                    <span>Total registros hoy:</span>
+                    <span>Total registros:</span>
                     <span>${registros.length}</span>
                 </div>
             `;
@@ -297,12 +297,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Función para obtener registros de billetes
     function getBilletesRegistros() {
-        const hoy = today.toISOString().split('T')[0];
         const data = localStorage.getItem('ipb_billetes_registros');
         if (data) {
             try {
                 const registros = JSON.parse(data);
-                return registros.filter(r => r.fecha === hoy);
+                return registros;
             } catch (error) {
                 console.error('Error al cargar registros de billetes:', error);
                 return [];
@@ -311,55 +310,310 @@ document.addEventListener('DOMContentLoaded', function () {
         return [];
     }
 
-    function resetDay() {
+    // dashboard.js - Función resetDay CORREGIDA (versión mejorada)
+    async function resetDay() {
+        try {
+            // 1. MOSTRAR CONFIRMACIÓN
+            const confirmacion = await showConfirmationModalPromise(
+                'Finalizar e Iniciar Nuevo Día',
+                `¿Estás seguro de finalizar el día e iniciar uno nuevo?<br><br>
+        <strong>ACCIONES QUE SE REALIZARÁN:</strong><br>
+        • Guardar reporte final en historial<br>
+        • Los finales del día anterior → Inicios del nuevo día<br>
+        • Resetear vendidos a CERO<br>
+        • Resetear importe a CERO<br>
+        • Limpiar agregos, consumo, transacciones<br>
+        • Mantener relaciones de ingredientes`,
+                'warning'
+            );
 
-        // Ahora limpiar los datos del día
-        StorageManager.clearDailyData();
+            if (!confirmacion) return;
 
-        // Resetear contador de billetes
-        if (typeof window.resetBilletes === 'function') {
-            window.resetBilletes();
+            showNotification('⏳ Procesando cierre del día...', 'info');
+
+            // 2. ASEGURAR QUE HISTORIAL ESTÉ DISPONIBLE
+        let historialDisponible = false;
+        let historialInstancia = null;
+        
+        try {
+            historialInstancia = await asegurarHistorialDisponible();
+            historialDisponible = true;
+            console.log('✅ Historial disponible para guardar reporte');
+        } catch (error) {
+            console.warn('⚠️ Historial no disponible:', error.message);
+            historialDisponible = false;
         }
 
-        // Resetear efectivo
-        if (typeof window.resetEfectivo === 'function') {
-            window.resetEfectivo();
-        }
-
-        // Resetear registros de billetes del día
-        const hoy = today.toISOString().split('T')[0];
-        const registrosData = localStorage.getItem('ipb_billetes_registros');
-        if (registrosData) {
+        // 3. GUARDAR REPORTE FINAL EN HISTORIAL (si está disponible)
+        if (historialDisponible && historialInstancia) {
             try {
-                let registros = JSON.parse(registrosData);
-                registros = registros.filter(r => r.fecha !== hoy);
-                localStorage.setItem('ipb_billetes_registros', JSON.stringify(registros));
+                const reporte = await historialInstancia.guardarReporteActual('Reporte Final del Día');
+                if (!reporte) {
+                    showNotification('⚠️ No se pudo guardar el reporte final (posible duplicado)', 'warning');
+                } else {
+                    showNotification('✅ Reporte final guardado en historial', 'success');
+                }
             } catch (error) {
-                console.error('Error al resetear registros:', error);
+                console.error('Error guardando reporte:', error);
+                showNotification('⚠️ Error al guardar reporte en historial', 'warning');
             }
+        } else {
+            showNotification('ℹ️ Historial no disponible, continuando sin guardar reporte', 'info');
         }
 
-        // Resetear efectivo
-        localStorage.setItem('ipb_efectivo_data', JSON.stringify([]));
-        const day = getTodayDate();
-        localStorage.removeItem(`cocina_agregos`);
-        // Resetear consumo, extracciones, transferencias
-        localStorage.removeItem('ipb_consumo_data');
-        localStorage.removeItem('ipb_extracciones');
-        localStorage.removeItem('ipb_transferencias_data');
+            // 3. OBTENER DATOS ACTUALES
+            const salonData = StorageManager.getSalonData();
+            const cocinaData = StorageManager.getCocinaData();
+            const productosSalon = StorageManager.getProducts();
+            const productosCocina = StorageManager.getCocinaProducts();
 
-        updateSummary();
-        showNotification('Nuevo día iniciado correctamente en todas las secciones', 'success');
+            console.log('=== DEBUG SALON DATA BEFORE RESET ===');
+            salonData.forEach((p, i) => {
+                console.log(`${i}. ${p.nombre}:`);
+                console.log(`  inicio: ${p.inicio}, entrada: ${p.entrada}`);
+                console.log(`  venta: ${p.venta}, final: ${p.final}`);
+                console.log(`  vendido: ${p.vendido}, importe: ${p.importe}`);
+                console.log(`  finalEditado: ${p.finalEditado}`);
+            });
 
-        localStorage.setItem('ipb_last_reset', hoy);
-        location.reload();
+            // 4. CREAR NUEVOS DATOS CON LA LÓGICA CORRECTA
+            const newSalonData = salonData.map((producto, index) => {
+                const productoBase = productosSalon.find(p => p.id === producto.id) || {};
+
+                // IMPORTANTE: Calcular venta correctamente según la lógica de salon.js
+                const nuevoInicio = producto.final; // FINAL anterior → INICIO nuevo
+                const nuevaEntrada = 0; // Resetear entrada
+
+                // La venta se debe calcular como inicio + entrada
+                const nuevaVenta = nuevoInicio + nuevaEntrada;
+
+                const nuevoProducto = {
+                    id: producto.id,
+                    nombre: productoBase.nombre || producto.nombre,
+                    precio: productoBase.precio || producto.precio,
+                    inicio: nuevoInicio,           // FINAL del día anterior → INICIO del nuevo día
+                    entrada: nuevaEntrada,         // Resetear a CERO
+                    venta: nuevaVenta,             // Venta = INICIO + ENTRADA (esto es clave)
+                    final: nuevoInicio,            // FINAL = INICIO al empezar el día (porque entrada es 0)
+                    finalEditado: false,           // Resetear estado de edición
+                    vendido: 0,                    // ← CRÍTICO: Resetear a CERO
+                    importe: 0,                    // ← CRÍTICO: Resetear a CERO
+                    historial: [],                 // Limpiar historial
+                    ultimaActualizacion: obtenerHoraActual()
+                };
+
+                console.log(`${producto.nombre}: INICIO=${nuevoInicio}, ENTRADA=${nuevaEntrada}, VENTA=${nuevaVenta}, FINAL=${nuevoInicio}`);
+
+                return nuevoProducto;
+            });
+
+            console.log('\n=== DEBUG NEW SALON DATA ===');
+            newSalonData.forEach((p, i) => {
+                console.log(`${i}. ${p.nombre}: inicio=${p.inicio}, entrada=${p.entrada}, venta=${p.venta}, final=${p.final}`);
+            });
+
+            // 5. CREAR NUEVOS DATOS PARA COCINA - Misma lógica
+            const newCocinaData = cocinaData.map(producto => {
+                const productoBase = productosCocina.find(p => p.id === producto.id) || {};
+
+                const nuevoInicio = producto.final;
+                const nuevaEntrada = 0;
+                const nuevaVenta = nuevoInicio + nuevaEntrada;
+
+                return {
+                    id: producto.id,
+                    nombre: productoBase.nombre || producto.nombre,
+                    precio: productoBase.precio || producto.precio,
+                    esIngrediente: (productoBase.precio === 0) || (producto.esIngrediente || false),
+                    inicio: nuevoInicio,           // FINAL del día anterior → INICIO del nuevo día
+                    entrada: nuevaEntrada,         // Resetear a CERO
+                    venta: nuevaVenta,             // Venta = INICIO + ENTRADA
+                    final: nuevoInicio,            // FINAL = INICIO al empezar
+                    vendido: 0,                    // ← CRÍTICO: Resetear a CERO
+                    importe: 0,                    // ← CRÍTICO: Resetear a CERO
+                    disponible: nuevoInicio,       // Disponible = FINAL (porque vendido es 0)
+                    historial: [],                 // Limpiar historial
+                    ultimaActualizacion: obtenerHoraActual(),
+                    finalEditado: false            // Resetear estado de edición
+                };
+            });
+
+            // 6. GUARDAR NUEVOS DATOS INMEDIATAMENTE
+            StorageManager.saveSalonData(newSalonData);
+            StorageManager.saveCocinaData(newCocinaData);
+
+            console.log('=== DATOS GUARDADOS EN STORAGE ===');
+            const datosGuardados = StorageManager.getSalonData();
+            datosGuardados.forEach((p, i) => {
+                console.log(`${i}. ${p.nombre}: inicio=${p.inicio}, entrada=${p.entrada}, venta=${p.venta}, final=${p.final}, vendido=${p.vendido}`);
+            });
+
+            // 7. LIMPIAR TODOS LOS DATOS TRANSACCIONALES
+            const datosALimpiar = [
+                'cocina_agregos',
+                'ipb_consumo_data',
+                'ipb_extracciones',
+                'ipb_transferencias_data',
+                'ipb_efectivo_data'
+            ];
+
+            datosALimpiar.forEach(key => {
+                localStorage.removeItem(key);
+            });
+
+            // 8. RESETEAR BILLETES SI EXISTE LA FUNCIÓN
+            if (typeof window.resetBilletes === 'function') {
+                window.resetBilletes();
+            }
+
+            // 9. RESETEAR EFECTIVO SI EXISTE LA FUNCIÓN
+            if (typeof window.resetEfectivo === 'function') {
+                window.resetEfectivo();
+            }
+
+            // 10. GUARDAR FECHA DEL RESET
+            const hoy = new Date().toISOString().split('T')[0];
+            localStorage.setItem('ipb_last_reset', hoy);
+
+            // 11. FORZAR RECARGA INMEDIATA DE DATOS EN LAS SECCIONES
+            // Forzar recarga de salón
+            if (typeof window.resetSalonDia === 'function') {
+                // Primero actualizar los datos globales
+                window.salonData = newSalonData;
+                // Luego llamar a la función de reset
+                setTimeout(() => window.resetSalonDia(), 100);
+            }
+
+            // Forzar recarga de cocina
+            if (typeof window.resetCocinaDia === 'function') {
+                setTimeout(() => window.resetCocinaDia(), 150);
+            }
+
+            // Actualizar resumen del dashboard
+            if (typeof window.updateSummary === 'function') {
+                setTimeout(() => window.updateSummary(), 200);
+            }
+
+            // 12. MOSTRAR RESUMEN Y RECARGAR
+            setTimeout(() => {
+                showNotification(`
+            🎉 NUEVO DÍA INICIADO<br>
+            <br>
+            📊 <strong>Resumen:</strong><br>
+            • Salón: ${newSalonData.length} productos reseteados<br>
+            • Cocina: ${newCocinaData.length} productos reseteados<br>
+            • Inicios: Finales del día anterior<br>
+            • Ventas: Inicios (porque entrada=0)<br>
+            • Finales: Igual a inicios<br>
+            • Vendidos: CERO (reiniciado)<br>
+            • Importe: CERO (reiniciado)<br>
+            <br>
+            🔄 Recargando sistema...
+        `, 'success');
+
+
+
+            }, 2000);
+
+        } catch (error) {
+            console.error('Error crítico al resetear día:', error);
+            showNotification(`
+        ❌ ERROR CRÍTICO<br>
+        <br>
+        No se pudo completar el reset del día.<br>
+        Error: ${error.message}<br>
+        <br>
+        Por favor, recarga la página manualmente.
+    `, 'error');
+
+
+        }
     }
-    function getTodayDate() {
+    // Función auxiliar para mostrar confirmación como Promise
+    function showConfirmationModalPromise(title, message, type = 'warning') {
+        return new Promise((resolve) => {
+            if (typeof window.showConfirmationModal === 'function') {
+                window.showConfirmationModal(
+                    title,
+                    message,
+                    type,
+                    () => resolve(true),
+                    () => resolve(false)
+                );
+            } else {
+                // Fallback simple
+                resolve(confirm(`${title}\n\n${message}`));
+            }
+        });
+    }
+
+    // Función auxiliar para obtener hora actual
+    function obtenerHoraActual() {
         const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        return now.toLocaleString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    }
+
+    // Función auxiliar para mostrar notificaciones
+    function showNotification(message, type = 'info') {
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(message, type);
+            return;
+        }
+
+        // Fallback básico
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${type === 'success' ? '#28a745' :
+                type === 'error' ? '#dc3545' :
+                    type === 'warning' ? '#ffc107' : '#17a2b8'};
+        color: white;
+        border-radius: 5px;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    `;
+
+        notification.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' :
+                type === 'error' ? 'fa-exclamation-circle' :
+                    type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
+        <span>${message}</span>
+    `;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+
+        // Agregar estilos si no existen
+        if (!document.querySelector('#notification-animations')) {
+            const style = document.createElement('style');
+            style.id = 'notification-animations';
+            style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+            document.head.appendChild(style);
+        }
     }
     function saveAllData() {
         const data = {
@@ -394,7 +648,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Actualizar resumen periódicamente
-    setInterval(updateSummary, 30000);
+    setInterval(updateSummary, 5000);
 
     // Ajustar responsive
     function adjustResponsive() {
@@ -419,49 +673,275 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('resize', adjustResponsive);
 });
 
-// Funciones auxiliares (mantener showNotification y showConfirmationModal)
+// Añadir los estilos CSS solo una vez al cargar la página
+function setupNotificationStyles() {
+    if (!document.querySelector('#notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 16px 20px;
+                max-width: 400px;
+                min-width: 300px;
+                animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                border-left: 4px solid var(--gray-medium);
+                transform: translateX(0);
+                transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+                opacity: 1;
+            }
+            
+            .notification.success {
+                border-left-color: var(--success-color);
+                background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
+            }
+            
+            .notification.error {
+                border-left-color: var(--danger-color);
+                background: linear-gradient(135deg, #fff0f0 0%, #ffe6e6 100%);
+            }
+            
+            .notification.warning {
+                border-left-color: var(--warning-color);
+                background: linear-gradient(135deg, #fff9e6 0%, #fff2cc 100%);
+            }
+            
+            .notification.info {
+                border-left-color: var(--primary-color);
+                background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
+            }
+            
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex: 1;
+            }
+            
+            .notification i {
+                font-size: 1.4rem;
+                min-width: 24px;
+            }
+            
+            .notification.success i {
+                color: var(--success-color);
+            }
+            
+            .notification.error i {
+                color: var(--danger-color);
+            }
+            
+            .notification.warning i {
+                color: var(--warning-color);
+            }
+            
+            .notification.info i {
+                color: var(--primary-color);
+            }
+            
+            .notification-message {
+                color: var(--dark-color);
+                font-size: 0.95rem;
+                line-height: 1.4;
+                flex: 1;
+            }
+            
+            .notification-close {
+                background: none;
+                border: none;
+                color: var(--gray-medium);
+                font-size: 1rem;
+                cursor: pointer;
+                padding: 4px 8px;
+                margin-left: 10px;
+                transition: color 0.2s;
+                border-radius: 50%;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .notification-close:hover {
+                color: var(--danger-color);
+                background: rgba(0, 0, 0, 0.05);
+            }
+            
+            .notification.hiding {
+                animation: slideOut 0.3s ease-out forwards;
+                opacity: 0;
+            }
+            
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+            
+            /* Responsive para móviles */
+            @media (max-width: 768px) {
+                .notification {
+                    top: 15px;
+                    right: 15px;
+                    left: 15px;
+                    max-width: none;
+                    min-width: auto;
+                    width: calc(100% - 30px);
+                    padding: 14px 16px;
+                    border-radius: 10px;
+                }
+                
+                .notification-content {
+                    gap: 10px;
+                }
+                
+                .notification i {
+                    font-size: 1.2rem;
+                }
+                
+                .notification-message {
+                    font-size: 0.9rem;
+                }
+                
+                .notification-close {
+                    width: 26px;
+                    height: 26px;
+                    font-size: 0.9rem;
+                }
+            }
+            
+            /* Para pantallas pequeñas (mínimo 360px) */
+            @media (max-width: 480px) {
+                .notification {
+                    top: 10px;
+                    right: 10px;
+                    left: 10px;
+                    width: calc(100% - 20px);
+                    padding: 12px 14px;
+                }
+                
+                .notification-message {
+                    font-size: 0.85rem;
+                }
+            }
+            
+            /* Para pantallas muy pequeñas (mínimo 360px) */
+            @media (max-width: 360px) {
+                .notification {
+                    top: 8px;
+                    right: 8px;
+                    left: 8px;
+                    width: calc(100% - 16px);
+                    padding: 10px 12px;
+                }
+                
+                .notification-content {
+                    gap: 8px;
+                }
+                
+                .notification i {
+                    font-size: 1.1rem;
+                }
+                
+                .notification-message {
+                    font-size: 0.8rem;
+                }
+                
+                .notification-close {
+                    width: 24px;
+                    height: 24px;
+                    font-size: 0.85rem;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// Llamar a setupNotificationStyles cuando se carga el DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupNotificationStyles);
+} else {
+    setupNotificationStyles();
+}
 function showNotification(message, type = 'info') {
+    // Eliminar todas las notificaciones existentes inmediatamente
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    });
+
+    // Crear y mostrar la nueva notificación
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-            <span>${message}</span>
-            <button class="notification-close"><i class="fas fa-times"></i></button>
-        `;
+        <div class="notification-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' :
+            type === 'error' ? 'exclamation-circle' :
+                type === 'warning' ? 'exclamation-triangle' :
+                    'info-circle'}"></i>
+            <span class="notification-message">${message}</span>
+        </div>
+        <button class="notification-close"><i class="fas fa-times"></i></button>
+    `;
 
     const closeBtn = notification.querySelector('.notification-close');
-    closeBtn.addEventListener('click', function () {
-        notification.style.animation = 'slideOut 0.3s ease-out';
+    closeBtn.addEventListener('click', () => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    });
+
+    document.body.appendChild(notification);
+
+    // Auto-ocultar después de 5 segundos
+    const autoHideTimeout = setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
+
+    // Pausar auto-ocultar cuando el usuario interactúa
+    notification.addEventListener('mouseenter', () => {
+        clearTimeout(autoHideTimeout);
+    });
+
+    notification.addEventListener('mouseleave', () => {
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
             }
-        }, 300);
+        }, 3000);
     });
-
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.style.animation = 'slideOut 0.3s ease-out';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }
-    }, 5000);
-
-    document.body.appendChild(notification);
-
-    const style = document.createElement('style');
-    style.textContent = `
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-    document.head.appendChild(style);
 }
-
 function showConfirmationModal(title, message, type, confirmCallback) {
     const modal = document.createElement('div');
     modal.className = 'confirmation-modal';
@@ -720,6 +1200,60 @@ window.gestionarRelacionesCocina = {
         }
     }
 };
+async function asegurarHistorialDisponible() {
+    // Si ya está disponible, retornar
+    if (window.historialIPV) {
+        return window.historialIPV;
+    }
+    
+    // Si el archivo ya está cargado pero no se inicializó
+    if (window.HistorialIPV) {
+        window.historialIPV = new window.HistorialIPV();
+        return window.historialIPV;
+    }
+    
+    // Si no está cargado, cargarlo dinámicamente
+    return new Promise((resolve, reject) => {
+        // Verificar si ya está en el DOM
+        const existingScript = document.querySelector('script[src*="historial.js"]');
+        
+        if (existingScript) {
+            // Esperar a que se cargue
+            existingScript.onload = () => {
+                if (window.HistorialIPV) {
+                    window.historialIPV = new window.HistorialIPV();
+                    resolve(window.historialIPV);
+                } else {
+                    reject(new Error('HistorialIPV no disponible después de cargar'));
+                }
+            };
+            
+            // Si ya está cargado pero no inicializado
+            if (window.HistorialIPV) {
+                window.historialIPV = new window.HistorialIPV();
+                resolve(window.historialIPV);
+            }
+        } else {
+            // Cargar el script
+            const script = document.createElement('script');
+            script.src = 'js/historial.js';
+            
+            script.onload = () => {
+                setTimeout(() => {
+                    if (window.HistorialIPV) {
+                        window.historialIPV = new window.HistorialIPV();
+                        resolve(window.historialIPV);
+                    } else {
+                        reject(new Error('HistorialIPV no disponible'));
+                    }
+                }, 500);
+            };
+            
+            script.onerror = reject;
+            document.head.appendChild(script);
+        }
+    });
+}
 
 window.showConfirmationModal = showConfirmationModal;
 window.showNotification = showNotification;

@@ -1316,7 +1316,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // Agregos de cocina
-        const today = new Date().toISOString().split('T')[0];
         const agregos = JSON.parse(localStorage.getItem(`cocina_agregos`) || '[]');
 
         // Datos financieros
@@ -1326,11 +1325,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Efectivo
         const efectivoData = JSON.parse(localStorage.getItem('ipb_efectivo_data') || '[]');
-        const efectivoHoy = efectivoData.filter(item => item.fecha === today);
+        const efectivoHoy = efectivoData;
 
         // Billetes
-        const billetesRegistros = JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]');
-        const billetesHoy = billetesRegistros.filter(r => r.fecha === today);
+        const billetesHoy =JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]');
 
         // Calcular ventas
         const ventasSalon = productosSalon.reduce((sum, p) => sum + (p.importe || 0), 0);

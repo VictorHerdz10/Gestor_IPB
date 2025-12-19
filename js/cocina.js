@@ -192,14 +192,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function reconstruirConsumosDesdeAgregos() {
-
-        // PRIMERO: Calcular total consumido por cada ingrediente desde agregos
-        const consumoDesdeAgregos = {};
-
-        // Inicializar contador
+        // RESETEAR primero todos los vendidos de ingredientes
         cocinaData.forEach(producto => {
             if (producto.esIngrediente) {
-                consumoDesdeAgregos[producto.id] = 0;
+                producto.vendido = 0;
             }
         });
 
@@ -207,43 +203,47 @@ document.addEventListener('DOMContentLoaded', function () {
         agregos.forEach(agrego => {
             if (agrego.ingredientes && agrego.ingredientes.length > 0) {
                 agrego.ingredientes.forEach(ingrediente => {
-                    if (consumoDesdeAgregos[ingrediente.id] !== undefined) {
-                        consumoDesdeAgregos[ingrediente.id] += ingrediente.cantidad;
+                    const productoIngrediente = cocinaData.find(p => p.id === ingrediente.id);
+                    if (productoIngrediente) {
+                        // Sumar la cantidad correcta según la estructura del agrego
+                        let cantidad = 0;
+
+                        if (ingrediente.cantidadTotal !== undefined) {
+                            cantidad = ingrediente.cantidadTotal;
+                        } else if (ingrediente.cantidad !== undefined) {
+                            cantidad = ingrediente.cantidad;
+                        } else if (ingrediente.cantidadPorProducto !== undefined && agrego.cantidad !== undefined) {
+                            cantidad = ingrediente.cantidadPorProducto * agrego.cantidad;
+                        } else {
+                            cantidad = agrego.cantidad || 1;
+                        }
+
+                        productoIngrediente.vendido += cantidad;
                     }
                 });
             }
         });
 
-        // SEGUNDO: Actualizar vendidos SIN perder ventas de productos principales
+        // Calcular consumo desde productos principales (si existen relaciones)
+        cocinaData.forEach(producto => {
+            if (!producto.esIngrediente && producto.vendido > 0) {
+                const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
+                relaciones.forEach(rel => {
+                    const ingrediente = cocinaData.find(p => p.id === rel.ingredienteId);
+                    if (ingrediente) {
+                        ingrediente.vendido += producto.vendido * rel.cantidad;
+                    }
+                });
+            }
+        });
+
+        // Recalcular final y disponibilidad para todos los ingredientes
         cocinaData.forEach(producto => {
             if (producto.esIngrediente) {
-                // Solo actualizar vendido para ingredientes
-                const consumoAgregos = consumoDesdeAgregos[producto.id] || 0;
-
-                // Calcular ventas desde productos principales (si existen relaciones)
-                let consumoProductosPrincipales = 0;
-                const relaciones = relacionesProductos.filter(r => r.ingredienteId === producto.id);
-
-                relaciones.forEach(rel => {
-                    const productoPrincipal = cocinaData.find(p => p.id === rel.productoId);
-                    if (productoPrincipal && !productoPrincipal.esIngrediente) {
-                        consumoProductosPrincipales += productoPrincipal.vendido * rel.cantidad;
-                    }
-                });
-
-                // Vendido total = consumo desde agregos + consumo desde productos principales
-                producto.vendido = consumoAgregos + consumoProductosPrincipales;
-
-                // Recalcular final
                 producto.final = Math.max(0, producto.venta - producto.vendido);
+                producto.disponible = Math.max(0, producto.venta - producto.vendido);
             }
         });
-
-
-        // Recalcular disponibilidad
-        recalcularDisponibilidad();
-        // Actualizar datos filtrados si hubo cambios
-        datosFiltradosCocina = [...cocinaData];
     }
     function guardarAgregos() {
         const today = getTodayDate();
@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     function crearFilaProductoCocina(producto, index) {
-        
+
         const row = document.createElement('tr');
         row.dataset.id = producto.id;
         row.dataset.index = index;
@@ -640,6 +640,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function recalcularProductoCocina(producto) {
+        // Asegurar que todos los valores sean números
+        producto.inicio = parseInt(producto.inicio) || 0;
+        producto.entrada = parseInt(producto.entrada) || 0;
+        producto.final = parseInt(producto.final) || 0;
+        producto.vendido = parseInt(producto.vendido) || 0;
+        producto.venta = parseInt(producto.venta) || 0;
+
         // Calcular venta
         const nuevaVenta = producto.inicio + producto.entrada;
 
@@ -664,7 +671,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Si es un producto con ingredientes, validar disponibilidad automáticamente
         if (!producto.esIngrediente && producto.vendido > 0) {
-            const puedeVender = validarDisponibilidadIngredientes(producto, producto.final, false); // false para no mostrar notificación
+            const puedeVender = validarDisponibilidadIngredientes(producto, producto.final, false);
             if (!puedeVender) {
                 // Ajustar automáticamente a lo máximo que puede vender
                 const maxPuedeVender = calcularMaximoVendible(producto);
@@ -811,11 +818,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     // MODIFICACIÓN CRÍTICA: Solo ajustar si el usuario NO ha editado manualmente
                     // O si está intentando vender más de lo que puede
                     if (quiereVender > maxVendible) {
-                     
+
 
                         // Si el usuario NO ha editado manualmente, ajustamos automáticamente
                         if (!producto.finalEditado) {
-                            
+
 
                             // Ajustar a lo máximo que puede vender
                             const nuevoVendido = maxVendible;
@@ -826,7 +833,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 producto.final = nuevoFinal;
                                 producto.vendido = nuevoVendido;
                                 producto.importe = producto.precio > 0 ? producto.vendido * producto.precio : 0;
-                               
+
                             }
                         } else {
                             // Si el usuario YA editó manualmente, mostrar advertencia pero no ajustar
@@ -861,12 +868,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (consumoTotal !== ingrediente.vendido) {
                     // Si el ingrediente NO ha sido editado manualmente, ajustamos
                     if (!ingrediente.finalEditado) {
-                       
+
                         ingrediente.vendido = consumoTotal;
                         ingrediente.final = Math.max(0, ingrediente.venta - ingrediente.vendido);
                         recalcularProductoCocina(ingrediente);
                     } else {
-                       
+
                     }
                 }
             }
@@ -1274,161 +1281,1146 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Crear modal con gestión de disponibilidad
+        // Crear modal con CHECKBOXES y VALIDACIONES
         const modalHtml = `
-        <div class="modal active" id="modal-agrego-simple">
-            <div class="modal-content" style="max-width: 800px;">
-                <div class="modal-header">
-                    <h3><i class="fas fa-hamburger"></i> Registrar Agrego Simple o Producto Compuesto</h3>
-                    <button class="modal-close" onclick="cerrarModalAgrego()">&times;</button>
+    <div class="modal active" id="modal-agrego-simple">
+        <div class="modal-content modal-agrego-responsive">
+            <div class="modal-header modal-header-agrego">
+                <h3><i class="fas fa-hamburger"></i> Registrar Producto Compuesto</h3>
+                <button class="modal-close" onclick="cerrarModalAgrego()">&times;</button>
+            </div>
+            <div class="modal-body modal-body-agrego">
+                <!-- MENSAJES DE VALIDACIÓN -->
+                <div id="alertas-validacion" class="alertas-container"></div>
+                
+                <!-- ADVERTENCIA INTELIGENTE PAN -->
+                <div id="advertencia-pan" class="alert-warning-custom" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="texto-advertencia-pan"></span>
                 </div>
-                <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="agrego-nombre">Nombre del Agrego o Producto *</label>
-                            <input type="text" id="agrego-nombre" class="form-input" placeholder="Ej: Jamón, Queso, Tocino..." required>
+                
+                <!-- SECCIÓN 1: INFORMACIÓN BÁSICA -->
+                <div class="seccion-basica">
+                    <h4 class="seccion-titulo">
+                        <i class="fas fa-info-circle"></i> Información del Producto
+                    </h4>
+                    <div class="form-grid-tres">
+                        <div class="form-group-agrego">
+                            <label for="agrego-nombre" class="form-label-agrego">
+                                <i class="fas fa-tag"></i> Nombre *
+                            </label>
+                            <input type="text" id="agrego-nombre" class="form-input-agrego" 
+                                   placeholder="Ej: Pan con Jamón, Combo Especial..." 
+                                   required oninput="validarNombreProducto(this.value)">
+                            <div class="form-helper">Describe claramente el producto</div>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="agrego-precio">Precio del Agrego o Producto *</label>
-                            <input type="number" id="agrego-precio" class="form-input" placeholder="0.00" step="1.00" min="0" required>
+                        <div class="form-group-agrego">
+                            <label for="agrego-precio" class="form-label-agrego">
+                                <i class="fas fa-dollar-sign"></i> Precio *
+                            </label>
+                            <input type="number" id="agrego-precio" class="form-input-agrego" 
+                                   placeholder="0.00" step="0.01" min="0" 
+                                   required oninput="validarPrecioProducto(this.value)">
+                            <div class="form-helper">Precio por unidad</div>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="agrego-cantidad">Cantidad del Agrego o Producto *</label>
-                            <input type="number" id="agrego-cantidad" class="form-input" placeholder="Ej: 1, 2, 3..." min="1" value="1" required>
+                        <div class="form-group-agrego">
+                            <label for="agrego-cantidad" class="form-label-agrego">
+                                <i class="fas fa-box"></i> Cantidad *
+                            </label>
+                            <input type="number" id="agrego-cantidad" class="form-input-agrego" 
+                                   placeholder="Ej: 4" min="1" value="1" 
+                                   required oninput="validarCantidadProducto(this.value)">
+                            <div class="form-helper">Unidades a vender</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- VALIDACIÓN DE DISPONIBILIDAD -->
+                <div id="validacion-disponibilidad" class="validacion-disponibilidad" style="display: none;">
+                    <div class="validacion-header">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span>Verificación de Disponibilidad</span>
+                    </div>
+                    <div id="resultado-disponibilidad" class="validacion-resultado"></div>
+                </div>
+                
+                <!-- SECCIÓN 2: INGREDIENTES -->
+                <div class="seccion-ingredientes-agrego">
+                    <h4 class="seccion-titulo">
+                        <i class="fas fa-utensils"></i> Seleccionar Ingredientes
+                        <span class="requerido">*</span>
+                    </h4>
+                    
+                    <div class="instruccion-ingredientes">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Cada ingrediente seleccionado consume <strong>1 unidad por cada producto vendido</strong></span>
+                    </div>
+                    
+                    <!-- CONTADOR Y ACCIONES -->
+                    <div class="controles-ingredientes">
+                        <div class="contador-y-mensaje">
+                            <span id="contador-seleccionados" class="contador-badge">0 seleccionados</span>
+                            <span id="mensaje-minimo" class="mensaje-error">
+                                <i class="fas fa-exclamation-circle"></i> Selecciona al menos 1 ingrediente
+                            </span>
+                        </div>
+                        
+                        <div class="botones-accion">
+                            <button type="button" class="btn btn-sm btn-outline" onclick="actualizarDisponibilidadCheckboxes()">
+                                <i class="fas fa-sync-alt"></i> Actualizar
+                            </button>
+                            <button type="button" class="btn btn-sm btn-info" onclick="verificarDisponibilidadTotal()">
+                                <i class="fas fa-search"></i> Verificar
+                            </button>
                         </div>
                     </div>
                     
-                    <h4>Seleccionar Ingredientes Consumidos:</h4>
-                    <p class="small-text"><i class="fas fa-info-circle"></i> Solo puedes usar ingredientes disponibles</p>
-                    
-                    <div style="margin-bottom: 10px; text-align: right;">
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="actualizarDisponibilidadModal()">
-                            <i class="fas fa-sync-alt"></i> Actualizar Disponibilidad
-                        </button>
+                    <!-- RESUMEN -->
+                    <div class="resumen-checkboxes">
+                        <div class="resumen-item">
+                            <span class="resumen-label">Productos:</span>
+                            <span id="calculo-checkbox-unidades" class="resumen-valor">1 unidad</span>
+                        </div>
+                        <div class="resumen-item">
+                            <span class="resumen-label">Ingredientes:</span>
+                            <span id="calculo-checkbox-ingredientes" class="resumen-valor">0 seleccionados</span>
+                        </div>
+                        <div class="resumen-item resumen-total">
+                            <span class="resumen-label">Consumo total:</span>
+                            <span id="calculo-checkbox-total" class="resumen-valor">0 unidades</span>
+                        </div>
+                        <div class="resumen-lista">
+                            <span id="lista-ingredientes-seleccionados">Ningún ingrediente seleccionado</span>
+                        </div>
                     </div>
                     
-                    <div class="ingredientes-grid" id="ingredientes-list" style="max-height: 300px; overflow-y: auto;">
+                    <!-- LISTA DE INGREDIENTES -->
+                    <div class="ingredientes-checkbox-grid" id="ingredientes-checkbox-list">
                         ${ingredientes.map(ing => `
-                            <div class="ingrediente-item ${ing.disponible <= 0 ? 'disabled' : ''}" id="ingrediente-${ing.id}">
-                                <div class="ingrediente-info">
-                                    <span class="ingrediente-nombre">${ing.nombre}</span>
-                                    <span class="ingrediente-disponible ${ing.disponible > 0 ? 'available' : 'unavailable'}">
-                                        Disponible: <span id="disponible-${ing.id}">${ing.disponible}</span>
-                                    </span>
-                                </div>
-                                <div class="ingrediente-controls">
-                                    <input type="number" 
-                                           min="0" 
-                                           max="${ing.disponible}"
-                                           value="0"
+                            <div class="ingrediente-checkbox-item ${ing.disponible <= 0 ? 'disabled' : ''}" id="ingrediente-checkbox-${ing.id}">
+                                <div class="checkbox-container">
+                                    <input type="checkbox" 
+                                           id="checkbox-${ing.id}"
                                            data-ingrediente-id="${ing.id}"
                                            data-ingrediente-nombre="${ing.nombre}"
                                            data-ingrediente-disponible="${ing.disponible}"
-                                           class="ingrediente-cantidad form-input-sm"
+                                           class="ingrediente-checkbox"
                                            ${ing.disponible <= 0 ? 'disabled' : ''}
-                                           oninput="validarCantidadIngrediente(this)">
-                                    <span class="unidad-text">unidad(es)</span>
+                                           onchange="manejarCheckboxIngrediente(this)">
+                                    <label for="checkbox-${ing.id}" class="checkbox-label">
+                                        <span class="custom-checkbox"></span>
+                                        <div class="ingrediente-info-detalle">
+                                            <span class="ingrediente-checkbox-nombre">${ing.nombre}</span>
+                                            <span class="ingrediente-disponible-checkbox ${ing.disponible > 0 ? 'available' : 'unavailable'}">
+                                                <i class="fas fa-box"></i> Disponible: <span id="disponible-checkbox-${ing.id}">${ing.disponible}</span>
+                                            </span>
+                                        </div>
+                                    </label>
                                 </div>
-                                ${ing.disponible <= 0 ? '<div class="ingrediente-sin-disponibilidad">Sin disponibilidad</div>' : ''}
+                                <div class="consumo-checkbox-display" id="consumo-checkbox-${ing.id}" style="display: none;">
+                                    <div class="consumo-info">
+                                        <i class="fas fa-calculator"></i>
+                                        <span class="consumo-text">
+                                            <span class="valor-consumo">0</span> unidad(es)
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="agrego-notas">Notas (Opcional)</label>
-                            <textarea id="agrego-notas" class="form-textarea" placeholder="Detalles adicionales sobre el agrego..." rows="2"></textarea>
-                        </div>
+                </div>
+                
+                <!-- SECCIÓN 3: NOTAS -->
+                <div class="seccion-notas">
+                    <h4 class="seccion-titulo">
+                        <i class="fas fa-sticky-note"></i> Notas Adicionales
+                    </h4>
+                    <div class="form-group-agrego">
+                        <textarea id="agrego-notas" class="form-textarea-agrego" 
+                                  placeholder="Detalles adicionales, observaciones o instrucciones especiales..." 
+                                  rows="3"></textarea>
+                        <div class="form-helper">Opcional - Máximo 500 caracteres</div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="cerrarModalAgrego()">
-                        Cancelar
-                    </button>
-                    <button class="btn btn-primary" id="guardar-agrego-simple-modal" onclick="guardarAgregoSimpleDesdeModal()">
-                        <i class="fas fa-save"></i> Guardar
-                    </button>
-                </div>
+            </div>
+            <div class="modal-footer modal-footer-agrego">
+                <button class="btn btn-outline" onclick="cerrarModalAgrego()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button class="btn btn-primary" id="guardar-agrego-simple-modal" onclick="validarYGuardarAgrego()">
+                    <i class="fas fa-save"></i> Guardar Producto Compuesto
+                </button>
             </div>
         </div>
+    </div>
     `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        // Añadir funciones globales para el modal
+        // AGREGAR ESTILOS MEJORADOS
+        const estilosModal = `
+    <style>
+    /* MODAL RESPONSIVE */
+    .modal-agrego-responsive {
+        max-width: 800px;
+        width: 95%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        margin: 20px auto;
+    }
+    
+    .modal-header-agrego {
+        padding: 20px 25px;
+        border-bottom: 1px solid #e8e8e8;
+        background: linear-gradient(135deg, #4a6cf7 0%, #6c8cff 100%);
+        color: white;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .modal-header-agrego h3 {
+        margin: 0;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .modal-header-agrego .modal-close {
+        color: white;
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+    }
+    
+    .modal-header-agrego .modal-close:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    
+    .modal-body-agrego {
+        flex: 1;
+        overflow-y: auto;
+        padding: 25px;
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+    
+    /* SECCIONES */
+    .seccion-basica,
+    .seccion-ingredientes-agrego,
+    .seccion-notas {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid #f0f0f0;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+    
+    .seccion-titulo {
+        margin: 0 0 20px 0;
+        font-size: 16px;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #f0f2ff;
+    }
+    
+    .seccion-titulo i {
+        color: #4a6cf7;
+    }
+    
+    /* FORMULARIO MEJORADO */
+    .form-grid-tres {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+    
+    .form-group-agrego {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-label-agrego {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #444;
+        font-size: 14px;
+    }
+    
+    .form-label-agrego i {
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .form-input-agrego {
+        padding: 12px 15px;
+        border: 2px solid #e8e8e8;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .form-input-agrego:focus {
+        outline: none;
+        border-color: #4a6cf7;
+        box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+    }
+    
+    .form-helper {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #888;
+    }
+    
+    /* INGREDIENTES */
+    .instruccion-ingredientes {
+        background: #f8f9ff;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        color: #555;
+        border-left: 3px solid #4a6cf7;
+    }
+    
+    .instruccion-ingredientes i {
+        color: #4a6cf7;
+    }
+    
+    .controles-ingredientes {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .contador-y-mensaje {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex: 1;
+    }
+    
+    .contador-badge {
+        background: #4a6cf7;
+        color: white;
+        padding: 6px 15px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .botones-accion {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn-outline {
+        background: white;
+        border: 2px solid #e8e8e8;
+        color: #555;
+        padding: 8px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-outline:hover {
+        border-color: #4a6cf7;
+        color: #4a6cf7;
+        background: #f8f9ff;
+    }
+    
+    /* RESUMEN MEJORADO */
+    .resumen-checkboxes {
+        background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border: 1px solid #e0e2ff;
+    }
+    
+    .resumen-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px dashed #d0d4ff;
+    }
+    
+    .resumen-item:last-child {
+        border-bottom: none;
+    }
+    
+    .resumen-total {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .resumen-label {
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .resumen-valor {
+        font-weight: 500;
+        color: #4a6cf7;
+    }
+    
+    .resumen-lista {
+        margin-top: 10px;
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #666;
+        border: 1px solid #eee;
+    }
+    
+    /* LISTA INGREDIENTES MEJORADA */
+    .ingredientes-checkbox-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+    
+    .ingrediente-checkbox-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        background: white;
+        border: 1px solid #e8e8e8;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        min-height: 80px;
+    }
+    
+    .ingrediente-checkbox-item:hover:not(.disabled) {
+        border-color: #4a6cf7;
+        box-shadow: 0 4px 12px rgba(74, 108, 247, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex: 1;
+    }
+    
+    .ingrediente-info-detalle {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .ingrediente-checkbox-nombre {
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
+    }
+    
+    .ingrediente-disponible-checkbox {
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .ingrediente-disponible-checkbox.available {
+        color: #28a745;
+    }
+    
+    .ingrediente-disponible-checkbox.unavailable {
+        color: #dc3545;
+    }
+    
+    .consumo-checkbox-display {
+        background: #f8f9ff;
+        padding: 8px 12px;
+        border-radius: 8px;
+        min-width: 100px;
+        text-align: center;
+        border: 1px solid #e0e2ff;
+    }
+    
+    .consumo-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+    
+    .consumo-info i {
+        color: #4a6cf7;
+    }
+    
+    .consumo-text {
+        color: #4a6cf7;
+        font-weight: 500;
+    }
+    
+    /* TEXTAREA */
+    .form-textarea-agrego {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e8e8e8;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        resize: vertical;
+        min-height: 100px;
+        font-family: inherit;
+    }
+    
+    .form-textarea-agrego:focus {
+        outline: none;
+        border-color: #4a6cf7;
+        box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+    }
+    
+    /* FOOTER MODAL */
+    .modal-footer-agrego {
+        padding: 20px 25px;
+        border-top: 1px solid #e8e8e8;
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        background: #fafafa;
+        border-radius: 0 0 12px 12px;
+    }
+    
+    /* ALERTAS */
+    .alertas-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+        .modal-agrego-responsive {
+            width: 98%;
+            max-height: 95vh;
+            margin: 10px;
+        }
+        
+        .form-grid-tres {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        .ingredientes-checkbox-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .ingrediente-checkbox-item {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 15px;
+        }
+        
+        .checkbox-container {
+            width: 100%;
+        }
+        
+        .consumo-checkbox-display {
+            width: 100%;
+            text-align: left;
+            padding: 10px 15px;
+        }
+        
+        .consumo-info {
+            justify-content: flex-start;
+        }
+        
+        .controles-ingredientes {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .contador-y-mensaje {
+            justify-content: space-between;
+        }
+        
+        .botones-accion {
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .modal-footer-agrego {
+            flex-direction: column;
+        }
+        
+        .modal-footer-agrego .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .modal-body-agrego {
+            padding: 20px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .modal-header-agrego,
+        .modal-footer-agrego {
+            padding: 15px;
+        }
+        
+        .modal-body-agrego {
+            padding: 15px;
+        }
+        
+        .seccion-basica,
+        .seccion-ingredientes-agrego,
+        .seccion-notas {
+            padding: 15px;
+        }
+        
+        .resumen-checkboxes {
+            padding: 12px 15px;
+        }
+        
+        .ingrediente-checkbox-item {
+            padding: 12px;
+        }
+    }
+    
+    /* SCROLLBAR PERSONALIZADO */
+    .ingredientes-checkbox-grid::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .ingredientes-checkbox-grid::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .ingredientes-checkbox-grid::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+    
+    .ingredientes-checkbox-grid::-webkit-scrollbar-thumb:hover {
+        background: #a1a1a1;
+    }
+    </style>
+    `;
+
+        // Agregar estilos si no existen
+        if (!document.querySelector('#estilos-modal-agrego-mejorado')) {
+            const styleElement = document.createElement('style');
+            styleElement.id = 'estilos-modal-agrego-mejorado';
+            styleElement.textContent = estilosModal;
+            document.head.appendChild(styleElement);
+        }
+        // FUNCIONES GLOBALES PARA VALIDACIONES
         window.cerrarModalAgrego = function () {
             const modal = document.getElementById('modal-agrego-simple');
             if (modal) modal.remove();
         };
 
-        window.actualizarDisponibilidadModal = function () {
+        window.actualizarDisponibilidadCheckboxes = function () {
             // Recalcular disponibilidad global
             recalcularDisponibilidad();
 
             // Actualizar cada ingrediente en el modal
             ingredientes.forEach(ing => {
-                const disponibleSpan = document.getElementById(`disponible-${ing.id}`);
-                const input = document.querySelector(`[data-ingrediente-id="${ing.id}"]`);
-                const itemDiv = document.getElementById(`ingrediente-${ing.id}`);
+                const disponibleSpan = document.getElementById(`disponible-checkbox-${ing.id}`);
+                const checkbox = document.getElementById(`checkbox-${ing.id}`);
+                const itemDiv = document.getElementById(`ingrediente-checkbox-${ing.id}`);
 
                 if (disponibleSpan) {
                     disponibleSpan.textContent = ing.disponible;
                 }
 
-                if (input) {
-                    // Actualizar el máximo permitido
-                    input.max = ing.disponible;
-                    input.dataset.ingredienteDisponible = ing.disponible;
+                if (checkbox) {
+                    checkbox.dataset.ingredienteDisponible = ing.disponible;
 
-                    // Si el valor actual excede la nueva disponibilidad, ajustarlo
-                    const currentValue = parseInt(input.value) || 0;
-                    if (currentValue > ing.disponible) {
-                        input.value = ing.disponible;
-                        showNotification(`Ajustado ${ing.nombre} a ${ing.disponible} unidades (máximo disponible)`, 'warning');
-                    }
-
-                    // Habilitar/deshabilitar según disponibilidad
                     if (ing.disponible <= 0) {
-                        input.disabled = true;
-                        input.value = 0;
+                        checkbox.checked = false;
+                        checkbox.disabled = true;
                         if (itemDiv) itemDiv.classList.add('disabled');
+
+                        const consumoDisplay = document.getElementById(`consumo-checkbox-${ing.id}`);
+                        if (consumoDisplay) consumoDisplay.style.display = 'none';
                     } else {
-                        input.disabled = false;
+                        checkbox.disabled = false;
                         if (itemDiv) itemDiv.classList.remove('disabled');
                     }
                 }
             });
 
+            actualizarCalculoCheckboxes();
             showNotification('Disponibilidad actualizada', 'info');
         };
 
-        window.validarCantidadIngrediente = function (input) {
-            const max = parseInt(input.max) || 0;
-            let value = parseInt(input.value) || 0;
-
-            // Evitar valores negativos
-            if (value < 0) {
-                value = 0;
-                input.value = 0;
+        window.manejarCheckboxIngrediente = function (checkbox) {
+            const consumoDisplay = document.getElementById(`consumo-checkbox-${checkbox.dataset.ingredienteId}`);
+            if (consumoDisplay) {
+                consumoDisplay.style.display = checkbox.checked ? 'block' : 'none';
             }
 
-            // Validar que no exceda el máximo
-            if (value > max) {
-                value = max;
-                input.value = max;
-                showNotification(`No puedes usar más de ${max} unidades de ${input.dataset.ingredienteNombre}`, 'error');
-            }
-
-            // Actualizar total de ingredientes seleccionados
-            actualizarTotalIngredientes();
+            actualizarCalculoCheckboxes();
+            validarIngredientesMinimos();
+            validarNombreProducto(document.getElementById('agrego-nombre').value);
         };
 
-        // Inicializar el contador de ingredientes
-        setTimeout(actualizarTotalIngredientes, 100);
-    }
+        window.actualizarCalculoCheckboxes = function () {
+            const cantidad = parseInt(document.getElementById('agrego-cantidad').value) || 1;
+            const checkboxesSeleccionados = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)');
+            const ingredientesSeleccionados = Array.from(checkboxesSeleccionados);
 
+            // Actualizar contador
+            const contador = document.getElementById('contador-seleccionados');
+            if (contador) {
+                contador.textContent = `${ingredientesSeleccionados.length} seleccionado(s)`;
+            }
+
+            // Actualizar resumen
+            document.getElementById('calculo-checkbox-unidades').textContent = `${cantidad} unidad(es)`;
+            document.getElementById('calculo-checkbox-ingredientes').textContent = `${ingredientesSeleccionados.length} ingrediente(s)`;
+
+            const totalUnidadesIngredientes = cantidad * ingredientesSeleccionados.length;
+            document.getElementById('calculo-checkbox-total').textContent = `${totalUnidadesIngredientes} unidades totales`;
+
+            // Actualizar lista de ingredientes seleccionados
+            const nombresIngredientes = ingredientesSeleccionados.map(cb => cb.dataset.ingredienteNombre);
+            const listaElement = document.getElementById('lista-ingredientes-seleccionados');
+
+            if (nombresIngredientes.length > 0) {
+                listaElement.textContent = nombresIngredientes.join(', ');
+                listaElement.style.color = '#4a6cf7';
+            } else {
+                listaElement.textContent = 'Ningún ingrediente seleccionado';
+                listaElement.style.color = '#666';
+            }
+
+            // Actualizar consumo display para cada ingrediente seleccionado
+            checkboxesSeleccionados.forEach(checkbox => {
+                const consumoDisplay = document.getElementById(`consumo-checkbox-${checkbox.dataset.ingredienteId}`);
+                if (consumoDisplay) {
+                    const valorConsumo = consumoDisplay.querySelector('.valor-consumo');
+                    if (valorConsumo) {
+                        valorConsumo.textContent = cantidad;
+                    }
+                }
+            });
+
+            // Ocultar consumo display para ingredientes no seleccionados
+            document.querySelectorAll('.ingrediente-checkbox:not(:checked)').forEach(checkbox => {
+                const consumoDisplay = document.getElementById(`consumo-checkbox-${checkbox.dataset.ingredienteId}`);
+                if (consumoDisplay) {
+                    consumoDisplay.style.display = 'none';
+                }
+            });
+        };
+
+        // VALIDACIÓN DE CAMPOS
+        window.validarNombreProducto = function (nombre) {
+            const alertasDiv = document.getElementById('alertas-validacion');
+            let alertas = [];
+
+            if (!nombre.trim()) {
+                alertas.push('El nombre del producto es requerido');
+            } else if (nombre.length < 3) {
+                alertas.push('El nombre debe tener al menos 3 caracteres');
+            }
+
+            // Detectar si contiene "pan" y mostrar advertencia
+            const nombreLower = nombre.toLowerCase();
+            const contienePan = nombreLower.includes('pan');
+
+            if (contienePan) {
+                // Verificar si hay pan en los ingredientes disponibles
+                const hayPanEnIngredientes = ingredientes.some(ing =>
+                    ing.nombre.toLowerCase().includes('pan') && ing.disponible > 0
+                );
+
+                // Verificar si pan está seleccionado
+                const panSeleccionado = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)')
+                    .some(checkbox => checkbox.dataset.ingredienteNombre.toLowerCase().includes('pan'));
+
+                const advertenciaDiv = document.getElementById('advertencia-pan');
+                const textoAdvertencia = document.getElementById('texto-advertencia-pan');
+
+                if (advertenciaDiv && textoAdvertencia) {
+                    if (hayPanEnIngredientes && !panSeleccionado) {
+                        // Mostrar advertencia de "no olvides seleccionar pan"
+                        textoAdvertencia.textContent = '¡No olvides seleccionar "Pan" en los ingredientes! Tu producto contiene la palabra "pan" en el nombre.';
+                        advertenciaDiv.style.display = 'flex';
+                    } else if (!hayPanEnIngredientes) {
+                        // Mostrar advertencia de "no hay pan disponible"
+                        textoAdvertencia.textContent = 'Advertencia: El producto contiene "pan" pero no hay pan disponible en los ingredientes.';
+                        advertenciaDiv.style.display = 'flex';
+                    } else {
+                        // Ocultar advertencia
+                        advertenciaDiv.style.display = 'none';
+                    }
+                }
+            } else {
+                // Ocultar advertencia si no contiene "pan"
+                const advertenciaDiv = document.getElementById('advertencia-pan');
+                if (advertenciaDiv) {
+                    advertenciaDiv.style.display = 'none';
+                }
+            }
+
+            mostrarAlertas(alertasDiv, alertas);
+            return alertas.length === 0;
+        };
+
+        window.validarPrecioProducto = function (precio) {
+            const alertasDiv = document.getElementById('alertas-validacion');
+            const precioNum = parseFloat(precio) || 0;
+            let alertas = [];
+
+            if (!precio || precio.trim() === '') {
+                alertas.push('El precio es requerido');
+            } else if (precioNum <= 0) {
+                alertas.push('El precio debe ser mayor a 0');
+            } else if (precioNum > 10000) {
+                alertas.push('El precio no puede ser mayor a $10,000');
+            }
+
+            mostrarAlertas(alertasDiv, alertas);
+            return alertas.length === 0;
+        };
+
+        window.validarCantidadProducto = function (cantidad) {
+            const alertasDiv = document.getElementById('alertas-validacion');
+            const cantidadNum = parseInt(cantidad) || 0;
+            let alertas = [];
+
+            if (!cantidad || cantidad.trim() === '') {
+                alertas.push('La cantidad es requerida');
+            } else if (cantidadNum <= 0) {
+                alertas.push('La cantidad debe ser mayor a 0');
+            } else if (cantidadNum > 1000) {
+                alertas.push('La cantidad no puede ser mayor a 1,000 unidades');
+            }
+
+            actualizarCalculoCheckboxes();
+            mostrarAlertas(alertasDiv, alertas);
+            return alertas.length === 0;
+        };
+
+        window.validarIngredientesMinimos = function () {
+            const checkboxesSeleccionados = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)');
+            const mensajeMinimo = document.getElementById('mensaje-minimo');
+
+            if (mensajeMinimo) {
+                if (checkboxesSeleccionados.length === 0) {
+                    mensajeMinimo.style.display = 'inline-flex';
+                    return false;
+                } else {
+                    mensajeMinimo.style.display = 'none';
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        window.verificarDisponibilidadTotal = function () {
+            const cantidad = parseInt(document.getElementById('agrego-cantidad').value) || 1;
+            const checkboxesSeleccionados = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)');
+
+            if (checkboxesSeleccionados.length === 0) {
+                showNotification('Primero selecciona ingredientes para verificar disponibilidad', 'warning');
+                return;
+            }
+
+            const validacionDiv = document.getElementById('validacion-disponibilidad');
+            const resultadoDiv = document.getElementById('resultado-disponibilidad');
+
+            let hayProblemas = false;
+            let html = '';
+
+            checkboxesSeleccionados.forEach(checkbox => {
+                const ingredienteId = parseInt(checkbox.dataset.ingredienteId);
+                const ingredienteNombre = checkbox.dataset.ingredienteNombre;
+                const disponible = parseInt(checkbox.dataset.ingredienteDisponible) || 0;
+                const consumoTotal = cantidad * 1; // 1 unidad por ingrediente
+
+                const tieneSuficiente = disponible >= consumoTotal;
+
+                if (!tieneSuficiente) {
+                    hayProblemas = true;
+                }
+
+                html += `
+                <div class="validacion-item ${tieneSuficiente ? 'disponible' : 'insuficiente'}">
+                    <span class="nombre">${ingredienteNombre}</span>
+                    <span class="detalle">
+                        ${disponible} disponible / ${consumoTotal} necesario
+                        ${!tieneSuficiente ? ' <i class="fas fa-times-circle" style="color: #dc3545;"></i>' : ' <i class="fas fa-check-circle" style="color: #28a745;"></i>'}
+                    </span>
+                </div>
+            `;
+            });
+
+            if (validacionDiv && resultadoDiv) {
+                resultadoDiv.innerHTML = html;
+                validacionDiv.style.display = 'block';
+
+                if (!hayProblemas) {
+                    showNotification('✅ Todos los ingredientes tienen disponibilidad suficiente', 'success');
+                } else {
+                    showNotification('⚠️ Algunos ingredientes no tienen disponibilidad suficiente', 'error');
+                }
+            }
+        };
+
+        // FUNCIÓN PRINCIPAL DE VALIDACIÓN Y GUARDADO
+        window.validarYGuardarAgrego = function () {
+            // 1. Validar campos básicos
+            const nombre = document.getElementById('agrego-nombre').value.trim();
+            const precio = document.getElementById('agrego-precio').value;
+            const cantidad = document.getElementById('agrego-cantidad').value;
+            const checkboxesSeleccionados = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)');
+
+            let errores = [];
+
+            // Validar nombre
+            if (!nombre) {
+                errores.push('El nombre del producto es requerido');
+                document.getElementById('agrego-nombre').focus();
+            } else if (nombre.length < 3) {
+                errores.push('El nombre debe tener al menos 3 caracteres');
+                document.getElementById('agrego-nombre').focus();
+            }
+
+            // Validar precio
+            const precioNum = parseFloat(precio) || 0;
+            if (!precio || precio.trim() === '') {
+                errores.push('El precio es requerido');
+                if (!nombre) document.getElementById('agrego-precio').focus();
+            } else if (precioNum <= 0) {
+                errores.push('El precio debe ser mayor a 0');
+                document.getElementById('agrego-precio').focus();
+            }
+
+            // Validar cantidad
+            const cantidadNum = parseInt(cantidad) || 0;
+            if (!cantidad || cantidad.trim() === '') {
+                errores.push('La cantidad es requerida');
+                if (!nombre && !precio) document.getElementById('agrego-cantidad').focus();
+            } else if (cantidadNum <= 0) {
+                errores.push('La cantidad debe ser mayor a 0');
+                document.getElementById('agrego-cantidad').focus();
+            } else if (cantidadNum > 1000) {
+                errores.push('La cantidad no puede ser mayor a 1,000 unidades');
+                document.getElementById('agrego-cantidad').focus();
+            }
+
+            // Validar ingredientes mínimos
+            if (checkboxesSeleccionados.length === 0) {
+                errores.push('Debes seleccionar al menos 1 ingrediente');
+            }
+
+            // Mostrar errores si hay
+            if (errores.length > 0) {
+                const alertasDiv = document.getElementById('alertas-validacion');
+                mostrarAlertas(alertasDiv, errores, 'error');
+                showNotification('Corrige los errores antes de guardar', 'error');
+                return;
+            }
+
+            // 2. Validar disponibilidad de cada ingrediente
+            let problemasDisponibilidad = [];
+
+            for (const checkbox of checkboxesSeleccionados) {
+                const ingredienteId = parseInt(checkbox.dataset.ingredienteId);
+                const ingredienteNombre = checkbox.dataset.ingredienteNombre;
+                const disponible = parseInt(checkbox.dataset.ingredienteDisponible) || 0;
+                const consumoTotal = cantidadNum * 1; // 1 unidad por ingrediente
+
+                if (consumoTotal > disponible) {
+                    problemasDisponibilidad.push({
+                        nombre: ingredienteNombre,
+                        disponible: disponible,
+                        necesario: consumoTotal,
+                        faltante: consumoTotal - disponible
+                    });
+                }
+            }
+
+            // Si hay problemas de disponibilidad
+            if (problemasDisponibilidad.length > 0) {
+                let mensajeError = 'No hay suficiente disponibilidad para los siguientes ingredientes:\n';
+                problemasDisponibilidad.forEach(prob => {
+                    mensajeError += `\n• ${prob.nombre}: Disponible ${prob.disponible}, Necesitas ${prob.necesario} (Faltan ${prob.faltante})`;
+                });
+                mensajeError += '\n\nPor favor, ajusta la cantidad o da entrada a más ingredientes.';
+
+                showNotification(mensajeError, 'error');
+
+                // Mostrar en la sección de validación
+                const validacionDiv = document.getElementById('validacion-disponibilidad');
+                const resultadoDiv = document.getElementById('resultado-disponibilidad');
+
+                if (validacionDiv && resultadoDiv) {
+                    let html = '';
+                    problemasDisponibilidad.forEach(prob => {
+                        html += `
+                        <div class="validacion-item insuficiente">
+                            <span class="nombre">${prob.nombre}</span>
+                            <span class="detalle">
+                                ${prob.disponible} disponible / ${prob.necesario} necesario
+                                <i class="fas fa-times-circle" style="color: #dc3545;"></i>
+                            </span>
+                        </div>
+                    `;
+                    });
+                    resultadoDiv.innerHTML = html;
+                    validacionDiv.style.display = 'block';
+                }
+
+                return; // No guardar si hay problemas de disponibilidad
+            }
+
+            // 3. Si pasa todas las validaciones, proceder a guardar
+            guardarAgregoValidado();
+        };
+
+        window.guardarAgregoValidado = function () {
+            const nombre = document.getElementById('agrego-nombre').value.trim();
+            const precio = parseFloat(document.getElementById('agrego-precio').value) || 0;
+            const cantidad = parseInt(document.getElementById('agrego-cantidad').value) || 1;
+            const notas = document.getElementById('agrego-notas').value.trim();
+            const checkboxesSeleccionados = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)');
+
+            // Obtener ingredientes consumidos
+            const ingredientesConsumidos = Array.from(checkboxesSeleccionados).map(checkbox => ({
+                id: parseInt(checkbox.dataset.ingredienteId),
+                nombre: checkbox.dataset.ingredienteNombre,
+                cantidadPorUnidad: 1,
+                cantidadTotal: cantidad * 1
+            }));
+
+            // Descontar ingredientes de la cocina
+            ingredientesConsumidos.forEach(ingrediente => {
+                const productoIndex = cocinaData.findIndex(p => p.id === ingrediente.id);
+                if (productoIndex !== -1) {
+                    const ingredienteItem = cocinaData[productoIndex];
+                    ingredienteItem.vendido += ingrediente.cantidadTotal;
+                    ingredienteItem.final = Math.max(0, ingredienteItem.venta - ingredienteItem.vendido);
+                    recalcularProductoCocina(ingredienteItem);
+                }
+            });
+
+            // Crear el nuevo agrego
+            const nuevoAgrego = {
+                id: Date.now(),
+                nombre: nombre,
+                precio: precio,
+                cantidad: cantidad,
+                ingredientes: ingredientesConsumidos,
+                notas: notas,
+                hora: obtenerHoraActual(),
+                fecha: new Date().toISOString(),
+                montoTotal: precio * cantidad,
+                tipo: 'producto-checkbox'
+            };
+
+            // Agregar a la lista de agregos
+            agregos.push(nuevoAgrego);
+
+            // Guardar y actualizar
+            recalcularDisponibilidad();
+            guardarDatosCocina();
+            actualizarResumenCocina();
+            actualizarListaAgregos();
+            actualizarTablaCocina();
+
+            // Cerrar modal
+            const modal = document.getElementById('modal-agrego-simple');
+            if (modal) modal.remove();
+
+            // Mostrar mensaje de éxito con resumen
+            let mensaje = `✅ ${nombre} registrado correctamente\n`;
+            mensaje += `📦 Cantidad: ${cantidad} unidad(es)\n`;
+            mensaje += `💰 Total: $${(precio * cantidad).toFixed(2)}\n`;
+
+            if (ingredientesConsumidos.length > 0) {
+                mensaje += `🍽️ Ingredientes consumidos:\n`;
+                ingredientesConsumidos.forEach(i => {
+                    mensaje += `   • ${i.cantidadTotal} ${i.nombre}\n`;
+                });
+            }
+
+            showNotification(mensaje, 'success');
+        };
+
+        // FUNCIÓN AUXILIAR PARA MOSTRAR ALERTAS
+        function mostrarAlertas(container, alertas, tipo = 'error') {
+            if (!container) return;
+
+            if (alertas.length === 0) {
+                container.innerHTML = '';
+                container.style.display = 'none';
+                return;
+            }
+
+            let alertasHtml = '';
+            alertas.forEach(alerta => {
+                alertasHtml += `
+                <div class="alert-${tipo}" style="padding: 10px 15px; margin-bottom: 10px; border-radius: 8px; 
+                        background: ${tipo === 'error' ? '#f8d7da' : '#fff3cd'}; 
+                        border: 1px solid ${tipo === 'error' ? '#f5c6cb' : '#ffeaa7'};
+                        color: ${tipo === 'error' ? '#721c24' : '#856404'};">
+                    <i class="fas fa-${tipo === 'error' ? 'exclamation-circle' : 'exclamation-triangle'}"></i>
+                    ${alerta}
+                </div>
+            `;
+            });
+
+            container.innerHTML = alertasHtml;
+            container.style.display = 'block';
+        }
+
+        // Inicializar
+        setTimeout(() => {
+            actualizarCalculoCheckboxes();
+            document.getElementById('agrego-nombre').focus();
+
+            // Agregar evento para validar nombre en tiempo real
+            const nombreInput = document.getElementById('agrego-nombre');
+            if (nombreInput) {
+                nombreInput.addEventListener('blur', function () {
+                    validarNombreProducto(this.value);
+                });
+            }
+        }, 100);
+    }
     function showModalConfigurarRelaciones() {
         // Filtrar productos
         const productosBase = cocinaData.filter(p => p.precio > 0);
@@ -1926,121 +2918,77 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 300);
     }
 
-    function guardarAgregoSimpleDesdeModal() {
+    function guardarAgregoSimpleCheckboxes() {
         // Obtener valores de los campos
         const nombre = document.getElementById('agrego-nombre').value.trim();
         const precio = parseFloat(document.getElementById('agrego-precio').value) || 0;
         const cantidad = parseInt(document.getElementById('agrego-cantidad').value) || 1;
         const notas = document.getElementById('agrego-notas').value.trim();
 
-        // Validación 1: Nombre requerido
+        // Validaciones básicas
         if (!nombre) {
             showNotification('El nombre es requerido', 'error');
             document.getElementById('agrego-nombre').focus();
             return;
         }
 
-        // Validación 2: Precio válido
         if (precio <= 0) {
             showNotification('El precio debe ser mayor a 0', 'error');
             document.getElementById('agrego-precio').focus();
             return;
         }
 
-        // Validación 3: Cantidad válida
         if (cantidad <= 0) {
             showNotification('La cantidad debe ser mayor a 0', 'error');
             document.getElementById('agrego-cantidad').focus();
             return;
         }
 
-        // Validación 4: Notas (opcional pero con límite)
-        if (notas.length > 500) {
-            showNotification('Las notas no pueden exceder 500 caracteres', 'warning');
-            document.getElementById('agrego-notas').focus();
-            return;
-        }
-
-        // Obtener ingredientes seleccionados
-        const ingredientesInputs = document.querySelectorAll('.ingrediente-cantidad:not(:disabled)');
+        // Obtener ingredientes seleccionados con checkbox
+        const checkboxesSeleccionados = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)');
         const ingredientesConsumidos = [];
-        let hayIngredientes = false;
 
-        // Validación 5: Revisar cada ingrediente
-        ingredientesInputs.forEach(input => {
-            const cantidadUsada = parseInt(input.value) || 0;
-            const inputId = input.id || input.dataset.ingredienteId;
+        // Verificar disponibilidad para cada ingrediente seleccionado
+        for (const checkbox of checkboxesSeleccionados) {
+            const ingredienteId = parseInt(checkbox.dataset.ingredienteId);
+            const ingredienteNombre = checkbox.dataset.ingredienteNombre;
+            const disponible = parseInt(checkbox.dataset.ingredienteDisponible) || 0;
 
-            if (cantidadUsada > 0) {
-                const disponible = parseInt(input.dataset.ingredienteDisponible) || 0;
-                const ingredienteNombre = input.dataset.ingredienteNombre || 'Ingrediente';
+            // Cada ingrediente consume 1 unidad por cada producto vendido
+            const consumoTotal = cantidad * 1; // 1 unidad por ingrediente por producto
 
-                // Validación: Cantidad no puede ser negativa
-                if (cantidadUsada < 0) {
-                    showNotification(`La cantidad de ${ingredienteNombre} no puede ser negativa`, 'error');
-                    input.value = 0;
-                    input.focus();
-                    return;
-                }
-
-                // Validación: No exceder disponibilidad
-                if (cantidadUsada > disponible) {
-                    showNotification(`No hay suficiente ${ingredienteNombre}. Disponible: ${disponible}`, 'error');
-                    input.value = Math.min(cantidadUsada, disponible);
-                    input.focus();
-                    return;
-                }
-
-                // Si pasa todas las validaciones, agregar al array
-                ingredientesConsumidos.push({
-                    id: parseInt(input.dataset.ingredienteId),
-                    nombre: ingredienteNombre,
-                    cantidad: cantidadUsada,
-                    inputId: inputId
-                });
-                hayIngredientes = true;
-            }
-        });
-
-        // Validación 6: Al menos un ingrediente
-        if (!hayIngredientes) {
-            showNotification('Debe seleccionar al menos un ingrediente consumido', 'warning');
-
-            // Enfocar el primer input de ingrediente disponible
-            const primerInput = document.querySelector('.ingrediente-cantidad:not(:disabled)');
-            if (primerInput) {
-                primerInput.focus();
+            if (consumoTotal > disponible) {
+                showNotification(
+                    `No hay suficiente ${ingredienteNombre}. Disponible: ${disponible}, Necesitas: ${consumoTotal}`,
+                    'error'
+                );
+                checkbox.focus();
+                return;
             }
 
-            return;
+            // Agregar al array de ingredientes consumidos
+            ingredientesConsumidos.push({
+                id: ingredienteId,
+                nombre: ingredienteNombre,
+                cantidadPorUnidad: 1, // Siempre 1 cuando se usa checkbox
+                cantidadTotal: consumoTotal
+            });
         }
 
-        // Validación 7: Verificar que no haya valores NaN en los inputs
-        let hayValoresInvalidos = false;
-        document.querySelectorAll('.ingrediente-cantidad').forEach(input => {
-            const valor = input.value;
-            if (valor && isNaN(parseInt(valor))) {
-                showNotification(`Valor inválido en ${input.dataset.ingredienteNombre || 'ingrediente'}`, 'error');
-                input.value = 0;
-                hayValoresInvalidos = true;
-            }
-        });
-
-        if (hayValoresInvalidos) {
-            return;
-        }
-
-        // Descontar del ingrediente en la tabla
+        // Descontar ingredientes de la cocina
         ingredientesConsumidos.forEach(ingrediente => {
             const productoIndex = cocinaData.findIndex(p => p.id === ingrediente.id);
             if (productoIndex !== -1) {
                 const ingredienteItem = cocinaData[productoIndex];
-                ingredienteItem.vendido += ingrediente.cantidad;
-                // Ajustar el final para mantener consistencia
+                ingredienteItem.vendido += ingrediente.cantidadTotal;
                 ingredienteItem.final = Math.max(0, ingredienteItem.venta - ingredienteItem.vendido);
+
+                // Recalcular el ingrediente
+                recalcularProductoCocina(ingredienteItem);
             }
         });
 
+        // Crear el nuevo agrego
         const nuevoAgrego = {
             id: Date.now(),
             nombre: nombre,
@@ -2051,7 +2999,7 @@ document.addEventListener('DOMContentLoaded', function () {
             hora: obtenerHoraActual(),
             fecha: new Date().toISOString(),
             montoTotal: precio * cantidad,
-            tipo: 'agrego-simple'
+            tipo: 'producto-checkbox'
         };
 
         // Agregar a la lista de agregos
@@ -2064,16 +3012,18 @@ document.addEventListener('DOMContentLoaded', function () {
         actualizarListaAgregos();
         actualizarTablaCocina();
 
-        document.getElementById('modal-agrego-simple').remove();
+        // Cerrar modal
+        const modal = document.getElementById('modal-agrego-simple');
+        if (modal) modal.remove();
 
-        showNotification('Agrego o producto compuesto registrado correctamente', 'success');
-
-        // Limpiar formulario si es necesario
-        if (typeof resetFormularioAgrego === 'function') {
-            resetFormularioAgrego();
+        // Mostrar resumen
+        let mensaje = `${nombre} registrado correctamente: ${cantidad} unidad(es) × $${precio.toFixed(2)} = $${(precio * cantidad).toFixed(2)}`;
+        if (ingredientesConsumidos.length > 0) {
+            mensaje += `\nIngredientes consumidos: ${ingredientesConsumidos.map(i => `${i.cantidadTotal} ${i.nombre}`).join(', ')}`;
         }
-    }
 
+        showNotification(mensaje, 'success');
+    }
     function guardarRelacionesDesdeModal() {
         const productoId = parseInt(document.getElementById('seleccionar-producto-relacion').value);
 
@@ -2222,11 +3172,24 @@ document.addEventListener('DOMContentLoaded', function () {
                         agrego.ingredientes.forEach(ingrediente => {
                             const producto = cocinaData.find(p => p.id === ingrediente.id);
                             if (producto && producto.esIngrediente) {
-                                producto.vendido -= ingrediente.cantidad;
-                                if (producto.vendido < 0) {
-                                    producto.vendido = 0;
+                                // Obtener la cantidad correcta a restar
+                                let cantidadARestar = 0;
+
+                                if (ingrediente.cantidadTotal !== undefined) {
+                                    cantidadARestar = ingrediente.cantidadTotal;
+                                } else if (ingrediente.cantidad !== undefined) {
+                                    cantidadARestar = ingrediente.cantidad;
+                                } else if (ingrediente.cantidadPorProducto !== undefined && agrego.cantidad !== undefined) {
+                                    cantidadARestar = ingrediente.cantidadPorProducto * agrego.cantidad;
+                                } else {
+                                    cantidadARestar = agrego.cantidad || 1;
                                 }
-                                producto.final = Math.max(0, producto.venta - producto.vendido);
+
+                                // Restar la cantidad
+                                producto.vendido = Math.max(0, producto.vendido - cantidadARestar);
+
+                                // IMPORTANTE: Recalcular el producto completo
+                                recalcularProductoCocina(producto);
                             }
                         });
                     }
@@ -2235,6 +3198,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Recalcular disponibilidad y guardar
                     recalcularDisponibilidad();
+                    recalcularConsumosPorRelaciones(); // Añadir esta línea
                     guardarDatosCocina();
                     actualizarResumenCocina();
                     actualizarListaAgregos();
@@ -2251,54 +3215,104 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (agregos.length === 0) {
             listaAgregos.innerHTML = `
-                <div class="empty-state-card">
-                    <i class="fas fa-plus-circle"></i>
-                    <p>No hay agregos registrados hoy</p>
-                </div>
-            `;
+            <div class="empty-state-card">
+                <i class="fas fa-plus-circle"></i>
+                <p>No hay agregos registrados</p>
+            </div>
+        `;
         } else {
             let html = '';
             agregos.forEach(agrego => {
                 let tipoBadge = '';
                 let ingredientesText = '';
 
+                // CORRECCIÓN AQUÍ: Manejar diferentes estructuras de ingredientes
                 if (agrego.ingredientes && agrego.ingredientes.length > 0) {
-                    ingredientesText = agrego.ingredientes.map(i => {
-                        if (i.cantidadPorProducto) {
-                            return `${i.nombre} (${i.cantidadPorProducto} × ${agrego.cantidad} = ${i.cantidad})`;
+                    // Mapear correctamente las cantidades según la estructura
+                    const ingredientesFormateados = agrego.ingredientes.map(ing => {
+                        // Opción 1: Si tiene cantidadTotal (de los nuevos agregos con checkbox)
+                        if (ing.cantidadTotal !== undefined) {
+                            return `${ing.nombre} (${ing.cantidadTotal})`;
                         }
-                        return `${i.nombre} (${i.cantidad})`;
-                    }).join(', ');
+                        // Opción 2: Si tiene cantidad (de los agregos antiguos)
+                        else if (ing.cantidad !== undefined) {
+                            return `${ing.nombre} (${ing.cantidad})`;
+                        }
+                        // Opción 3: Si tiene cantidadPorProducto (de las relaciones)
+                        else if (ing.cantidadPorProducto !== undefined && agrego.cantidad !== undefined) {
+                            const total = ing.cantidadPorProducto * agrego.cantidad;
+                            return `${ing.nombre} (${ing.cantidadPorProducto} × ${agrego.cantidad} = ${total})`;
+                        }
+                        // Opción 4: Formato por defecto
+                        else {
+                            return `${ing.nombre} (1)`;
+                        }
+                    });
+
+                    ingredientesText = ingredientesFormateados.join(', ');
                 }
 
+                // Determinar tipo de badge
+                if (agrego.tipo === 'producto-checkbox') {
+                    tipoBadge = '<span class="badge-checkbox">Compuesto</span>';
+                } else if (agrego.tipo === 'producto-compuesto') {
+                    tipoBadge = '<span class="badge-compuesto">Compuesto</span>';
+                } else if (agrego.tipo === 'agrego-simple') {
+                    tipoBadge = '<span class="badge-simple">Simple</span>';
+                }
+
+                // CORRECCIÓN: HTML simplificado y compatible con responsive
                 html += `
-                    <div class="agrego-card" data-id="${agrego.id}" data-tipo="${agrego.tipo}">
-                        <div class="agrego-info">
-                            <div class="agrego-header">
-                                <div class="agrego-descripcion">
-                                    <strong>${agrego.nombre || agrego.productoBaseNombre}</strong>
-                                    ${agrego.cantidad > 1 ? `- ${agrego.cantidad} unidad(es)` : ''}
-                                    ${tipoBadge}
-                                </div>
-                            </div>
-                            ${ingredientesText ? `
-                                <div class="agrego-ingredientes">
-                                    <small><i class="fas fa-clipboard-list"></i> Ingredientes: ${ingredientesText}</small>
-                                </div>
-                            ` : ''}
-                            ${agrego.notas ? `<div class="agrego-notas">${agrego.notas}</div>` : ''}
+            <div class="agrego-card" data-id="${agrego.id}" data-tipo="${agrego.tipo}">
+                <div class="agrego-header">
+                    <div class="agrego-titulo">
+                        <div class="agrego-nombre">
+                            <strong>${agrego.nombre}</strong>
+                            ${agrego.cantidad > 1 ? `<span class="agrego-cantidad">× ${agrego.cantidad}</span>` : ''}
+                            ${tipoBadge}
                         </div>
-                        <div class="agrego-monto">$${agrego.montoTotal.toFixed(2)}</div>
-                        <div class="agrego-hora">${agrego.hora}</div>
-                        <button class="eliminar-agrego-btn" data-id="${agrego.id}" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="agrego-hora">
+                            <i class="far fa-clock"></i> ${agrego.hora}
+                        </div>
                     </div>
-                `;
+                    
+                    <div class="agrego-monto-total">
+                        $${agrego.montoTotal.toFixed(2)}
+                        <small class="agrego-precio-unitario">$${agrego.precio.toFixed(2)} c/u</small>
+                    </div>
+                </div>
+                
+                ${ingredientesText ? `
+                <div class="agrego-ingredientes">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span class="ingredientes-texto">${ingredientesText}</span>
+                </div>
+                ` : ''}
+                
+                ${agrego.notas ? `
+                <div class="agrego-notas">
+                    <i class="fas fa-sticky-note"></i>
+                    <span>${agrego.notas}</span>
+                </div>
+                ` : ''}
+                
+                <div class="agrego-footer">
+                    <div class="agrego-calculo">
+                        <small class="calculo-detalle">
+                            ${agrego.cantidad} × $${agrego.precio.toFixed(2)} = $${agrego.montoTotal.toFixed(2)}
+                        </small>
+                    </div>
+                    <button class="eliminar-agrego-btn" data-id="${agrego.id}" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            `;
             });
 
             listaAgregos.innerHTML = html;
 
+            // Agregar event listeners a botones de eliminar
             const botonesEliminar = listaAgregos.querySelectorAll('.eliminar-agrego-btn');
             botonesEliminar.forEach(btn => {
                 btn.addEventListener('click', function () {
@@ -2308,12 +3322,366 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
+        // Actualizar total de agregos
         const totalAgregosElement = document.getElementById('total-agregos');
         const total = agregos.reduce((sum, a) => sum + a.montoTotal, 0);
 
         if (totalAgregosElement) {
             totalAgregosElement.textContent = `$${total.toFixed(2)}`;
         }
+    }
+
+    // Agrega estos estilos al CSS:
+    const estilosAgregos = `
+<style>/* ESTILOS MEJORADOS PARA CARD DE AGREGOS - RESPONSIVE */
+.agrego-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.agrego-card:hover {
+    border-color: #4a6cf7;
+    box-shadow: 0 4px 12px rgba(74, 108, 247, 0.1);
+    transform: translateY(-2px);
+}
+
+/* HEADER */
+.agrego-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.agrego-titulo {
+    flex: 1;
+    min-width: 0;
+}
+
+.agrego-nombre {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.agrego-nombre strong {
+    font-size: 16px;
+    color: #333;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.agrego-cantidad {
+    background: #f0f2ff;
+    color: #4a6cf7;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.agrego-hora {
+    font-size: 13px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.agrego-monto-total {
+    text-align: right;
+    font-size: 18px;
+    font-weight: 600;
+    color: #28a745;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    white-space: nowrap;
+}
+
+.agrego-precio-unitario {
+    font-size: 12px;
+    color: #666;
+    font-weight: normal;
+    margin-top: 2px;
+}
+
+/* INGREDIENTES */
+.agrego-ingredientes {
+    padding: 10px 12px;
+    background: #f8f9ff;
+    border-radius: 8px;
+    border-left: 3px solid #4a6cf7;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.agrego-ingredientes i {
+    color: #4a6cf7;
+    font-size: 14px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.ingredientes-texto {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.4;
+    word-break: break-word;
+    flex: 1;
+}
+
+/* NOTAS */
+.agrego-notas {
+    padding: 10px 12px;
+    background: #fff9e6;
+    border-radius: 8px;
+    border-left: 3px solid #ffc107;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.agrego-notas i {
+    color: #ffc107;
+    font-size: 14px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.agrego-notas span {
+    font-size: 13px;
+    color: #856404;
+    line-height: 1.4;
+    word-break: break-word;
+    flex: 1;
+}
+
+/* FOOTER */
+.agrego-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.agrego-calculo {
+    flex: 1;
+}
+
+.calculo-detalle {
+    font-size: 13px;
+    color: #666;
+    display: inline-block;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.eliminar-agrego-btn {
+    background: #ffebee;
+    border: none;
+    color: #dc3545;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: 10px;
+}
+
+.eliminar-agrego-btn:hover {
+    background: #dc3545;
+    color: white;
+    transform: scale(1.05);
+}
+
+/* BADGES */
+.badge-checkbox,
+.badge-compuesto,
+.badge-simple {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.badge-checkbox {
+    background: #4a6cf7;
+    color: white;
+}
+
+.badge-compuesto {
+    background: #28a745;
+    color: white;
+}
+
+.badge-simple {
+    background: #ffc107;
+    color: #333;
+}
+
+/* EMPTY STATE */
+.empty-state-card {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.empty-state-card i {
+    font-size: 48px;
+    color: #ddd;
+    margin-bottom: 15px;
+}
+
+/* RESPONSIVE PARA MÓVILES */
+@media (max-width: 768px) {
+    .agrego-card {
+        padding: 14px;
+        gap: 10px;
+    }
+    
+    .agrego-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .agrego-titulo {
+        width: 100%;
+    }
+    
+    .agrego-monto-total {
+        align-self: flex-start;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .agrego-precio-unitario {
+        margin-top: 0;
+    }
+    
+    .agrego-nombre {
+        gap: 6px;
+    }
+    
+    .agrego-nombre strong {
+        font-size: 15px;
+    }
+    
+    .agrego-cantidad {
+        font-size: 13px;
+        padding: 1px 6px;
+    }
+    
+    .agrego-monto-total {
+        font-size: 16px;
+    }
+    
+    .agrego-hora {
+        font-size: 12px;
+    }
+    
+    .agrego-ingredientes {
+        padding: 8px 10px;
+    }
+    
+    .ingredientes-texto {
+        font-size: 12px;
+    }
+    
+    .agrego-notas {
+        padding: 8px 10px;
+    }
+    
+    .agrego-notas span {
+        font-size: 12px;
+    }
+    
+    .calculo-detalle {
+        font-size: 12px;
+        padding: 5px 8px;
+    }
+    
+    .eliminar-agrego-btn {
+        width: 32px;
+        height: 32px;
+        margin-left: 8px;
+    }
+    
+    .badge-checkbox,
+    .badge-compuesto,
+    .badge-simple {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .agrego-card {
+        padding: 12px;
+        gap: 8px;
+    }
+    
+    .agrego-nombre strong {
+        font-size: 14px;
+    }
+    
+    .agrego-monto-total {
+        font-size: 15px;
+    }
+    
+    .agrego-ingredientes {
+        padding: 6px 8px;
+    }
+    
+    .ingredientes-texto {
+        font-size: 11px;
+    }
+    
+    .agrego-notas span {
+        font-size: 11px;
+    }
+    
+    .calculo-detalle {
+        font-size: 11px;
+        padding: 4px 6px;
+    }
+    
+    .eliminar-agrego-btn {
+        width: 30px;
+        height: 30px;
+    }
+}
+</style>
+`;
+
+    // Agregar estilos al documento si no existen
+    if (!document.querySelector('#estilos-agregos-mejorados')) {
+        const styleElement = document.createElement('style');
+        styleElement.id = 'estilos-agregos-mejorados';
+        styleElement.textContent = estilosAgregos;
+        document.head.appendChild(styleElement);
     }
 
     function actualizarResumenCocina() {
@@ -2570,12 +3938,12 @@ document.addEventListener('DOMContentLoaded', function () {
             // Guardar el final del día anterior como inicio del nuevo día
             producto.inicio = producto.final;
             producto.entrada = 0;
-            producto.venta = producto.inicio + producto.entrada;
-            producto.final = 0;
+            producto.venta = producto.final;
+            producto.final = producto.final;
             producto.vendido = 0;
             producto.importe = 0;
             producto.disponible = 0;
-            producto.historial = [];
+            producto.historial = producto.historial;
             producto.ultimaActualizacion = obtenerHoraActual();
         });
 
@@ -2602,7 +3970,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.relacionesProductos = relacionesProductos;
     window.relacionesPanIngredientes = relacionesPanIngredientes;
     window.sincronizarProductosCocina = productoCocina;
-    window.guardarAgregoSimpleDesdeModal = guardarAgregoSimpleDesdeModal;
+    window.guardarAgregoSimpleCheckboxes = guardarAgregoSimpleCheckboxes;
 });
 
 // Inicializar cuando se carga la sección de cocina

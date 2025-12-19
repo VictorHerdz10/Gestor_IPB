@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
             emptyState.className = 'empty-state-card';
             emptyState.innerHTML = `
                 <i class="fas fa-money-bill-wave"></i>
-                <p>No hay extracciones registradas hoy</p>
+                <p>No hay extracciones registradas</p>
                 <button class="btn btn-outline" id="btn-add-first-extraccion">
                     <i class="fas fa-plus"></i> Agregar primera extracción
                 </button>

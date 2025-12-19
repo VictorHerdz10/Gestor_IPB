@@ -76,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Función para cargar datos
     function loadEfectivoData() {
-        const hoy = new Date().toISOString().split('T')[0];
         let registros = [];
         const registrosData = localStorage.getItem('ipb_efectivo_data');
 
@@ -88,15 +87,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Filtrar registros de hoy
-        registros = registros.filter(r => r.fecha === hoy);
-
         // Calcular total
         let total = 0;
 
         // Actualizar UI
         if (registros.length === 0) {
-            listaEfectivo.innerHTML = '<p class="no-data">No hay registros de efectivo hoy</p>';
+            listaEfectivo.innerHTML = '<p class="no-data">No hay registros de efectivo</p>';
         } else {
             let html = '';
 

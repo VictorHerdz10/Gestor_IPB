@@ -48,6 +48,9 @@ body {
     display: flex;
     min-height: 100vh;
 }
+.btn-icon .btn-text {
+        display: none !important; 
+    }
 
 /* ===== SIDEBAR ===== */
 .sidebar {
@@ -290,7 +293,6 @@ body {
 /* ===== CONTENT SECTIONS ===== */
 .content-section {
     display: none;
-    padding: 0;
 }
 
 .content-section.active {
@@ -298,6 +300,7 @@ body {
     padding: 1rem;
     flex: 1;
     overflow-y: auto;
+    margin-bottom: 50px;
 }
 
 @keyframes fadeIn {
@@ -305,6 +308,7 @@ body {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -581,6 +585,7 @@ body {
         opacity: 0;
         transform: translateY(50px) scale(0.9);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -626,7 +631,7 @@ body {
 }
 
 /* ===== MODAL DE CONFIRMACIÓN ===== */
-.modal-confirm{
+.modal-confirm {
     max-width: 500px;
 }
 
@@ -682,10 +687,11 @@ body {
     .sidebar {
         width: var(--sidebar-collapsed);
     }
-      .top-bar {
+
+    .top-bar {
         padding: 0 1.5rem;
     }
-    
+
     .sidebar h2,
     .sidebar-menu span,
     .logout-btn span {
@@ -694,33 +700,33 @@ body {
         overflow: hidden;
         transition: all 0.3s ease;
     }
-    
+
     .logo {
         justify-content: center;
     }
-    
+
     .sidebar-menu a {
         justify-content: center;
         padding: 1rem;
     }
-    
+
     .sidebar-menu a span {
         display: none;
     }
-    
+
     .sidebar-menu a.active {
         padding-left: 1rem;
     }
-    
+
     .main-content {
         margin-left: var(--sidebar-collapsed);
         width: calc(100% - var(--sidebar-collapsed));
     }
-    
+
     .summary-cards {
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
-    
+
     .summary-details {
         grid-template-columns: 1fr;
     }
@@ -732,11 +738,11 @@ body {
         transform: translateX(-100%);
         width: 280px;
     }
-    
+
     .sidebar.active {
         transform: translateX(0);
     }
-    
+
     .sidebar h2,
     .sidebar-menu span,
     .logout-btn span {
@@ -744,40 +750,41 @@ body {
         width: auto;
         display: inline;
     }
-    
+
     .sidebar-menu a {
         justify-content: flex-start;
         padding: 1rem 1.5rem;
     }
-    
+
     .sidebar-menu a span {
         display: inline;
     }
-    
+
     .main-content {
         margin-left: 0;
         width: 100%;
     }
-    
+
     .top-bar {
         padding: 1rem;
         flex-direction: row;
         gap: 1rem;
         height: auto;
         min-height: var(--header-height);
+        position: sticky;
     }
-    
+
     .top-bar-left {
         flex: 1;
         text-align: left;
     }
-    
+
     .top-bar-right {
         flex-shrink: 0;
         justify-content: flex-end;
         position: relative;
     }
-    
+
     .mobile-menu-toggle {
         position: static;
         margin-right: 0;
@@ -793,36 +800,36 @@ body {
         cursor: pointer;
         transition: var(--transition);
     }
-    
+
     .mobile-menu-toggle:hover {
         background: var(--primary-dark);
     }
-    
+
     .content-section.active {
         padding: 1rem;
         width: 100%;
         overflow-x: hidden;
     }
-    
+
     .summary-card,
     .detail-card,
     .form-container {
         padding: 1rem;
     }
-    
+
     .card-body .amount {
         font-size: 1.5rem;
     }
-    
+
     .input-with-button {
         flex-direction: column;
     }
-    
+
     .input-with-button input,
     .input-with-button .btn {
         width: 100%;
     }
-    
+
 }
 
 /* Desktop hover effects */
@@ -830,7 +837,7 @@ body {
     .sidebar:hover {
         width: var(--sidebar-width);
     }
-    
+
     .sidebar:hover h2,
     .sidebar:hover .sidebar-menu span,
     .sidebar:hover .logout-btn span {
@@ -838,16 +845,16 @@ body {
         width: auto;
         display: inline;
     }
-    
+
     .sidebar:hover .logo {
         justify-content: flex-start;
     }
-    
+
     .sidebar:hover .sidebar-menu a {
         justify-content: flex-start;
         padding: 1rem 1.5rem;
     }
-    
+
     .sidebar:hover .sidebar-menu a span {
         display: inline;
     }
@@ -866,6 +873,7 @@ body {
         opacity: 0;
         transform: translateX(30px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -952,11 +960,11 @@ body {
     color: var(--danger-color) !important;
 }
 
-.summary-card .card-body .amount.positive ~ .description {
+.summary-card .card-body .amount.positive~.description {
     color: var(--success-color) !important;
 }
 
-.summary-card .card-body .amount.negative ~ .description {
+.summary-card .card-body .amount.negative~.description {
     color: var(--danger-color) !important;
 }
 
@@ -967,26 +975,26 @@ body {
         gap: 0.75rem;
         height: auto;
         min-height: auto;
-        position: relative;
+        position: sticky;
     }
-    
+
     .top-bar-left {
         flex: 1;
         order: 1;
         min-width: 0;
     }
-    
+
     .top-bar-left h1 {
         font-size: 1.3rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    
+
     .date-display {
         font-size: 0.8rem;
     }
-    
+
     .top-bar-right {
         order: 3;
         width: 100%;
@@ -994,11 +1002,11 @@ body {
         gap: 0.5rem;
         margin-top: 0.5rem;
     }
-    
+
     .mobile-menu-toggle {
         order: 2;
         position: static;
-        margin-left: 0.5rem;
+        margin-left: 0;
         background: var(--primary-color);
         color: white;
         border: none;
@@ -1012,11 +1020,11 @@ body {
         transition: var(--transition);
         flex-shrink: 0;
     }
-    
+
     .mobile-menu-toggle:hover {
         background: var(--primary-dark);
     }
-    
+
     /* Ajustar botones en mobile */
     .btn {
         padding: 0.6rem 1rem;
@@ -1024,7 +1032,7 @@ body {
         flex: 1;
         justify-content: center;
     }
-    
+
     .btn i {
         font-size: 0.9rem;
     }
@@ -1035,31 +1043,32 @@ body {
     .top-bar {
         padding: 0.5rem;
         gap: 0.5rem;
+        position: sticky;
     }
-    
+
     .top-bar-left h1 {
         font-size: 1.1rem;
     }
-    
+
     .date-display {
         font-size: 0.75rem;
     }
-    
+
     .mobile-menu-toggle {
         width: 36px;
         height: 36px;
     }
-    
+
     .top-bar-right {
         flex-direction: column;
         gap: 0.5rem;
     }
-    
+
     .btn {
         width: 100%;
         padding: 0.75rem;
     }
-    
+
     .btn i {
         margin-right: 0.25rem;
     }
@@ -1070,7 +1079,7 @@ body {
     .top-bar {
         flex-wrap: nowrap;
     }
-    
+
     .top-bar-right {
         order: 2;
         width: auto;
@@ -1079,12 +1088,12 @@ body {
         justify-content: flex-end;
         gap: 0.5rem;
     }
-    
+
     .mobile-menu-toggle {
         order: 3;
-        margin-left: 0.5rem;
+        margin-left: 0;
     }
-    
+
     .btn {
         padding: 0.5rem 0.75rem;
         font-size: 0.85rem;
@@ -1226,15 +1235,16 @@ body {
         grid-template-columns: 1fr;
         gap: 1rem;
     }
-    
+
     .summary-card {
         padding: 1.25rem;
     }
-    
+
     .card-body .amount {
         font-size: 1.75rem;
     }
 }
+
 .summary-details {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -1312,15 +1322,295 @@ body {
     .summary-details {
         grid-template-columns: 1fr;
     }
-    
+
     .detail-card {
         padding: 1.25rem;
     }
 }
+
 .modal-footer {
     padding: 1.5rem;
     border-top: 1px solid var(--gray-light);
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
+}
+
+/* Añade al final de dashboard.css */
+.has-unified-nav .main-content {
+    padding-bottom: 80px !important;
+}
+
+/* Asegurar que el contenido no quede debajo de la barra */
+.main-content {
+    transition: padding-bottom 0.3s ease;
+}
+
+/* Ocultar la barra en ciertas situaciones si es necesario */
+@media print {
+    .unified-nav {
+        display: none !important;
+    }
+}
+
+/* Barra de navegación inferior para dashboard */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding-bottom: 10px;
+
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    border-top: 1px solid #e9ecef;
+}
+
+.has-bottom-nav .main-content {
+    padding-bottom: 70px !important;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    flex: 1;
+    padding: 5px 0;
+    transition: all 0.3s;
+}
+
+.nav-icon {
+    font-size: 1.2rem;
+    color: #6c757d;
+    margin-bottom: 3px;
+    transition: all 0.3s;
+}
+
+.nav-label {
+    font-size: 0.7rem;
+    color: #6c757d;
+    transition: all 0.3s;
+}
+
+.nav-item.active .nav-icon,
+.nav-item.active .nav-label {
+    color: #4361ee;
+}
+
+.nav-item:active .nav-icon {
+    transform: scale(1.1);
+}
+
+/* === BOTONES RESPONSIVE PARA TOP BAR === */
+
+/* Eliminar/sobrescribir estilos conflictivos */
+@media (max-width: 768px) {
+    .top-bar-right {
+        flex-wrap: nowrap !important;
+        /* Evitar que se rompa en múltiples líneas */
+        gap: 0.5rem !important;
+        margin-top: 0 !important;
+        width: auto !important;
+        order: 2 !important;
+        /* Asegurar que esté a la derecha */
+    }
+
+    .mobile-buttons {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+        flex-shrink: 0;
+        /* Evitar que se reduzcan */
+    }
+
+    .btn-icon {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.85rem !important;
+        min-width: auto !important;
+        flex-shrink: 0;
+        /* Evitar que se reduzcan */
+        white-space: nowrap;
+    }
+
+    .btn-icon i {
+        margin-right: 0.3rem !important;
+        font-size: 0.9rem;
+    }
+
+    .btn-icon .btn-text {
+        display: none !important;
+        font-size: 0.85rem;
+    }
+
+    /* Ajustes específicos para pantallas muy pequeñas */
+    @media (max-width: 480px) {
+        .mobile-buttons {
+            gap: 0.3rem;
+        }
+
+        .btn-icon {
+            padding: 0.4rem 0.6rem !important;
+            font-size: 0.8rem !important;
+        }
+
+        .btn-icon .btn-text 
+        {display: none !important;
+            font-size: 0.75rem;
+        }
+
+        .btn-icon i {
+            font-size: 0.8rem;
+            margin-right: 0.2rem !important;
+        }
+    }
+
+    /* Ajustar layout general del top-bar */
+    .top-bar {
+        flex-wrap: nowrap !important;
+        /* Mantener todo en una línea */
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem !important;
+        height: auto;
+        min-height: 60px;
+    }
+
+    .top-bar-left {
+        flex: 1;
+        min-width: 0;
+        /* Permitir que se reduzca */
+        overflow: hidden;
+    }
+
+    .top-bar-left h1 {
+        font-size: 1.2rem !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 0.2rem !important;
+    }
+
+    .date-display {
+        font-size: 0.75rem !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+}
+
+/* Pantallas extremadamente pequeñas */
+@media (max-width: 360px) {
+    .btn-icon .btn-text {
+        display: none !important;
+        /* Ocultar texto en pantallas muy pequeñas */
+    }
+
+    .btn-icon {
+        padding: 0.5rem !important;
+        width: 36px;
+        height: 36px;
+        justify-content: center;
+    }
+
+    .btn-icon i {
+        margin-right: 0 !important;
+        font-size: 0.9rem;
+    }
+
+    .mobile-buttons {
+        gap: 0.2rem;
+    }
+
+    .top-bar {
+        padding: 0.5rem !important;
+    }
+
+    .top-bar-left h1 {
+        font-size: 1.1rem !important;
+    }
+}
+
+/* Para tablets (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .mobile-buttons {
+        gap: 0.6rem;
+    }
+
+    .btn-icon {
+        padding: 0.6rem 0.9rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    .top-bar {
+        padding: 0 1.5rem !important;
+    }
+}
+
+/* Para escritorio (más de 1024px) */
+@media (min-width: 1025px) {
+    .mobile-buttons {
+        gap: 0.75rem;
+    }
+
+    .btn-icon {
+        padding: 0.75rem 1.25rem !important;
+    }
+}
+
+/* === ESTILOS BASE PARA BOTONES ICONO === */
+.btn-icon {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.btn-icon.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    color: white;
+    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+}
+
+.btn-icon.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+}
+
+.btn-icon.btn-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-icon.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
+
+/* === CORRECCIÓN DE ESPACIOS Y LAYOUT === */
+/* Asegurar que el contenido no se desborde */
+.top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    background: white;
+    box-shadow: var(--shadow);
+}
+
+/* Eliminar conflictos con otros estilos */
+.btn {
+    min-width: auto !important;
+    /* Sobrescribir cualquier min-width que cause problemas */
 }

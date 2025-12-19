@@ -846,7 +846,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Función para cargar registros
     function loadRegistros() {
-        const hoy = new Date().toISOString().split('T')[0];
         let registros = [];
         const registrosData = localStorage.getItem('ipb_billetes_registros');
 
@@ -858,12 +857,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Filtrar registros de hoy
-        registros = registros.filter(r => r.fecha === hoy);
-
         // Actualizar UI
         if (registros.length === 0) {
-            listaRegistros.innerHTML = '<p class="no-data">No hay registros de conteo hoy</p>';
+            listaRegistros.innerHTML = '<p class="no-data">No hay registros de conteo</p>';
         } else {
             let html = '';
 

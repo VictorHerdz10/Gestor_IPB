@@ -1,0 +1,1618 @@
+/* historial.css - Estilos específicos para la sección de historial IPV */
+
+/* ===== CONTENEDOR PRINCIPAL ===== */
+.historial-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* ===== CONTROLES Y FILTROS ===== */
+.historial-controls {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-grid .form-group {
+    margin-bottom: 0;
+}
+
+.filter-grid label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin-bottom: 0.5rem;
+}
+
+.filter-grid .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--gray-light);
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    transition: var(--transition);
+}
+
+.filter-grid .form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--gray-light);
+    padding-top: 1.5rem;
+}
+
+.action-buttons .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+}
+
+/* ===== LISTA DE REPORTES ===== */
+.historial-list-container {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--gray-light);
+}
+
+.list-header h3 {
+    color: var(--secondary-color);
+    font-size: 1.3rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.list-header .total-display {
+    font-weight: 600;
+    color: var(--gray-dark);
+}
+
+.list-header .amount {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    margin-left: 0.5rem;
+}
+
+.historial-list-wrapper {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.historial-list-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.historial-list-wrapper::-webkit-scrollbar-thumb {
+    background: var(--gray-medium);
+    border-radius: 3px;
+}
+
+.historial-list-wrapper::-webkit-scrollbar-track {
+    background: var(--gray-light);
+    border-radius: 3px;
+}
+
+.historial-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* ===== TARJETA DE REPORTE ===== */
+.reporte-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.25rem;
+    border: 2px solid var(--gray-light);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.reporte-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.1);
+}
+
+.reporte-card.seleccionado {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.05) 0%, rgba(67, 97, 238, 0.02) 100%);
+    box-shadow: 0 5px 20px rgba(67, 97, 238, 0.15);
+}
+
+.reporte-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.reporte-fecha {
+    font-weight: 700;
+    color: var(--secondary-color);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.reporte-fecha i {
+    color: var(--primary-color);
+}
+
+.reporte-hora {
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+    background: var(--gray-light);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.reporte-card-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.reporte-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.reporte-item-label {
+    font-size: 0.85rem;
+    color: var(--gray-medium);
+    font-weight: 500;
+}
+
+.reporte-item-valor {
+    font-weight: 600;
+    color: var(--secondary-color);
+    font-size: 1rem;
+}
+
+.reporte-item-valor.amount {
+    color: var(--primary-color);
+}
+
+.reporte-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-light);
+}
+
+.reporte-titulo {
+    font-weight: 600;
+    color: var(--dark-color);
+    flex: 1;
+    margin-right: 1rem;
+}
+
+.reporte-acciones {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.reporte-btn {
+    background: none;
+    border: 1px solid var(--gray-medium);
+    color: var(--gray-dark);
+    padding: 0.5rem 0.75rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.reporte-btn:hover {
+    background: var(--light-color);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.reporte-btn.verde {
+    background: var(--success-color);
+    color: white;
+    border-color: var(--success-color);
+}
+
+.reporte-btn.verde:hover {
+    background: #1d7c3c;
+}
+
+/* ===== DETALLE DEL REPORTE ===== */
+.historial-detalle-container {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.detalle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--gray-light);
+}
+
+.detalle-header h3 {
+    color: var(--secondary-color);
+    font-size: 1.3rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detalle-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.detalle-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+}
+
+.detalle-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.detalle-card {
+    background: var(--light-color);
+    border-radius: 10px;
+    padding: 1rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.detalle-card h4 {
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detalle-card h4 i {
+    color: var(--primary-color);
+}
+
+.detalle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.detalle-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.detalle-info-item:last-child {
+    border-bottom: none;
+}
+
+.detalle-info-label {
+    font-weight: 500;
+    color: var(--gray-dark);
+}
+
+.detalle-info-valor {
+    padding-left: 1px;
+    font-weight: 600;
+    color: var(--secondary-color);
+}
+
+.detalle-info-valor.amount {
+    color: var(--primary-color);
+}
+
+/* ===== MODAL DE VISUALIZACIÓN ===== */
+.modal-historial {
+    max-width: 1200px;
+    width: 95%;
+    max-height: 90vh;
+    overflow: hidden;
+}
+
+.modal-historial .modal-content {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-historial .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.modal-historial-body {
+    padding: 1.5rem;
+}
+
+/* Preview del reporte */
+.reporte-preview {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    border: 1px solid var(--gray-light);
+}
+
+.reporte-preview-section {
+    margin-bottom: 2rem;
+}
+
+.reporte-preview-section:last-child {
+    margin-bottom: 0;
+}
+
+.reporte-preview-section h4 {
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--gray-light);
+    font-size: 1.1rem;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1200px) {
+    .filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .historial-controls {
+        padding: 1rem;
+    }
+    
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .reporte-card-body {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .reporte-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .reporte-card-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .reporte-titulo {
+        margin-right: 0;
+        text-align: center;
+    }
+    
+    .reporte-acciones {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .detalle-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .detalle-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .detalle-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .reporte-card-body {
+        grid-template-columns: 1fr;
+    }
+    
+    .reporte-acciones {
+        flex-direction: column;
+    }
+    
+    .reporte-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Estados vacíos y loading */
+#historial-empty-state {
+    display: flex;
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+#historial-empty-state i {
+    font-size: 4rem;
+    color: var(--gray-light);
+    margin-bottom: 1rem;
+}
+
+#historial-empty-state p {
+    color: var(--gray-medium);
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+#historial-empty-state .small-text {
+    font-size: 0.9rem;
+    color: var(--gray-medium);
+    margin-bottom: 1.5rem;
+}
+
+/* Estado de carga */
+.loading-historial {
+    text-align: center;
+    padding: 3rem;
+}
+
+.loading-historial i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVIDAD PARA BOTONES ===== */
+@media (max-width: 768px) {
+    /* Botones del historial-controls */
+    .action-buttons .btn {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .action-buttons .btn i {
+        font-size: 1rem;
+        min-width: 20px;
+    }
+    
+    .action-buttons .btn .btn-text {
+        display: inline;
+    }
+}
+
+@media (max-width: 576px) {
+    /* Para pantallas más pequeñas, ocultar texto largo */
+    .action-buttons .btn span {
+        display: none;
+    }
+    
+    .action-buttons .btn::after {
+        content: attr(data-short);
+    }
+    
+    /* Asignar textos cortos a los botones */
+    #btn-guardar-hoy::after {
+        content: "Guardar Reporte del dia";
+    }
+    
+    #btn-exportar-seleccion::after {
+        content: "Exportar PDF seleccionado";
+    }
+    
+    
+    /* Botones en detalle-actions */
+    .detalle-actions .btn span {
+        display: none;
+    }
+    
+    .detalle-actions .btn::after {
+        content: attr(data-short);
+    }
+
+    
+    /* Botón en empty state */
+    #btn-guardar-primer-reporte {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        display: flex;
+        justify-content: center;
+    }
+    
+    #btn-guardar-primer-reporte i {
+        margin-right: 0.5rem;
+    }
+    
+    #btn-guardar-primer-reporte span {
+        display: inline;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Botones muy pequeños - solo íconos */
+    .action-buttons {
+        gap: 0.5rem;
+    }
+    
+    .action-buttons .btn {
+        padding: 0.75rem;
+        width: 48%;
+        justify-content: center;
+    }
+    
+    .action-buttons .btn::after {
+        content: "";
+    }
+    
+    .action-buttons .btn i {
+        margin-right: 0;
+        font-size: 1.1rem;
+    }
+    
+    /* Detalle actions - solo íconos */
+    .detalle-actions {
+        gap: 0.25rem;
+    }
+    
+    .detalle-actions .btn {
+        padding: 0.5rem;
+        min-width: auto;
+    }
+    
+    .detalle-actions .btn::after {
+        content: "";
+    }
+    
+    .detalle-actions .btn i {
+        margin-right: 0;
+        font-size: 1rem;
+    }
+    
+    /* Botón guardar primer reporte */
+    #btn-guardar-primer-reporte {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    #btn-guardar-primer-reporte span {
+        display: inline;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 360px) {
+    /* Para pantallas muy pequeñas (móviles antiguos) */
+    
+    .action-buttons .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .action-buttons .btn:last-child {
+        margin-bottom: 0;
+    }
+    
+    .detalle-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .detalle-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Ajustes para botones de reporte-card */
+    .reporte-btn .btn-text {
+        display: none;
+    }
+    
+    .reporte-btn {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .reporte-btn i {
+        margin-right: 0;
+    }
+}
+
+/* ===== AJUSTES ESPECÍFICOS PARA BOTÓN GUARDAR PRIMER REPORTE ===== */
+#btn-guardar-primer-reporte {
+    min-width: 200px;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+#btn-guardar-primer-reporte i {
+    font-size: 1.1rem;
+}
+
+/* Para pantallas medianas */
+@media (max-width: 768px) {
+    #btn-guardar-primer-reporte {
+        min-width: 180px;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.95rem;
+    }
+}
+
+/* Para pantallas pequeñas */
+@media (max-width: 576px) {
+    #btn-guardar-primer-reporte {
+        min-width: 160px;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    #btn-guardar-primer-reporte i {
+        font-size: 1rem;
+    }
+}
+
+/* Para pantallas muy pequeñas */
+@media (max-width: 480px) {
+    #btn-guardar-primer-reporte {
+        width: 100%;
+        max-width: 280px;
+        min-width: auto;
+    }
+    
+    #btn-guardar-primer-reporte span {
+        display: inline;
+    }
+}
+
+/* Para pantallas extremadamente pequeñas */
+@media (max-width: 360px) {
+    #btn-guardar-primer-reporte {
+        padding: 0.75rem;
+        font-size: 0.85rem;
+    }
+    
+    #btn-guardar-primer-reporte span {
+        font-size: 0.85rem;
+    }
+}
+
+/* ===== TEXTO ALTERNATIVO PARA BOTONES ===== */
+/* Agregar atributos data-short a los botones en el HTML */
+/* Esto se haría en el JavaScript o directamente en el HTML */
+
+/* Ejemplo de cómo deberían quedar los botones en el HTML:
+<button class="btn btn-success" id="btn-guardar-hoy" data-short="Guardar">
+    <i class="fas fa-save"></i>
+    <span>Guardar Reporte del Día</span>
+</button>
+*/
+/* ===== ALINEACIÓN ESPECÍFICA PARA BOTÓN GUARDAR PRIMER REPORTE ===== */
+#btn-guardar-primer-reporte {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    min-width: 200px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 1.5;
+    margin-top: 1rem;
+}
+
+#btn-guardar-primer-reporte i {
+    font-size: 1.1rem;
+    display: inline-block;
+    vertical-align: middle;
+    margin: 0;
+    line-height: 1;
+}
+
+#btn-guardar-primer-reporte span {
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1.5;
+}
+
+/* Si el botón tiene texto directamente (sin span), ajustar así: */
+#btn-guardar-primer-reporte {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* Asegurar que el ícono tenga el tamaño correcto */
+#guardar-history {
+    font-size: 1.1rem;
+    line-height: 1;
+    margin: 0;
+}
+
+/* Para pantallas más pequeñas */
+@media (max-width: 768px) {
+    #btn-guardar-primer-reporte {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.95rem;
+        min-width: 180px;
+    }
+    
+    #guardar-history {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    #btn-guardar-primer-reporte {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        min-width: 160px;
+    }
+    
+    #guardar-history {
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #btn-guardar-primer-reporte {
+        width: 100%;
+        max-width: 280px;
+        min-width: auto;
+    }
+}
+
+/* ===== SOLUCIÓN ALTERNATIVA SI NO FUNCIONA ===== */
+/* Si sigue desalineado, usa flexbox más estricto */
+#btn-guardar-primer-reporte.fixed-align {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+}
+
+#btn-guardar-primer-reporte.fixed-align i,
+#btn-guardar-primer-reporte.fixed-align #guardar-history {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    width: 20px;
+    font-size: 18px;
+    line-height: 1;
+}
+
+/* ===== VERIFICAR ESTILOS GENERALES DE BOTONES ===== */
+/* A veces el problema viene de estilos generales, agrega esto: */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    vertical-align: middle;
+}
+
+.btn i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* ===== SOLUCIÓN DE EMERGENCIA ===== */
+/* Si nada funciona, resetea estilos específicos */
+#btn-guardar-primer-reporte {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    min-width: 200px;
+    margin-top: 1rem;
+}
+
+#btn-guardar-primer-reporte:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.15);
+}
+
+#btn-guardar-primer-reporte:active {
+    transform: translateY(0);
+}
+
+#guardar-history {
+    font-size: 1.1rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+/* historial.css - Estilos mejorados para la sección de historial IPV */
+
+/* ===== MEJORAS PARA MODALES ===== */
+.modal-historial .modal-content {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e0e0e0;
+}
+
+.modal-historial .modal-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border-radius: 12px 12px 0 0;
+    padding: 1.5rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-historial .modal-header h3 {
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-historial .modal-body {
+    background: white;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+.modal-historial .modal-footer {
+    background: #f8f9fa;
+    border-radius: 0 0 12px 12px;
+    padding: 1.5rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* ===== TARJETAS DE REPORTE MEJORADAS ===== */
+.reporte-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.reporte-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-color);
+    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.15);
+}
+
+.reporte-card.seleccionado {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.05) 0%, rgba(67, 97, 238, 0.02) 100%);
+    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.2);
+    position: relative;
+}
+
+.reporte-card.seleccionado::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+    border-radius: 12px 0 0 12px;
+}
+
+/* Indicador de selección */
+.reporte-card.seleccionado .seleccion-indicator {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    background: var(--primary-color);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+/* Botón para deseleccionar */
+.btn-deseleccionar {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10;
+}
+
+.reporte-card.seleccionado .btn-deseleccionar {
+    opacity: 1;
+}
+
+.btn-deseleccionar:hover {
+    background: #dc3545;
+}
+
+/* ===== DETALLES EXPANDIDOS ===== */
+.detalle-expandido {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e9ecef;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.detalle-seccion {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.detalle-seccion h5 {
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detalle-seccion h5 i {
+    color: var(--primary-color);
+}
+
+/* ===== MEJORAS RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .historial-controls {
+        padding: 1rem;
+    }
+    
+    .filter-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.875rem 1rem;
+    }
+    
+    .reporte-card-body {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    
+    .reporte-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .reporte-card-footer {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .reporte-titulo {
+        text-align: center;
+        word-break: break-word;
+    }
+    
+    .reporte-acciones {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .detalle-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+    
+    .detalle-actions {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .detalle-content {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .modal-historial .modal-content {
+        margin: 1rem;
+        width: calc(100% - 2rem);
+    }
+}
+
+@media (max-width: 576px) {
+    .reporte-card-body {
+        grid-template-columns: 1fr;
+    }
+    
+    .reporte-acciones {
+        flex-direction: column;
+    }
+    
+    .reporte-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Textos cortos para botones en móviles */
+    .action-buttons .btn span {
+        display: none;
+    }
+    
+    .action-buttons .btn::after {
+        content: attr(data-short);
+    }
+    
+    .detalle-actions .btn span {
+        display: none;
+    }
+    
+    .detalle-actions .btn::after {
+        content: attr(data-short);
+    }
+    
+}
+
+@media (max-width: 480px) {
+    .action-buttons {
+        gap: 0.5rem;
+    }
+    
+    .action-buttons .btn {
+        padding: 0.75rem;
+    }
+    
+    .action-buttons .btn i {
+        margin-right: 0;
+        font-size: 1.1rem;
+    }
+    
+    .detalle-actions {
+        gap: 0.25rem;
+    }
+    
+    .detalle-actions .btn {
+        padding: 0.5rem;
+        min-width: auto;
+        font-size: 0.9rem;
+    }
+    
+    .btn-deseleccionar {
+        top: 5px;
+        right: 5px;
+    }
+    
+    /* Solo íconos en pantallas muy pequeñas */
+    .action-buttons .btn::after {
+        content: "";
+    }
+    
+    .detalle-actions .btn::after {
+        content: "";
+    }
+}
+
+/* ===== ESTILOS PARA DATOS FINANCIEROS DETALLADOS ===== */
+.financiero-detalle {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.financiero-categoria {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.financiero-categoria h6 {
+    color: var(--secondary-color);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--gray-light);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.financiero-categoria h6 i {
+    color: var(--primary-color);
+}
+
+.lista-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.lista-items::-webkit-scrollbar {
+    width: 4px;
+}
+
+.lista-items::-webkit-scrollbar-thumb {
+    background: var(--gray-medium);
+    border-radius: 2px;
+}
+
+.item-financiero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.item-descripcion {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--gray-dark);
+    word-break: break-word;
+    padding-right: 0.5rem;
+}
+
+.item-monto {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.95rem;
+    min-width: 80px;
+    text-align: right;
+}
+
+.total-categoria {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--gray-light);
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    color: var(--secondary-color);
+}
+
+/* ===== MEJORAS PARA BOTONES ===== */
+.btn-accion-historial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-accion-historial.primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-accion-historial.primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+}
+
+.btn-accion-historial.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-accion-historial.secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.btn-accion-historial.success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-accion-historial.success:hover {
+    background: #1e7e34;
+    transform: translateY(-2px);
+}
+
+/* ===== INDICADORES DE ESTADO ===== */
+.estado-cargado {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 9999;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.estado-cargado i {
+    font-size: 1.1rem;
+}
+
+/* ===== MEJORAS PARA EL MODAL DE VISUALIZACIÓN ===== */
+.modal-vista-previa {
+    max-width: 1200px;
+}
+
+.vista-previa-contenido {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 992px) {
+    .vista-previa-contenido {
+        grid-template-columns: 1fr;
+    }
+}
+
+.panel-datos {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.panel-datos h4 {
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.panel-datos h4 i {
+    color: var(--primary-color);
+}
+
+/* ===== MEJORAS PARA LISTAS DETALLADAS ===== */
+.lista-detallada {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.lista-detallada::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lista-detallada::-webkit-scrollbar-thumb {
+    background: var(--gray-medium);
+    border-radius: 3px;
+}
+
+.item-detallado {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid var(--primary-color);
+    transition: all 0.2s ease;
+}
+
+.item-detallado:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.item-numero {
+    background: var(--primary-color);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.item-contenido {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.item-titulo {
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin: 0;
+}
+
+.item-descripcion {
+    color: var(--gray-dark);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.item-valores {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    min-width: 120px;
+}
+
+.item-valor {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.item-fecha {
+    color: var(--gray-medium);
+    font-size: 0.8rem;
+}
+
+/* ===== TOOLTIPS MEJORADOS ===== */
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 5px;
+}
+
+[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.8);
+    margin-bottom: -5px;
+}
+
+/* ===== ANIMACIONES ===== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* ===== BADGES DE ESTADO ===== */
+.badge-estado {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    gap: 0.5rem;
+}
+
+.badge-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.badge-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* ===== LOADER MEJORADO ===== */
+.loader-historial {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+}
+
+.loader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+#btn-exportar-reporte{
+    margin-bottom: 5px;
+}
+#btn-eliminar-reporte{
+    padding-top: 5px;
+}
