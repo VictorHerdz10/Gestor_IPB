@@ -694,56 +694,1036 @@ footer {
 .delay-3 { animation-delay: 0.6s; }
 .delay-4 { animation-delay: 0.8s; }
 
-/* Sección Beta */
-.beta-section {
-    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-    color: white;
-    padding: 80px 0;
+
+/* DOWNLOAD STATS */
+.download-stats {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.stat-item {
     text-align: center;
+    color: white;
 }
 
-.beta-content {
-    max-width: 600px;
-    margin: 0 auto;
+.stat-item i {
+    font-size: 1.5rem;
+    color: #4CAF50;
+    margin-bottom: 5px;
+    display: block;
 }
 
-.beta-icon {
-    font-size: 4rem;
-    margin-bottom: 20px;
-    color: #ffde59;
+.stat-number {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 700;
 }
 
-.btn-beta {
-    display: inline-flex;
+.stat-label {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* DOWNLOAD CARD */
+.download-card {
+    display: flex;
     align-items: center;
-    gap: 10px;
-    background: #ffde59;
-    color: #333;
-    padding: 15px 30px;
-    border-radius: 50px;
-    font-weight: 600;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.app-icon img {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.app-details {
+    flex: 1;
+}
+
+.app-details h3 {
+    margin: 0 0 10px 0;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.app-details p {
+    margin: 5px 0;
+    font-size: 0.85rem;
+    color: #ddd;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.app-details i {
+    color: #4CAF50;
+    width: 16px;
+}
+
+/* DOWNLOAD DIRECT BUTTON */
+.download-direct-btn {
+    display: block;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    border-radius: 15px;
+    padding: 20px;
     text-decoration: none;
     margin: 25px 0;
+    box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
     transition: all 0.3s ease;
-    font-size: 1.1rem;
+    border: none;
+    width: 100%;
 }
 
-.btn-beta:hover {
-    background: #ffd32a;
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+.download-direct-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 3px 15px rgba(76, 175, 80, 0.3);
 }
 
-.beta-info {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 20px;
-    margin-top: 30px;
+.download-btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.download-btn-content i {
+    font-size: 2rem;
+    animation: bounce 2s infinite;
+}
+
+.download-text {
+    flex: 1;
+    margin-left: 15px;
     text-align: left;
 }
 
-.beta-info p {
-    margin: 10px 0;
+.download-text strong {
+    display: block;
+    font-size: 1.2rem;
+    margin-bottom: 3px;
+}
+
+.download-text small {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.download-size {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.download-hint {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* INSTALL STEPS */
+.install-steps {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.install-steps h4 {
+    color: white;
+    margin-top: 0;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.install-steps ol {
+    margin: 0;
+    padding-left: 20px;
+    color: #ddd;
+}
+
+.install-steps li {
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+/* ANIMATIONS */
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+/* BADGE ANIMATION */
+.app-badge {
+    animation: pulse 2s infinite;
+    background: linear-gradient(135deg, #FF5722, #FF9800);
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 87, 34, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+}
+
+/* ===== APP DOWNLOAD SECTION ===== */
+.app-download-section {
+    background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+    color: white;
+    padding: 40px 20px;
+    margin: 0;
+    border-radius: 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.app-download-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
+
+/* Download Header */
+.download-header {
+    margin-bottom: 30px;
+}
+
+.app-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    animation: pulse 2s infinite;
+}
+
+.download-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: white;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.download-subtitle {
+    font-size: 1rem;
+    opacity: 0.9;
+    color: #e0e0e0;
+    margin-bottom: 0;
+}
+
+/* App Info Card */
+.app-info-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 25px;
+    margin: 25px auto;
+    max-width: 400px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    text-align: left;
+}
+
+.app-icon-container {
+    flex-shrink: 0;
+}
+
+.app-icon-img {
+    width: 70px;
+    height: 70px;
+    border-radius: 18px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    border: 3px solid white;
+}
+
+.app-details {
+    flex: 1;
+}
+
+.app-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    color: white;
+}
+
+.app-features {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.feature-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.feature-tag i {
+    font-size: 0.9rem;
+    color: #4CAF50;
+}
+
+.app-specs {
+    display: flex;
+    gap: 15px;
+}
+
+.spec-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #b0bec5;
+}
+
+.spec-item i {
+    color: #64B5F6;
+}
+
+/* Download Stats */
+.download-stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin: 30px auto;
+    max-width: 400px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat {
+    text-align: center;
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #4CAF50;
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    color: #e0e0e0;
+}
+
+/* Download Button */
+.download-action {
+    margin: 30px auto;
+    max-width: 400px;
+}
+
+.download-btn {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    text-decoration: none;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 15px;
+    position: relative;
+    overflow: hidden;
+}
+
+.download-btn::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 1%, transparent 1%);
+    background-size: 20px 20px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.download-btn:hover::after,
+.download-btn:active::after {
+    opacity: 0.5;
+}
+
+.download-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.download-btn-icon {
+    font-size: 2rem;
+    margin-right: 15px;
+    animation: bounce 2s infinite;
+}
+
+.download-btn-text {
+    flex: 1;
+    text-align: left;
+}
+
+.download-btn-title {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.download-btn-subtitle {
+    display: block;
     font-size: 0.9rem;
     opacity: 0.9;
+}
+
+.download-btn-size {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.download-hint {
+    font-size: 0.85rem;
+    color: #b0bec5;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Alternative Options */
+.alternative-options {
+    margin: 30px auto;
+    max-width: 400px;
+    text-align: left;
+}
+
+.alternative-options h4 {
+    color: white;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alternative-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.alt-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    text-decoration: none;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+.alt-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(0.98);
+}
+
+.web-btn {
+    background: linear-gradient(135deg, #4361ee, #7209b7);
+}
+
+/* Installation Guide */
+.install-guide {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 25px;
+    margin: 30px auto 0;
+    max-width: 400px;
+    text-align: left;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.install-guide h4 {
+    color: white;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.install-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.install-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.install-steps li:last-child {
+    margin-bottom: 0;
+}
+
+.step-number {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #4361ee, #7209b7);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.step-text {
+    flex: 1;
+    font-size: 0.95rem;
+    color: #e0e0e0;
+    line-height: 1.4;
+}
+
+/* Animations */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 480px) {
+    .app-info-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .app-features,
+    .app-specs {
+        justify-content: center;
+    }
+    
+    .download-stats {
+        gap: 20px;
+        padding: 15px;
+    }
+    
+    .stat-number {
+        font-size: 1.8rem;
+    }
+    
+    .alternative-buttons {
+        flex-direction: column;
+    }
+    
+    .download-btn {
+        padding: 18px 15px;
+    }
+    
+    .download-btn-title {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .download-title {
+        font-size: 1.5rem;
+    }
+    
+    .app-icon-img {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .app-name {
+        font-size: 1.2rem;
+    }
+}
+
+/* Modal de Descarga */
+.download-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    position: relative;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    margin: 50px auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(67, 97, 238, 0.3);
+    overflow: hidden;
+    animation: modalSlideIn 0.4s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    background: rgba(67, 97, 238, 0.1);
+    border-bottom: 1px solid rgba(67, 97, 238, 0.2);
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: white;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 28px;
+    cursor: pointer;
+    transition: color 0.3s;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: #ef4444;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.download-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-icon-modal {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    padding: 5px;
+}
+
+.app-icon-modal img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.app-details-modal h4 {
+    margin: 0 0 5px 0;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.file-size {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+/* Progress Bar */
+.progress-container {
+    background: rgba(15, 23, 42, 0.7);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(67, 97, 238, 0.2);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.progress-text {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.progress-percent {
+    color: #4361ee;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.progress-bar {
+    height: 10px;
+    background: rgba(67, 97, 238, 0.2);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4361ee, #7209b7);
+    border-radius: 5px;
+    width: 0%;
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Download Stats */
+.download-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.stat-item i {
+    color: #4361ee;
+    width: 16px;
+}
+
+.stat-item span span {
+    color: white;
+    font-weight: 500;
+}
+
+/* Download Status */
+.download-status {
+    background: rgba(15, 23, 42, 0.7);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid rgba(67, 97, 238, 0.2);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #4361ee;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+#status-text {
+    color: white;
+    font-weight: 500;
+}
+
+/* Modal Footer */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding: 20px 25px;
+    background: rgba(15, 23, 42, 0.8);
+    border-top: 1px solid rgba(67, 97, 238, 0.2);
+}
+
+.modal-footer button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+    border: none;
+    font-size: 0.95rem;
+}
+
+#pause-btn {
+    background: rgba(67, 97, 238, 0.15);
+    color: #4361ee;
+}
+
+#pause-btn:hover {
+    background: rgba(67, 97, 238, 0.25);
+}
+
+#cancel-btn {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+#cancel-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+/* Estados del modal */
+.download-modal.active {
+    display: block;
+}
+
+/* Estado pausado */
+.download-modal.paused .status-dot {
+    background: #f59e0b;
+    animation: none;
+}
+
+.download-modal.paused #pause-btn i {
+    content: "\f04b"; /* fa-play */
+}
+
+/* Estado completado */
+.download-modal.completed .status-dot {
+    background: #10b981;
+    animation: none;
+}
+
+/* Estado error */
+.download-modal.error .status-dot {
+    background: #ef4444;
+    animation: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 20px auto;
+    }
+    
+    .download-stats {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .modal-footer button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+/* Añade estas animaciones al CSS */
+@keyframes progressPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.download-modal.active .progress-fill {
+    animation: progressPulse 2s infinite;
+}
+
+/* Estado de pausa */
+.download-modal.paused .progress-fill {
+    animation: none;
+    background: #f59e0b !important;
+}
+
+/* Estado de error */
+.download-modal.error .progress-fill {
+    animation: none;
+    background: #ef4444 !important;
+}
+
+/* Estado completado */
+.download-modal.completed .progress-fill {
+    animation: none;
+    background: #10b981 !important;
+}
+/* Mejoras visuales para el modal */
+.download-modal .progress-fill {
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.download-modal.active .progress-fill {
+    background: linear-gradient(90deg, 
+        #4361ee 0%, 
+        #3a56d4 25%, 
+        #7209b7 50%, 
+        #5d0b9a 75%, 
+        #4361ee 100%);
+    background-size: 200% 100%;
+    animation: progressGradient 3s linear infinite;
+}
+
+@keyframes progressGradient {
+    0% { background-position: 200% 0; }
+    100% { background-position: 0 0; }
+}
+
+.download-modal.paused .progress-fill {
+    animation: none;
+    background: #f59e0b !important;
+}
+
+.download-modal.completed .progress-fill {
+    animation: none;
+    background: #10b981 !important;
+}
+
+.download-modal.error .progress-fill {
+    animation: none;
+    background: #ef4444 !important;
 }
