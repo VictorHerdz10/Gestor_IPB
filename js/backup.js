@@ -1329,14 +1329,9 @@ class BackupManager {
         // Agregar event listeners a los botones de acción
         this.backupHistory.forEach(item => {
             const deleteBtn = document.getElementById(`delete-${item.id}`);
-            const restoreBtn = document.getElementById(`restore-${item.id}`);
 
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', () => this.deleteFromHistory(item.id));
-            }
-
-            if (restoreBtn) {
-                restoreBtn.addEventListener('click', () => this.restoreFromHistory(item.id));
             }
         });
     }
@@ -1376,9 +1371,6 @@ class BackupManager {
                     </div>
                 </div>
                 <div class="backup-actions">
-                    <button class="btn btn-primary btn-sm" id="restore-${item.id}">
-                        <i class="fas fa-upload"></i> Restore
-                    </button>
                     <button class="btn btn-danger btn-sm" id="delete-${item.id}">
                         <i class="fas fa-trash"></i> Eliminar
                     </button>
@@ -1912,7 +1904,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 verifyBtn.id = 'btn-verify-backup';
                 verifyBtn.className = 'btn btn-info btn-sm';
                 verifyBtn.innerHTML = '<i class="fas fa-check-circle"></i> Verificar Backup';
-                verifyBtn.style.marginLeft = '10px';
                 backupHeader.appendChild(verifyBtn);
             }
 
@@ -1922,7 +1913,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 shareBtn.id = 'btn-share-backup';
                 shareBtn.className = 'btn btn-success btn-sm';
                 shareBtn.innerHTML = '<i class="fas fa-share-alt"></i> Compartir';
-                shareBtn.style.marginLeft = '10px';
                 backupHeader.appendChild(shareBtn);
             }
 
