@@ -153,10 +153,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cargar transferencias
     function cargarTransferencias() {
         const transferencias = obtenerTransferencias();
-        const hoy = new Date().toISOString().split('T')[0];
         
         // Filtrar transferencias del día actual
-        const transferenciasHoy = transferencias.filter(t => t.fecha === hoy);
+        const transferenciasHoy = transferencias;
         
         // Actualizar lista
         renderTransferenciasList(transferenciasHoy);
@@ -227,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
             transferenciaList.innerHTML = `
                 <div class="empty-card-placeholder">
                     <i class="fas fa-exchange-alt"></i>
-                    <p>No hay transferencias registradas hoy</p>
+                    <p>No hay transferencias registradas</p>
                     <button class="btn btn-outline" id="btn-add-first-transferencia">
                         <i class="fas fa-plus"></i> Agregar primera transferencia
                     </button>
@@ -396,10 +395,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Exponer funciones globalmente
     window.cargarTransferencias = cargarTransferencias;
     window.getTotalTransferencias = function() {
-        const transferencias = obtenerTransferencias();
-        const hoy = new Date().toISOString().split('T')[0];
-        const transferenciasHoy = transferencias.filter(t => t.fecha === hoy);
+        const transferencias =  obtenerTransferencias();
         
-        return transferenciasHoy.reduce((sum, t) => sum + (parseFloat(t.monto) || 0), 0);
+        return transferencias.reduce((sum, t) => sum + (parseFloat(t.monto) || 0), 0);
     };
 });
