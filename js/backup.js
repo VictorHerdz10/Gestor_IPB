@@ -1892,16 +1892,10 @@ document.head.appendChild(backupStyle);
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
+    const duplicateModals = document.querySelectorAll('.confirmation-modal, .modal.active');
+    duplicateModals.forEach(modal => modal.remove());
     if (document.getElementById('backup-section')) {
         window.backupManager = new BackupManager();
-        modal.querySelector('.cancel-btn').addEventListener('click', () => {
-            modal.remove();
-        });
-
-        modal.querySelector('.confirm-btn').addEventListener('click', () => {
-            confirmCallback();
-            modal.remove();
-        });
         // Agregar botones adicionales si no existen
         const backupHeader = document.querySelector('#backup-section .section-header');
         if (backupHeader) {
