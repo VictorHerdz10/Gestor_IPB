@@ -655,6 +655,7 @@ class ProductManager {
             this.closeEditModal();
             window.showNotification('Producto actualizado exitosamente', 'success');
         }
+        this.syncPriceToSalon(productId, nombre, precio, nuevaUbicacion);
     }
 
     confirmDeleteProduct(productId, ubicacion) {
@@ -718,6 +719,21 @@ class ProductManager {
             return this.cocinaProducts;
         }
         return [];
+    }
+    // Nuevo método para sincronizar precios con salón
+    syncPriceToSalon(productId, nombre, precio, ubicacion) {
+        // Solo sincronizar si es producto de salón
+        if (ubicacion === 'salon') {
+            // Llamar a la función global del salón para actualizar precio
+            if (typeof window.actualizarPrecioEnSalon === 'function') {
+                window.actualizarPrecioEnSalon(productId, precio);
+            }
+
+            // También actualizar el resumen inmediatamente
+            if (typeof window.actualizarResumen === 'function') {
+                setTimeout(() => window.actualizarResumen(), 100);
+            }
+        }
     }
 }
 
