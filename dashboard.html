@@ -11,6 +11,10 @@
     <link rel="stylesheet" href="css/products.css">
     <link rel="stylesheet" href="css/salon.css">
     <link rel="stylesheet" href="css/cocina.css">
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="stylesheet" href="css/transitions.css">
+    <link rel="stylesheet" href="css/historial.css">
+    <link rel="stylesheet" href="css/backup.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -90,6 +94,18 @@
                             <span>Registros de Conteo</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="#" data-section="historial">
+                            <i class="fas fa-archive"></i>
+                            <span>Historial IPV</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="backup">
+                            <i class="fas fa-database"></i>
+                            <span>Backup & Restore</span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
 
@@ -112,16 +128,18 @@
                         <span id="current-date"></span>
                     </div>
                 </div>
+
                 <div class="top-bar-right">
-                    <button class="btn btn-primary" id="new-day-btn">
-                        <i class="fas fa-plus"></i> Nuevo Día
-                    </button>
-                    <button class="btn btn-secondary" id="save-btn">
-                        <i class="fas fa-save"></i> Guardar
-                    </button>
-                    <button class="btn btn-success" id="export-pdf-btn">
-                        <i class="fas fa-file-pdf"></i> Exportar PDF
-                    </button>
+                    <div class="mobile-buttons">
+                        <button class="btn btn-icon btn-primary" id="new-day-btn" title="Nuevo Día">
+                            <i class="fas fa-plus"></i>
+                            <span class="btn-text">Nuevo Día</span>
+                        </button>
+                        <button class="btn btn-icon btn-success" id="export-pdf-btn" title="Exportar PDF">
+                            <i class="fas fa-file-pdf"></i>
+                            <span class="btn-text">PDF</span>
+                        </button>
+                    </div>
                 </div>
 
                 <button class="mobile-menu-toggle">
@@ -222,7 +240,7 @@
                         <h3>Resumen de Billetes</h3>
                         <div id="billetes-resumen-detalle">
                             <!-- Aquí se cargará dinámicamente el resumen de billetes -->
-                            <p class="no-data">No hay registros de billetes hoy</p>
+                            <p class="no-data">No hay registros de billetes</p>
                         </div>
                         <div class="detail-item total">
                             <span>Total Billetes:</span>
@@ -634,12 +652,12 @@
 
                         <!-- Lista de Agregos CON SCROLL -->
                         <div class="agregos-list">
-                            <h4>Agregos y Productos Compuestos de Hoy</h4>
+                            <h4>Agregos y Productos Compuestos</h4>
                             <div id="lista-agregos" style="max-height: 200px; overflow-y: auto;">
                                 <!-- Los agregos se mostrarán aquí -->
                                 <div class="empty-state-card">
                                     <i class="fas fa-plus-circle"></i>
-                                    <p>No hay agregos o productos compuestos registrados hoy</p>
+                                    <p>No hay agregos o productos compuestos registrados</p>
                                 </div>
                             </div>
                             <div class="total-agregos">
@@ -746,7 +764,7 @@
                     <!-- Lista de Consumos en Tarjetas -->
                     <div class="consumo-list-container" id="consumo-table">
                         <div class="list-header">
-                            <h3><i class="fas fa-history"></i> Consumos de Hoy</h3>
+                            <h3><i class="fas fa-history"></i> Consumos</h3>
                             <div class="total-display">
                                 <span>Total:</span>
                                 <span class="amount" id="total-consumo">$0.00</span>
@@ -757,7 +775,7 @@
                             <!-- Los consumos se mostrarán aquí como tarjetas -->
                             <div class="empty-state-card">
                                 <i class="fas fa-shopping-cart"></i>
-                                <p>No hay consumos registrados hoy</p>
+                                <p>No hay consumos registrados</p>
                                 <button class="btn btn-outline" id="btn-add-first-consumo">
                                     <i class="fas fa-plus"></i> Agregar primer consumo
                                 </button>
@@ -851,7 +869,7 @@
                     <!-- Lista de Extracciones en Tarjetas -->
                     <div class="extracciones-list-container" id="extraccion-table">
                         <div class="list-header">
-                            <h3><i class="fas fa-history"></i> Extracciones de Hoy</h3>
+                            <h3><i class="fas fa-history"></i> Extracciones</h3>
                             <div class="total-display">
                                 <span>Total Extraído:</span>
                                 <span class="amount" id="total-extracciones">$0.00</span>
@@ -862,7 +880,7 @@
                             <!-- Las extracciones se mostrarán aquí como tarjetas -->
                             <div class="empty-state-card">
                                 <i class="fas fa-money-bill-wave"></i>
-                                <p>No hay extracciones registradas hoy</p>
+                                <p>No hay extracciones registradas</p>
                                 <button class="btn btn-outline" id="btn-add-first-extraccion">
                                     <i class="fas fa-plus"></i> Agregar primera extracción
                                 </button>
@@ -946,7 +964,7 @@
                     <!-- Lista de Transferencias en Tarjetas -->
                     <div class="transferencias-list-container" id="transferencia-table">
                         <div class="list-header">
-                            <h3><i class="fas fa-history"></i> Transferencias de Hoy</h3>
+                            <h3><i class="fas fa-history"></i> Transferencias</h3>
                             <div class="total-display">
                                 <span>Total:</span>
                                 <span class="amount" id="total-transferencias">$0.00</span>
@@ -957,7 +975,7 @@
                             <!-- Las transferencias se mostrarán aquí como tarjetas -->
                             <div class="empty-state-card">
                                 <i class="fas fa-exchange-alt"></i>
-                                <p>No hay transferencias registradas hoy</p>
+                                <p>No hay transferencias registradas</p>
                                 <button class="btn btn-outline" id="btn-add-first-transferencia">
                                     <i class="fas fa-plus"></i> Agregar primera transferencia
                                 </button>
@@ -1008,10 +1026,10 @@
                         </div>
 
                         <div class="efectivo-list">
-                            <h3>Registros de Efectivo Hoy</h3>
+                            <h3>Registros de Efectivo</h3>
                             <div id="lista-efectivo">
                                 <!-- Los registros se cargarán aquí -->
-                                <p class="no-data">No hay registros de efectivo hoy</p>
+                                <p class="no-data">No hay registros de efectivo</p>
                             </div>
                             <div class="total-efectivo">
                                 <span>Total Efectivo:</span>
@@ -1206,10 +1224,10 @@
                     </div>
 
                     <div class="registros-list">
-                        <h3>Registros de Hoy</h3>
+                        <h3>Registros</h3>
                         <div id="lista-registros">
                             <!-- Los registros se cargarán aquí -->
-                            <p class="no-data">No hay registros de conteo hoy</p>
+                            <p class="no-data">No hay registros de conteo</p>
                         </div>
                     </div>
 
@@ -1232,8 +1250,284 @@
                     </div>
                 </div>
             </section>
+            <!-- Historial IPV Section -->
+            <section id="historial-section" class="content-section">
+                <div class="historial-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-history"></i> Historial de Reportes IPV</h2>
+                        <div class="section-controls">
+                            <button class="btn btn-secondary" id="btn-limpiar-filtros">
+                                <i class="fas fa-filter"></i>
+                                <span class="btn-text">Limpiar Filtros</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel de control y filtros -->
+                    <div class="historial-controls">
+                        <div class="filter-grid">
+                            <div class="form-group">
+                                <label for="filtro-fecha"><i class="fas fa-calendar"></i> Fecha:</label>
+                                <input type="date" id="filtro-fecha" class="form-control">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="filtro-mes"><i class="fas fa-calendar-alt"></i> Mes:</label>
+                                <select id="filtro-mes" class="form-control">
+                                    <option value="">Todos los meses</option>
+                                    <option value="01">Enero</option>
+                                    <option value="02">Febrero</option>
+                                    <option value="03">Marzo</option>
+                                    <option value="04">Abril</option>
+                                    <option value="05">Mayo</option>
+                                    <option value="06">Junio</option>
+                                    <option value="07">Julio</option>
+                                    <option value="08">Agosto</option>
+                                    <option value="09">Septiembre</option>
+                                    <option value="10">Octubre</option>
+                                    <option value="11">Noviembre</option>
+                                    <option value="12">Diciembre</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="filtro-ano"><i class="fas fa-calendar-day"></i> Año:</label>
+                                <select id="filtro-ano" class="form-control">
+                                    <option value="">Todos los años</option>
+                                    <!-- Se llenará dinámicamente -->
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="filtro-busqueda"><i class="fas fa-search"></i> Buscar:</label>
+                                <input type="text" id="filtro-busqueda" placeholder="Buscar en títulos o notas..."
+                                    class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                        </div>
+                    </div>
+
+                    <!-- Lista de reportes -->
+                    <div class="historial-list-container">
+                        <div class="list-header">
+                            <h3><i class="fas fa-list"></i> Reportes Guardados</h3>
+                            <div class="total-display">
+                                <span>Total:</span>
+                                <span class="amount" id="total-reportes">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Estado vacío -->
+                        <div class="empty-state" id="historial-empty-state">
+                            <i class="fas fa-history"></i>
+                            <p>No hay reportes en el historial</p>
+                        </div>
+
+                        <!-- Contenedor de lista con scroll -->
+                        <div class="historial-list-wrapper" style="display: none;">
+                            <div class="historial-list" id="historial-list">
+                                <!-- Los reportes se cargarán aquí dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detalle del reporte seleccionado -->
+                    <div class="historial-detalle-container" style="display: none;" id="detalle-container">
+                        <div class="detalle-header">
+                            <h3><i class="fas fa-info-circle"></i> Detalle del Reporte Seleccionado</h3>
+                        </div>
+
+                        <div class="detalle-content" id="detalle-content">
+                            <!-- Los detalles se cargarán aquí -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Backup & Restore Section -->
+            <section id="backup-section" class="content-section">
+                <div class="backup-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-database"></i> Backup & Restore</h2>
+                        <div class="section-controls">
+                            <button class="btn btn-info" id="btn-informacion-backup">
+                                <i class="fas fa-info-circle"></i> Información
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Información del sistema -->
+                    <div class="info-card">
+                        <div class="info-header">
+                            <i class="fas fa-info-circle"></i>
+                            <h3>Información del Sistema</h3>
+                        </div>
+                        <div class="info-body">
+                            <div class="info-item">
+                                <span>Total Productos:</span>
+                                <span id="total-backup-productos">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span>Reportes Históricos:</span>
+                                <span id="total-backup-reportes">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span>Último Backup:</span>
+                                <span id="ultimo-backup">Nunca</span>
+                            </div>
+                            <div class="info-item">
+                                <span>Plataforma:</span>
+                                <span id="plataforma-actual">Navegador Web</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjetas de Backup -->
+                    <div class="backup-cards-grid">
+                        <!-- Backup de Productos -->
+                        <div class="backup-card">
+                            <div class="card-header">
+                                <i class="fas fa-box"></i>
+                                <h3>Productos</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>Salón y Cocina</p>
+                                <div class="card-stats">
+                                    <div class="stat">
+                                        <span class="stat-label">Salón:</span>
+                                        <span class="stat-value" id="stats-productos-salon">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-label">Cocina:</span>
+                                        <span class="stat-value" id="stats-productos-cocina">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-primary btn-sm" id="btn-backup-productos">
+                                    <i class="fas fa-download"></i> Backup
+                                </button>
+                                <button class="btn btn-secondary btn-sm" id="btn-restore-productos">
+                                    <i class="fas fa-upload"></i> Restore
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Backup de Reportes Históricos -->
+                        <div class="backup-card">
+                            <div class="card-header">
+                                <i class="fas fa-history"></i>
+                                <h3>Reportes Históricos</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>Todos los reportes guardados</p>
+                                <div class="card-stats">
+                                    <div class="stat">
+                                        <span class="stat-label">Total:</span>
+                                        <span class="stat-value" id="stats-reportes-total">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-label">Último:</span>
+                                        <span class="stat-value" id="stats-reportes-fecha">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-primary btn-sm" id="btn-backup-reportes">
+                                    <i class="fas fa-download"></i> Backup
+                                </button>
+                                <button class="btn btn-secondary btn-sm" id="btn-restore-reportes">
+                                    <i class="fas fa-upload"></i> Restore
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Backup del Día Actual -->
+                        <div class="backup-card">
+                            <div class="card-header">
+                                <i class="fas fa-calendar-day"></i>
+                                <h3>Día Actual</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>Datos del día en curso</p>
+                                <div class="card-stats">
+                                    <div class="stat">
+                                        <span class="stat-label">Ventas:</span>
+                                        <span class="stat-value" id="stats-dia-ventas">$0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-label">Registros:</span>
+                                        <span class="stat-value" id="stats-dia-registros">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-primary btn-sm" id="btn-backup-dia">
+                                    <i class="fas fa-download"></i> Backup
+                                </button>
+                                <button class="btn btn-secondary btn-sm" id="btn-restore-dia">
+                                    <i class="fas fa-upload"></i> Restore
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Backup Completo -->
+                        <div class="backup-card featured">
+                            <div class="card-header">
+                                <i class="fas fa-database"></i>
+                                <h3>Backup Completo</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>Todos los datos del sistema</p>
+                                <div class="card-stats">
+                                    <div class="stat">
+                                        <span class="stat-label">Todo incluido</span>
+                                        <span class="stat-value"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-success btn-sm" id="btn-backup-completo">
+                                    <i class="fas fa-download"></i> Backup Completo
+                                </button>
+                                <button class="btn btn-warning btn-sm" id="btn-restore-completo">
+                                    <i class="fas fa-upload"></i> Restore Completo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historial de Backups -->
+                    <div class="backup-history">
+                        <div class="history-header">
+                            <h3><i class="fas fa-history"></i> Historial de Backups</h3>
+                            <button class="btn btn-outline btn-sm" id="btn-refresh-history">
+                                <i class="fas fa-sync-alt"></i> Actualizar
+                            </button>
+                        </div>
+                        <div class="history-list" id="backup-history-list">
+                            <!-- Los backups se mostrarán aquí -->
+                            <div class="empty-state">
+                                <i class="fas fa-history"></i>
+                                <p>No hay backups guardados</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
     </div>
     </main>
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <i class="fas fa-home nav-icon"></i>
+            <span class="nav-label">Inicio</span>
+        </a>
+        <a href="dashboard.html" class="nav-item active">
+            <i class="fas fa-chart-line nav-icon"></i>
+            <span class="nav-label">Dashboard</span>
+        </a>
+    </nav>
     </div>
 
     <!-- Modal para ver detalle de registro -->
@@ -1313,8 +1607,12 @@
         </div>
     </div>
 
+    <script src="js/historial.js"></script>
+    <script src="js/generar-pdf-historial.js"></script>
     <script src="js/dashboard.js"></script>
-    <script src="js/pdf-export.js"></script>
+    <script src="js/dashboard-nav.js"></script>
+    <script src="js/backup.js"></script>
+    <script src="js/pdf-export-capacitor.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/billetes.js"></script>
     <script src="js/products.js"></script>
@@ -1324,6 +1622,7 @@
     <script src="js/cocina.js"></script>
     <script src="js/extracciones.js"></script>
     <script src="js/transferencias.js"></script>
+
 </body>
 
 </html>
