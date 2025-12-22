@@ -1395,3 +1395,412 @@ textarea {
 .pdf-modal .modal-footer .btn {
     min-width: 120px;
 }
+
+/* Estilos para modales de PDF en móviles */
+.mobile-download-modal .modal-content,
+.mobile-alert-modal .modal-content,
+.pdf-instructions-modal .modal-content,
+.success-modal .modal-content {
+    max-width: 95%;
+    margin: 20px auto;
+}
+
+.download-link-container {
+    margin: 20px 0;
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.download-link-container a {
+    display: inline-block;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.download-link-container a i {
+    margin-right: 8px;
+}
+
+.small-text {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* Estilos para listas en modales */
+.modal-body ol {
+    padding-left: 20px;
+    margin: 15px 0;
+}
+
+.modal-body ol li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+/* Estilos para progress bar en PDF */
+.pdf-progress {
+    margin: 20px 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4a6cf7, #6c8eff);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    color: #495057;
+    font-size: 14px;
+    font-weight: 500;
+}
+/* Estilos para modales de PDF móvil */
+.mobile-instructions-modal .modal-content,
+.mobile-success-modal .modal-content {
+    max-width: 95%;
+    margin: 10px auto;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.download-instructions {
+    padding: 10px;
+}
+
+.instruction-step {
+    display: flex;
+    align-items: center;
+    margin: 15px 0;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #4a6cf7;
+}
+
+.step-number {
+    width: 30px;
+    height: 30px;
+    background: #4a6cf7;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.step-content {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.download-button-container {
+    margin: 25px 0;
+    text-align: center;
+    padding: 15px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    border: 2px dashed #4a6cf7;
+}
+
+.download-button-container a {
+    display: inline-block;
+    padding: 15px 30px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(74, 108, 247, 0.3);
+}
+
+.download-button-container a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74, 108, 247, 0.4);
+}
+
+.additional-info {
+    margin-top: 20px;
+    padding: 15px;
+    background: #fff3cd;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+}
+
+.additional-info p {
+    margin: 0;
+    color: #856404;
+    font-size: 13px;
+}
+
+.additional-info i {
+    color: #ffc107;
+    margin-right: 8px;
+}
+
+/* Estilos para modal de éxito */
+.success-message {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #d4edda;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+}
+
+.success-icon {
+    font-size: 40px;
+    color: #28a745;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.success-content {
+    flex: 1;
+}
+
+.success-content p {
+    margin: 0;
+    color: #155724;
+    line-height: 1.5;
+}
+
+.file-info {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.file-info p {
+    margin: 8px 0;
+    font-size: 13px;
+    color: #495057;
+}
+
+.file-info i {
+    color: #4a6cf7;
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+/* Estilos para texto informativo */
+.text-info {
+    color: #17a2b8 !important;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .instruction-step {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .step-number {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .download-button-container a {
+        padding: 12px 20px;
+        font-size: 14px;
+        width: 100%;
+    }
+    
+    .success-message {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .success-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+}
+
+/* mobile-permissions.css - Estilos para permisos en móviles */
+.permission-modal .modal-content {
+    max-width: 500px;
+}
+
+.permission-instructions {
+    padding: 10px;
+}
+
+.instruction-step {
+    display: flex;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #4a6cf7;
+}
+
+.step-icon {
+    font-size: 24px;
+    color: #4a6cf7;
+    margin-right: 15px;
+    min-width: 40px;
+}
+
+.step-content h4 {
+    margin-top: 0;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.step-content ol, .step-content ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.step-content li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.try-again {
+    text-align: center;
+    margin: 20px 0;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Acordeón para instrucciones detalladas */
+.accordion {
+    margin: 15px 0;
+}
+
+.accordion-item {
+    margin-bottom: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.accordion-button {
+    width: 100%;
+    text-align: left;
+    padding: 15px;
+    background: #f8f9fa;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.accordion-button i {
+    margin-right: 10px;
+    color: #4a6cf7;
+}
+
+.accordion-button.active {
+    background: #e7f1ff;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background: white;
+}
+
+.accordion-content ol {
+    padding: 15px 15px 15px 35px;
+    margin: 0;
+}
+
+.accordion-content li {
+    margin-bottom: 10px;
+}
+
+/* Alerta de descarga manual */
+.manual-download-alert {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.manual-download-alert p {
+    margin-bottom: 10px;
+}
+
+.small-text {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .instruction-step {
+        flex-direction: column;
+    }
+    
+    .step-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+}
+
+/* Estilos para extracciones automáticas */
+.extraccion-automatica {
+    border-left: 4px solid var(--primary-color);
+    background-color: rgba(67, 97, 238, 0.03);
+}
+
+.extraccion-automatica .card-header .descripcion:before {
+    content: "🤖 ";
+}
+
+.card-origen {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.badge-automatico {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.badge-automatico i {
+    font-size: 0.7rem;
+}

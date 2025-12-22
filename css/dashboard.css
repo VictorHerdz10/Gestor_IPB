@@ -48,9 +48,6 @@ body {
     display: flex;
     min-height: 100vh;
 }
-.btn-icon .btn-text {
-        display: none !important; 
-    }
 
 /* ===== SIDEBAR ===== */
 .sidebar {
@@ -217,6 +214,7 @@ body {
 /* ===== TOP BAR ===== */
 .top-bar {
     background-color: white;
+    margin: 0;
     padding: 0 2rem;
     display: flex;
     justify-content: space-between;
@@ -293,6 +291,7 @@ body {
 /* ===== CONTENT SECTIONS ===== */
 .content-section {
     display: none;
+    padding-bottom:20px;
 }
 
 .content-section.active {
@@ -300,7 +299,6 @@ body {
     padding: 1rem;
     flex: 1;
     overflow-y: auto;
-    margin-bottom: 50px;
 }
 
 @keyframes fadeIn {
@@ -769,8 +767,6 @@ body {
         padding: 1rem;
         flex-direction: row;
         gap: 1rem;
-        height: auto;
-        min-height: var(--header-height);
         position: sticky;
     }
 
@@ -973,15 +969,12 @@ body {
         padding: 0.75rem 1rem;
         flex-wrap: wrap;
         gap: 0.75rem;
-        height: auto;
-        min-height: auto;
         position: sticky;
     }
 
     .top-bar-left {
         flex: 1;
         order: 1;
-        min-width: 0;
     }
 
     .top-bar-left h1 {
@@ -997,7 +990,6 @@ body {
 
     .top-bar-right {
         order: 3;
-        width: 100%;
         justify-content: space-between;
         gap: 0.5rem;
         margin-top: 0.5rem;
@@ -1082,7 +1074,6 @@ body {
 
     .top-bar-right {
         order: 2;
-        width: auto;
         margin-top: 0;
         flex-wrap: wrap;
         justify-content: flex-end;
@@ -1414,7 +1405,6 @@ body {
         /* Evitar que se rompa en múltiples líneas */
         gap: 0.5rem !important;
         margin-top: 0 !important;
-        width: auto !important;
         order: 2 !important;
         /* Asegurar que esté a la derecha */
     }
@@ -1441,11 +1431,6 @@ body {
         font-size: 0.9rem;
     }
 
-    .btn-icon .btn-text {
-        display: none !important;
-        font-size: 0.85rem;
-    }
-
     /* Ajustes específicos para pantallas muy pequeñas */
     @media (max-width: 480px) {
         .mobile-buttons {
@@ -1468,31 +1453,7 @@ body {
         }
     }
 
-    /* Ajustar layout general del top-bar */
-    .top-bar {
-        flex-wrap: nowrap !important;
-        /* Mantener todo en una línea */
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem 1rem !important;
-        height: auto;
-        min-height: 60px;
-    }
-
-    .top-bar-left {
-        flex: 1;
-        min-width: 0;
-        /* Permitir que se reduzca */
-        overflow: hidden;
-    }
-
-    .top-bar-left h1 {
-        font-size: 1.2rem !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-bottom: 0.2rem !important;
-    }
+   
 
     .date-display {
         font-size: 0.75rem !important;
@@ -1613,4 +1574,253 @@ body {
 .btn {
     min-width: auto !important;
     /* Sobrescribir cualquier min-width que cause problemas */
+}
+/* === BOTONES RESPONSIVE MEJORADOS === */
+
+/* Base para mobile - Solo iconos */
+@media (max-width: 768px) {
+    .mobile-buttons {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+    }
+
+    .btn-icon {
+        padding: 0.6rem !important;
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        justify-content: center;
+        position: relative;
+    }
+
+    .btn-icon i {
+        font-size: 1.1rem;
+        margin: 0 !important;
+    }
+
+    .btn-icon .btn-text {
+        display: none !important;
+    }
+
+    /* Tooltips para móvil */
+    .btn-icon[title]::after {
+        content: attr(title);
+        position: absolute;
+        bottom: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s;
+        z-index: 1000;
+    }
+
+    .btn-icon:hover[title]::after {
+        opacity: 1;
+        visibility: visible;
+    }
+     #export-pdf-btn{
+        padding: 2px;
+        width: auto;
+
+    }
+    #new-day-btn{
+        padding: 2px;
+        width: auto;
+    }
+    
+}
+
+/* Tablet pequeña (768px - 900px) - Icono + texto pequeño */
+@media (min-width: 769px) and (max-width: 900px) {
+    .mobile-buttons {
+        gap: 0.6rem;
+    }
+     #export-pdf-btn{
+        padding: 2px;
+        width: auto;
+
+    }
+    #new-day-btn{
+        padding: 2px;
+        width: auto;
+    }
+    
+
+    .btn-icon {
+        padding: 0.6rem 0.8rem !important;
+        width: auto;
+        height: auto;
+        border-radius: 8px;
+    }
+
+    .btn-icon i {
+        font-size: 1rem;
+        margin-right: 0.4rem !important;
+    }
+
+    .btn-icon .btn-text {
+        display: inline !important;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+}
+
+/* Tablet grande (901px - 1024px) - Más espacio para texto */
+@media (min-width: 901px) and (max-width: 1024px) {
+    .mobile-buttons {
+        gap: 0.8rem;
+    }
+     #export-pdf-btn{
+        padding: 2px;
+        width: auto;
+
+    }
+    #new-day-btn{
+        padding: 2px;
+        width: auto;
+    }
+    
+
+    .btn-icon {
+        padding: 0.7rem 1rem !important;
+    }
+
+    .btn-icon i {
+        font-size: 1.1rem;
+        margin-right: 0.5rem !important;
+    }
+
+    .btn-icon .btn-text {
+        display: inline;
+        font-size: 0.9rem;
+    }
+}
+
+/* Desktop pequeño (1025px - 1200px) - Tamaño normal */
+@media (min-width: 1025px) and (max-width: 1400px) {
+    .mobile-buttons {
+        gap: 1rem;
+    }
+     #export-pdf-btn{
+        padding: 2px;
+        width: auto;
+
+    }
+    #new-day-btn{
+        padding: 2px;
+        width: auto;
+    }
+    
+
+    .btn-icon {
+        padding: 0.8rem 1.25rem !important;
+    }
+
+    .btn-icon i {
+        font-size: 1.2rem;
+        margin-right: 0.6rem !important;
+    }
+
+    .btn-icon .btn-text {
+        display: inline;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+}
+
+/* Desktop grande (más de 1400px) - Más grande */
+@media (min-width: 1401px) {
+    #export-pdf-btn{
+        padding: 2px;
+        width: auto;
+
+    }
+    #new-day-btn{
+        padding: 2px;
+        width: auto;
+    }
+    
+    .mobile-buttons {
+        gap: 1.2rem;
+    }
+
+    .btn-icon {
+        padding: 0.9rem 1.5rem !important;
+        border-radius: 10px;
+    }
+
+    .btn-icon i {
+        font-size: 1.3rem;
+        margin-right: 0.75rem !important;
+    }
+
+    .btn-icon .btn-text {
+        display: inline;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+}
+
+/* === CORRECCIONES PARA DISPOSITIVOS ESPECÍFICOS === */
+
+/* Para pantallas muy pequeñas (menos de 400px) */
+@media (max-width: 400px) {
+    .btn-icon {
+        width: 38px;
+        height: 38px;
+        padding: 0.5rem !important;
+    }
+
+    .btn-icon i {
+        font-size: 1rem;
+    }
+}
+
+/* Para pantallas en modo landscape (horizontal) */
+@media (max-width: 768px) and (orientation: landscape) {
+    .mobile-buttons {
+        gap: 0.6rem;
+    }
+
+    .btn-icon {
+        width: auto;
+        height: auto;
+        padding: 0.5rem 0.7rem !important;
+    }
+
+    .btn-icon i {
+        margin-right: 0.3rem !important;
+    }
+
+    .btn-icon .btn-text {
+        display: inline-block !important;
+        font-size: 0.8rem;
+    }
+}
+
+/* === EFECTOS HOVER Y ANIMACIONES === */
+.btn-icon {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform-origin: center;
+}
+
+.btn-icon:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-icon:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.mobile-buttons .btn {
+    margin: 0 !important;
 }

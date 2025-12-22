@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/transitions.css">
     <link rel="stylesheet" href="css/historial.css">
-    <link rel="stylesheet" href="css/backup.css"> 
+    <link rel="stylesheet" href="css/backup.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -400,10 +400,6 @@
                                 <i class="fas fa-sliders-h"></i>
                                 <span class="btn-text">Editar Final</span>
                             </button>
-                            <button class="btn btn-success" id="btn-finalizar-dia">
-                                <i class="fas fa-flag-checkered"></i>
-                                <span class="btn-text">Finalizar Día</span>
-                            </button>
                             <button class="btn btn-secondary" id="btn-cambiar-orden">
                                 <i class="fas fa-sort-alpha-down"></i>
                                 <span class="btn-text">Ordenar Alfabético</span>
@@ -511,10 +507,6 @@
                             <button class="btn btn-primary" id="btn-agregar-agrego">
                                 <i class="fas fa-sliders-h"></i>
                                 <span class="btn-text">Editar Final</span>
-                            </button>
-                            <button class="btn btn-success" id="btn-finalizar-dia-cocina">
-                                <i class="fas fa-flag-checkered"></i>
-                                <span class="btn-text">Finalizar Día</span>
                             </button>
                         </div>
                     </div>
@@ -1606,13 +1598,14 @@
             </div>
         </div>
     </div>
-
+    <script src="js/pdf-detector.js"></script>
+    <script src="js/pdf-integration.js"></script>
     <script src="js/historial.js"></script>
     <script src="js/generar-pdf-historial.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/dashboard-nav.js"></script>
     <script src="js/backup.js"></script>
-    <script src="js/pdf-export-capacitor.js"></script>
+    <script src="js/pdf-export.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/billetes.js"></script>
     <script src="js/products.js"></script>
