@@ -90,6 +90,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    const billetesLinks = document.querySelectorAll('a[data-section="registros-billetes"]');
+    billetesLinks.forEach(link => {
+        link.addEventListener('click', function () {
+            // Recargar productos cuando se entra a la sección
+            setTimeout(() => {
+                loadBilletesData();
+                loadRegistros();
+            }, 500);
+        });
+    });
     // Función para mostrar modal de selección de destino
     function mostrarModalDestino() {
         // Calcular totales primero
@@ -636,7 +646,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 fecha: new Date().toISOString(),
                 hora: obtenerHoraActual(),
                 origen: 'conteo_billetes',
-                registroId: registro.id
+                registroId: registro.id,
+                esAutomatico: true  // NUEVO: Marcar como automático
             };
 
             // Agregar a extracciones
@@ -645,9 +656,11 @@ document.addEventListener('DOMContentLoaded', function () {
             // Guardar en localStorage
             localStorage.setItem('ipb_extracciones', JSON.stringify(extracciones));
 
-            // Actualizar dashboard si está disponible
-            if (typeof window.initExtracciones === 'function') {
+            // NUEVO: Forzar actualización de la UI de extracciones
+            if (window.initExtracciones && typeof window.initExtracciones === 'function') {
                 window.initExtracciones();
+            } else if (window.reloadExtraccionesData && typeof window.reloadExtraccionesData === 'function') {
+                window.reloadExtraccionesData();
             }
 
             if (typeof window.updateSummary === 'function') {
@@ -1023,35 +1036,97 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
                 
-                <div class="detalle-resumen">
-                    <h4>Resumen del Conteo</h4>
-                    <div class="detalle-billete">
-                        <span>Total CUP:</span>
-                        <span>$${registro.totales.totalCUP.toLocaleString('es-ES')} CUP</span>
-                    </div>
-                    <div class="detalle-billete">
-                        <span>Total USD en CUP:</span>
-                        <span>$${registro.totales.totalUSDCUP.toLocaleString('es-ES')} CUP</span>
-                    </div>
-                    <div class="detalle-billete total">
-                        <span>Gran Total:</span>
-                        <span>$${registro.totales.granTotal.toLocaleString('es-ES')} CUP</span>
-                    </div>
-                    <div class="detalle-billete destino">
-                        <span>Destino:</span>
-                        <span><i class="fas fa-${iconoDestino}"></i> ${textoDestino}</span>
-                    </div>
-                </div>
+                 <div class="detalle-resumen">
+        <h4>Resumen del Conteo</h4>
+        <div class="detalle-billete">
+            <span>Total CUP:</span>
+            <span>$${registro.totales.totalCUP.toLocaleString('es-ES')} CUP</span>
+        </div>
+        <div class="detalle-billete">
+            <span>Total USD en CUP:</span>
+            <span>$${registro.totales.totalUSDCUP.toLocaleString('es-ES')} CUP</span>
+        </div>
+        <div class="detalle-billete total">
+            <span>Gran Total:</span>
+            <span>$${registro.totales.granTotal.toLocaleString('es-ES')} CUP</span>
+        </div>
+        <div class="detalle-billete destino">
+            <span>Destino:</span>
+            <span><i class="fas fa-${iconoDestino}"></i> ${textoDestino}</span>
+        </div>
+        ${registro.destino === 'extraccion' ? `
+        <div class="detalle-acciones">
+            <button class="btn btn-danger eliminar-extraccion" data-id="${registro.id}" style="width: 100%; margin-top: 10px;">
+                <i class="fas fa-trash"></i> Eliminar Extracción Asociada
+            </button>
+        </div>
+        ` : ''}
+    </div>
             `;
 
             modalDetalle.innerHTML = html;
             modal.classList.add('active');
+
+            // NUEVO: Agregar event listener para el botón de eliminar extracción
+            if (registro.destino === 'extraccion') {
+                const eliminarBtn = modalDetalle.querySelector('.eliminar-extraccion');
+                if (eliminarBtn) {
+                    eliminarBtn.addEventListener('click', function () {
+                        modal.classList.remove('active');
+                        eliminarExtraccionAutomatica(registro.id);
+                    });
+                }
+            }
         } catch (error) {
             console.error('Error al cargar detalle:', error);
             showNotification('Error al cargar el detalle del registro', 'error');
         }
     }
 
+    // Función para eliminar extracción automática
+    function eliminarExtraccionAutomatica(registroId) {
+        showConfirmationModal(
+            '¿Eliminar extracción automática?',
+            'Esta acción eliminará la extracción asociada a este conteo. El registro del conteo se mantendrá.',
+            'warning',
+            function () {
+                try {
+                    // Obtener extracciones
+                    let extracciones = [];
+                    const extraccionesData = localStorage.getItem('ipb_extracciones');
+
+                    if (extraccionesData) {
+                        extracciones = JSON.parse(extraccionesData);
+                    }
+
+                    // Encontrar y eliminar la extracción automática asociada
+                    const index = extracciones.findIndex(ex => ex.registroId === registroId && ex.esAutomatico === true);
+
+                    if (index !== -1) {
+                        extracciones.splice(index, 1);
+
+                        // Guardar cambios
+                        localStorage.setItem('ipb_extracciones', JSON.stringify(extracciones));
+
+                        // Actualizar UI de extracciones
+                        if (window.initExtracciones && typeof window.initExtracciones === 'function') {
+                            window.initExtracciones();
+                        }
+
+                        showNotification('Extracción automática eliminada', 'success');
+
+                        // Cerrar modal
+                        closeModal();
+                    } else {
+                        showNotification('No se encontró extracción automática asociada', 'info');
+                    }
+                } catch (error) {
+                    console.error('Error al eliminar extracción automática:', error);
+                    showNotification('Error al eliminar extracción automática', 'error');
+                }
+            }
+        );
+    }
     // Función para eliminar registro
     function eliminarRegistro(id) {
         showConfirmationModal(
@@ -1405,26 +1480,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    document.addEventListener('click', function (e) {
-        const link = e.target.closest('a[data-section="extracciones"]');
-        if (link) {
-            setTimeout(initExtracciones, 100);
-        }
-    });
-
-    // Inicializar cuando cambie la sección (si existe el evento)
-    if (typeof window.addEventListener === 'function') {
-        window.addEventListener('sectionChanged', function (e) {
-            if (e.detail && e.detail.section === 'extracciones') {
-                setTimeout(initExtracciones, 100);
-            }
-        });
-    }
-
     // Función para recargar datos (similar a reloadEfectivoData)
     window.reloadExtraccionesData = function () {
-        cargarExtracciones();
-        actualizarListaExtracciones();
-        actualizarResumen();
+        loadBilletesData();
+        loadRegistros();
     };
 });
