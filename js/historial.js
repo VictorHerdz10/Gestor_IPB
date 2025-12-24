@@ -551,7 +551,7 @@ mostrarConfirmacionDuplicado(titulo) {
                     <i class="fas fa-file-pdf"></i> Generar PDF
                 </button>
                 <button class="btn btn-danger" id="btn-eliminar-reporte">
-                    <i class="fas fa-trash"></i> Eliminar Reporte
+                    <i class="fas fa-trash"></i> Eliminar
                 </button>
             </div>
         `;
