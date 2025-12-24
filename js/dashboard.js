@@ -499,7 +499,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 'ipb_extracciones',
                 'ipb_efectivo_data',
                 'cocina_agregos',
-                'cocina_agregos_historial',
                 'ipb_daily_data',
                 'ipb_today_transactions',
                 'ipb_today_summary'

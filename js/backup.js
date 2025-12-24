@@ -1083,7 +1083,6 @@ class BackupManager {
 
                     // DATOS ADICIONALES DE COCINA
                     agregos: JSON.parse(localStorage.getItem('cocina_agregos') || '[]'),
-                    agregosHistorial: JSON.parse(localStorage.getItem('cocina_agregos_historial') || '[]'),
 
                     // DATOS FINANCIEROS
                     consumo: StorageManager.getConsumoData(),
@@ -1288,10 +1287,6 @@ class BackupManager {
                 console.log(`➕ Agregos cocina: ${backupData.data.agregos.length}`);
             }
 
-            if (backupData.data.agregosHistorial && Array.isArray(backupData.data.agregosHistorial)) {
-                localStorage.setItem('cocina_agregos_historial', JSON.stringify(backupData.data.agregosHistorial));
-            }
-
             // ==================== 5. CONFIGURACIONES ====================
             if (backupData.data.dailyData && typeof backupData.data.dailyData === 'object') {
                 StorageManager.saveDailyData(backupData.data.dailyData);
@@ -1444,7 +1439,6 @@ class BackupManager {
 
                     // DATOS ADICIONALES DE COCINA
                     agregos: JSON.parse(localStorage.getItem('cocina_agregos') || '[]'),
-                    agregosHistorial: JSON.parse(localStorage.getItem('cocina_agregos_historial') || '[]'),
 
                     // DATOS FINANCIEROS DEL DÍA
                     consumo: StorageManager.getConsumoData(),
@@ -1637,10 +1631,6 @@ class BackupManager {
             if (data.agregos && Array.isArray(data.agregos)) {
                 localStorage.setItem('cocina_agregos', JSON.stringify(data.agregos));
                 console.log(`➕ Agregos cocina: ${data.agregos.length}`);
-            }
-
-            if (data.agregosHistorial && Array.isArray(data.agregosHistorial)) {
-                localStorage.setItem('cocina_agregos_historial', JSON.stringify(data.agregosHistorial));
             }
 
             // ==================== 4. DATOS FINANCIEROS ====================
@@ -2512,10 +2502,6 @@ class BackupManager {
                 console.log(`➕ Agregos cocina restaurados: ${data.agregos.length}`);
             }
 
-            if (data.agregosHistorial) {
-                localStorage.setItem('cocina_agregos_historial', JSON.stringify(data.agregosHistorial));
-            }
-
             // 4. REEMPLAZAR DATOS FINANCIEROS
             if (data.consumo) {
                 StorageManager.saveConsumoData(data.consumo);
@@ -2762,9 +2748,6 @@ class BackupManager {
             if (data.agregos) {
                 localStorage.setItem('cocina_agregos', JSON.stringify(data.agregos));
                 console.log('✅ Agregos cocina restaurados:', data.agregos.length);
-            }
-            if (data.agregosHistorial) {
-                localStorage.setItem('cocina_agregos_historial', JSON.stringify(data.agregosHistorial));
             }
 
             // 4. DATOS FINANCIEROS
