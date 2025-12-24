@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Variables de estado
     let editingId = null;
-
+    let isSaving = false;
     // Inicializar
     initConsumo();
 
@@ -44,10 +44,33 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Formulario de consumo
+        // Al inicio del archivo, después de las variables
+        let isSaving = false;
+
+        // Modificar el event listener del formulario
         if (consumoForm) {
             consumoForm.addEventListener('submit', function (e) {
                 e.preventDefault();
+
+                // Prevenir múltiples envíos
+                if (isSaving) return;
+
+                isSaving = true;
+
+                // Deshabilitar botón temporalmente
+                const submitBtn = consumoForm.querySelector('.btn-primary');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+                submitBtn.disabled = true;
+
                 guardarConsumo();
+
+                // Restaurar botón después de 1 segundo
+                setTimeout(() => {
+                    isSaving = false;
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }, 1000);
             });
         }
     }
@@ -80,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Guardar consumo
+    // Guardar consumo (VERSIÓN CORREGIDA)
     function guardarConsumo() {
         const descripcionInput = document.getElementById('consumo-descripcion');
         const montoInput = document.getElementById('consumo-monto');
@@ -89,17 +112,19 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!descripcionInput || !montoInput) return;
 
         const descripcion = descripcionInput.value.trim();
-        const monto = parseFloat(montoInput.value);
+        const montoStr = montoInput.value.trim();
+        const monto = parseFloat(montoStr);
         const notas = notasInput ? notasInput.value.trim() : '';
 
-        // Validaciones
+        // VALIDACIONES CRÍTICAS
         if (!descripcion) {
-            showNotification('Por favor, ingresa una descripción', 'error');
             return;
         }
 
-        if (!monto || monto <= 0) {
-            showNotification('Por favor, ingresa un monto válido', 'error');
+        if (!montoStr || isNaN(monto) || monto <= 0) {
+            showNotification('Por favor ingresa un monto válido mayor a 0', 'error');
+            montoInput.focus();
+            montoInput.select();
             return;
         }
 
@@ -116,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const consumo = {
             id: editingId || Date.now().toString(),
             descripcion: descripcion,
-            monto: monto,
+            monto: monto, // Usamos el número parseado, no el string
             notas: notas,
             hora: hora,
             fecha: new Date().toISOString().split('T')[0],
@@ -135,7 +160,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 showNotification('Consumo actualizado correctamente', 'success');
             }
         } else {
-            // Nuevo consumo
+            // Nuevo consumo - verificar si ya existe uno muy similar (duplicado)
+            const duplicadoReciente = consumos.find(c =>
+                c.descripcion === descripcion &&
+                c.monto === monto &&
+                (now.getTime() - c.timestampMs) < 30000 // 30 segundos
+            );
+
+            if (duplicadoReciente) {
+                showNotification('Este consumo ya fue registrado recientemente', 'warning');
+                return;
+            }
+
             consumos.push(consumo);
             showNotification('Consumo agregado correctamente', 'success');
         }
@@ -306,6 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Editar consumo
+    // Editar consumo
     function editarConsumo(id) {
         const consumos = obtenerConsumos();
         const consumo = consumos.find(c => c.id === id);
@@ -319,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (descripcionInput) descripcionInput.value = consumo.descripcion || '';
         if (montoInput) montoInput.value = consumo.monto || '';
-        if (notasInput) notasInput.value = consumo.notas || '';
+        if (notasInput) notasInput.value = consumo.notas || ''; // Esto maneja notas vacías
 
         // Actualizar estado
         editingId = id;
@@ -404,4 +441,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         return consumosHoy.reduce((sum, c) => sum + (parseFloat(c.monto) || 0), 0);
     };
+    const consumoLinks = document.querySelectorAll('a[data-section="consumo"]');
+    consumoLinks.forEach(link => {
+        link.addEventListener('click', function () {
+            // Recargar productos cuando se entra a la sección
+            setTimeout(() => {
+                initConsumo();
+            }, 500);
+        });
+    });
 });
