@@ -1462,12 +1462,6 @@ class BackupManager {
                         fechaActual: new Date().toISOString().split('T')[0],
                         totalProductos: StorageManager.getProducts().length + StorageManager.getCocinaProducts().length,
                         totalReportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]').length
-                    },// CONFIGURACIONES DE PRODUCTOS
-                    configProductos: {
-                        ultimaActualizacion: new Date().toISOString(),
-                        categoriasSalon: JSON.parse(localStorage.getItem('ipb_categorias_salon') || '[]'),
-                        categoriasCocina: JSON.parse(localStorage.getItem('ipb_categorias_cocina') || '[]'),
-                        productosDeshabilitados: JSON.parse(localStorage.getItem('ipb_productos_deshabilitados') || '[]')
                     },
                     gastos: JSON.parse(localStorage.getItem("ipb_gastos_extras") || '[]'),
                     preciosCompra: JSON.parse(localStorage.getItem("ipb_precios_compra") || '[]')
@@ -1687,19 +1681,6 @@ class BackupManager {
                 }
                 console.log(`⚙️ Configuraciones restauradas`);
             }
-
-
-            // ==================== 8. CONFIGURACIONES DE PRODUCTOS ====================
-            if (data.configProductos) {
-                if (data.configProductos.categoriasSalon && Array.isArray(data.configProductos.categoriasSalon)) {
-                    localStorage.setItem('ipb_categorias_salon', JSON.stringify(data.configProductos.categoriasSalon));
-                }
-                if (data.configProductos.categoriasCocina && Array.isArray(data.configProductos.categoriasCocina)) {
-                    localStorage.setItem('ipb_categorias_cocina', JSON.stringify(data.configProductos.categoriasCocina));
-                }
-                console.log(`🏷️ Configuraciones de productos restauradas`);
-            }
-
 
             if (backupData.data.gastos && Array.isArray(backupData.data.gastos)) {
                 localStorage.setItem('ipb_gastos_extras', JSON.stringify(backupData.data.gastos));
@@ -2793,15 +2774,6 @@ class BackupManager {
                 localStorage.setItem('salon_historial', JSON.stringify(data.historialSalon));
             }
 
-            // 8. CONFIGURACIONES DE PRODUCTOS
-            if (data.configProductos) {
-                if (data.configProductos.categoriasSalon) {
-                    localStorage.setItem('ipb_categorias_salon', JSON.stringify(data.configProductos.categoriasSalon));
-                }
-                if (data.configProductos.categoriasCocina) {
-                    localStorage.setItem('ipb_categorias_cocina', JSON.stringify(data.configProductos.categoriasCocina));
-                }
-            }
             if (data.gastos) {
                 localStorage.setItem('ipb_gastos_extras', JSON.stringify(data.gastos));
                 console.log('✅ Reportes históricos restaurados:', data.gastos.length);
