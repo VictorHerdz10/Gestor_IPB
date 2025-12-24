@@ -43,6 +43,59 @@ body {
     animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Barra de navegación inferior para dashboard */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding-bottom: 10px;
+
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    border-top: 1px solid #e9ecef;
+}
+
+.has-bottom-nav .main-content {
+    padding-bottom: 70px !important;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    flex: 1;
+    padding: 5px 0;
+    transition: all 0.3s;
+}
+
+.nav-icon {
+    font-size: 1.2rem;
+    color: #6c757d;
+    margin-bottom: 3px;
+    transition: all 0.3s;
+}
+
+.nav-label {
+    font-size: 0.7rem;
+    color: #6c757d;
+    transition: all 0.3s;
+}
+
+.nav-item.active .nav-icon,
+.nav-item.active .nav-label {
+    color: #4361ee;
+}
+
+.nav-item:active .nav-icon {
+    transform: scale(1.1);
+}
+
+
 /* ===== DASHBOARD LAYOUT ===== */
 .dashboard-container {
     display: flex;
@@ -805,6 +858,8 @@ body {
         padding: 1rem;
         width: 100%;
         overflow-x: hidden;
+        padding-bottom: 80px;
+
     }
 
     .summary-card,
@@ -830,6 +885,10 @@ body {
 
 /* Desktop hover effects */
 @media (min-width: 1025px) {
+    .bottom-nav{
+        display: none
+
+    }
     .sidebar:hover {
         width: var(--sidebar-width);
     }
@@ -859,6 +918,9 @@ body {
 /* Botón móvil en top bar para escritorio */
 @media (min-width: 769px) {
     .mobile-menu-toggle {
+        display: none;
+    }
+    .bottom-nav{
         display: none;
     }
 }
@@ -1344,57 +1406,6 @@ body {
     }
 }
 
-/* Barra de navegación inferior para dashboard */
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: white;
-    display: flex;
-    justify-content: space-around;
-    padding-bottom: 10px;
-
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 100;
-    border-top: 1px solid #e9ecef;
-}
-
-.has-bottom-nav .main-content {
-    padding-bottom: 70px !important;
-}
-
-.nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none;
-    flex: 1;
-    padding: 5px 0;
-    transition: all 0.3s;
-}
-
-.nav-icon {
-    font-size: 1.2rem;
-    color: #6c757d;
-    margin-bottom: 3px;
-    transition: all 0.3s;
-}
-
-.nav-label {
-    font-size: 0.7rem;
-    color: #6c757d;
-    transition: all 0.3s;
-}
-
-.nav-item.active .nav-icon,
-.nav-item.active .nav-label {
-    color: #4361ee;
-}
-
-.nav-item:active .nav-icon {
-    transform: scale(1.1);
-}
 
 /* === BOTONES RESPONSIVE PARA TOP BAR === */
 
