@@ -1,10 +1,8 @@
-// Control de Salón - VERSIÓN MEJORADA Y RESPONSIVA
 document.addEventListener('DOMContentLoaded', function () {
     // Elementos del DOM
     const salonTable = document.getElementById('salon-tbody');
     const salonSearch = document.getElementById('salon-search');
     const btnConfigurarSalida = document.getElementById('btn-configurar-salida');
-    const btnFinalizarDia = document.getElementById('btn-finalizar-dia');
     const btnSincronizarEmpty = document.getElementById('btn-sincronizar-empty');
     const salonEmptyState = document.getElementById('salon-empty-state');
     const saveIndicator = document.getElementById('save-indicator');
@@ -53,7 +51,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function cargarDatosSalon() {
         return new Promise((resolve) => {
             const datosGuardados = StorageManager.getSalonData();
-
             if (datosGuardados.length > 0) {
                 salonData = datosGuardados;
             } else {
@@ -83,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
             resolve();
         });
     }
-    
+
 
     function sincronizarConProductos() {
         const productosIds = productos.map(p => p.id);
@@ -203,15 +200,37 @@ document.addEventListener('DOMContentLoaded', function () {
         row.dataset.id = producto.id;
         row.dataset.index = index;
 
-        // Calcular valores automáticamente
+        // Recalcular primero
         recalcularProducto(producto);
 
-        // Determinar el valor a mostrar en el campo final
+        // Determinar valor a mostrar en campo final
         let valorFinal = producto.final;
 
-        // RESPETAR SIEMPRE el valor que tenga el producto
-        // NO auto-ajustar a venta aunque sea 0
-        // Si el usuario pone 0, significa que se vendió todo
+        // LOGÍCA MEJORADA: Similar a cocina.js
+        // Solo auto-ajustar si:
+        // 1. El final es 0 (no se ha vendido nada)
+        // 2. NO estamos en modo edición de final
+        // 3. El usuario NO ha editado manualmente el final (finalEditado === false)
+        // 4. Hay ventas disponibles
+        if (valorFinal === 0 &&
+            !editingFinalEnabled &&
+            !producto.finalEditado &&
+            producto.venta > 0) {
+            valorFinal = producto.venta;
+            producto.final = valorFinal;
+            // Recalcular con el nuevo valor
+            recalcularProducto(producto);
+        }
+
+        // Si el usuario YA editó el final (finalEditado = true), respetar su valor
+        if (producto.finalEditado) {
+            // Asegurar que no sea mayor que la venta
+            if (producto.final > producto.venta) {
+                producto.final = producto.venta;
+                recalcularProducto(producto);
+            }
+        }
+
         row.innerHTML = `
     <td class="producto-cell">
         <span class="product-name">${producto.nombre}</span>
@@ -249,10 +268,11 @@ document.addEventListener('DOMContentLoaded', function () {
                value="${valorFinal}" 
                data-field="final" 
                data-id="${producto.id}"
+               data-venta="${producto.venta}"
                class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
                placeholder="0"
                autocomplete="off"
-               ${!editingFinalEnabled ? 'readonly' : ''}>
+               ${!editingFinalEnabled ? 'disabled' : ''}>
     </td>
     <td class="calculated-cell vendido-cell">
         <span class="vendido-display">${producto.vendido}</span>
@@ -262,7 +282,12 @@ document.addEventListener('DOMContentLoaded', function () {
     </td>
 `;
 
-        // Agregar event listeners a los inputs editables
+        agregarEventListenersFila(row, producto);
+
+        return row;
+    }
+
+    function agregarEventListenersFila(row, producto) {
         const inputs = row.querySelectorAll('.editable-input:not(:disabled)');
         inputs.forEach(input => {
             // Guardar valor anterior para comparación
@@ -299,13 +324,16 @@ document.addEventListener('DOMContentLoaded', function () {
                             'warning'
                         );
                     }
+
+                    // Marcar como editado cuando el usuario cambia el final
+                    if (newValue !== oldValue) {
+                        producto.finalEditado = true;
+                    }
                 }
 
                 if (newValue !== oldValue) {
                     this.classList.add('edited');
                     actualizarProductoDesdeInput(this);
-
-                    // Programar guardado automático
                     programarAutoSave();
 
                     // Efecto visual
@@ -318,10 +346,10 @@ document.addEventListener('DOMContentLoaded', function () {
             input.addEventListener('input', function () {
                 // Actualizar en tiempo real para los campos de inicio y entrada
                 const field = this.dataset.field;
+                let value = parseInt(this.value) || 0;
 
                 // VALIDACIÓN EN TIEMPO REAL PARA CAMPO FINAL
                 if (field === 'final') {
-                    let value = parseInt(this.value) || 0;
                     const max = parseInt(this.max) || 0;
 
                     if (value > max) {
@@ -349,11 +377,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         });
-
-        return row;
     }
 
     function recalcularProducto(producto) {
+        // Asegurar que todos los valores sean números
+        producto.inicio = parseInt(producto.inicio) || 0;
+        producto.entrada = parseInt(producto.entrada) || 0;
+        producto.final = parseInt(producto.final) || 0;
+        producto.vendido = parseInt(producto.vendido) || 0;
+        producto.venta = parseInt(producto.venta) || 0;
+
         // Calcular venta
         const nuevaVenta = producto.inicio + producto.entrada;
 
@@ -361,10 +394,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (producto.venta !== nuevaVenta) {
             producto.venta = nuevaVenta;
 
-            // Si la venta cambió y el final NO ha sido editado por el usuario
+            // Si el final NO ha sido editado por el usuario, ajustarlo automáticamente
             if (!producto.finalEditado) {
-                // En salón también respetamos si el usuario puso 0 manualmente
-                // Pero ajustamos si la venta cambia y aún no ha sido editado
                 producto.final = producto.venta;
             } else {
                 // Si ya fue editado, asegurar que no sea mayor que la venta
@@ -421,6 +452,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Si no es tiempo real, actualizar toda la fila
                     actualizarFilaCompleta(id);
                 }
+
+                // Guardar cambios
+                guardarDatosSalon();
             }
         }
     }
@@ -436,10 +470,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const ventaDisplay = row.querySelector('.venta-display');
         const vendidoDisplay = row.querySelector('.vendido-display');
         const importeDisplay = row.querySelector('.importe-display');
+        const finalInput = row.querySelector('.final-input');
 
         if (ventaDisplay) ventaDisplay.textContent = producto.venta;
         if (vendidoDisplay) vendidoDisplay.textContent = producto.vendido;
         if (importeDisplay) importeDisplay.textContent = `$${producto.importe.toFixed(2)}`;
+        if (finalInput) {
+            finalInput.max = producto.venta;
+            finalInput.dataset.venta = producto.venta;
+        }
 
         // Actualizar resumen general
         actualizarResumen();
@@ -533,27 +572,23 @@ document.addEventListener('DOMContentLoaded', function () {
         // Búsqueda
         if (salonSearch) {
             salonSearch.addEventListener('input', function () {
+                paginaActualSalon = 1; // Resetear a página 1 al buscar
                 const searchTerm = this.value.toLowerCase().trim();
-                const rows = salonTable.querySelectorAll('tr');
-                let visibleCount = 0;
-
-                rows.forEach(row => {
-                    const productName = row.querySelector('.product-name');
-                    if (productName) {
-                        const match = productName.textContent.toLowerCase().includes(searchTerm);
-                        row.style.display = match ? '' : 'none';
-                        if (match) visibleCount++;
-                    }
-                });
+                datosFiltrados = salonData.filter(producto =>
+                    producto.nombre.toLowerCase().includes(searchTerm)
+                );
 
                 // Mostrar/ocultar empty state según resultados
                 if (salonEmptyState) {
-                    salonEmptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+                    salonEmptyState.style.display = datosFiltrados.length === 0 ? 'block' : 'none';
                 }
+
+                // Actualizar tabla y paginación
+                actualizarTabla();
             });
         }
 
-        // Configurar salida (final)
+        // Configurar salida (final) - SIMILAR A COCINA
         if (btnConfigurarSalida) {
             btnConfigurarSalida.addEventListener('click', function () {
                 editingFinalEnabled = !editingFinalEnabled;
@@ -565,7 +600,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         input.disabled = false;
                         input.classList.add('editing-enabled');
 
-
+                        // Si el valor es 0 y hay ventas disponibles, ajustar automáticamente
+                        if (parseInt(input.value) === 0) {
+                            const id = parseInt(input.dataset.id);
+                            const producto = salonData.find(p => p.id === id);
+                            if (producto && producto.venta > 0) {
+                                input.value = producto.venta;
+                                input.max = producto.venta;
+                                input.dataset.venta = producto.venta;
+                                actualizarProductoDesdeInput(input, false);
+                            }
+                        }
                     });
 
                     this.innerHTML = '<i class="fas fa-times"></i><span class="btn-text">Cancelar Edición</span>';
@@ -590,32 +635,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Actualizar tabla para reflejar cambios
                 actualizarTabla();
-            });
-        }
-
-        // Finalizar día
-        if (btnFinalizarDia) {
-            btnFinalizarDia.addEventListener('click', function () {
-                showConfirmationModal(
-                    'Finalizar Día en Salón',
-                    '¿Estás seguro de finalizar el día? Se calcularán automáticamente los productos vendidos.',
-                    'warning',
-                    function () {
-                        // Recalcular todos los productos
-                        salonData.forEach(producto => {
-                            recalcularProducto(producto);
-                        });
-
-                        // Guardar cambios
-                        guardarDatosSalon();
-
-                        // Actualizar interfaz
-                        actualizarTabla();
-                        actualizarResumen();
-
-                        showNotification('Día finalizado correctamente', 'success');
-                    }
-                );
             });
         }
 
@@ -832,7 +851,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             // Actualizar UI
-            actualizarFilaUI(productoId);
+            actualizarFilaUI(productId);
 
             // Guardar cambios
             guardarDatosSalon();
