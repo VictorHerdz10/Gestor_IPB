@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const cocinaTable = document.getElementById('cocina-tbody');
     const cocinaSearch = document.getElementById('cocina-search');
     const btnEditarFinalCocina = document.getElementById('btn-agregar-agrego');
-    const btnFinalizarDiaCocina = document.getElementById('btn-finalizar-dia-cocina');
     const btnSincronizarEmptyCocina = document.getElementById('btn-sincronizar-empty-cocina');
     const cocinaEmptyState = document.getElementById('cocina-empty-state');
     const saveIndicatorCocina = document.getElementById('save-indicator-cocina');
@@ -1018,30 +1017,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Finalizar día en cocina
-        if (btnFinalizarDiaCocina) {
-            btnFinalizarDiaCocina.addEventListener('click', function () {
-                showConfirmationModal(
-                    'Finalizar Día en Cocina',
-                    '¿Estás seguro de finalizar el día en cocina? Se calcularán automáticamente los productos vendidos.',
-                    'warning',
-                    function () {
-                        cocinaData.forEach(producto => {
-                            recalcularProductoCocina(producto);
-                        });
-
-                        recalcularConsumosPorRelaciones();
-
-                        guardarDatosCocina();
-                        actualizarTablaCocina();
-                        actualizarResumenCocina();
-
-                        showNotification('Día en cocina finalizado correctamente', 'success');
-                    }
-                );
-            });
-        }
-
 
         if (btnSincronizarEmptyCocina) {
             btnSincronizarEmptyCocina.addEventListener('click', function () {
@@ -1286,17 +1261,19 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="modal active" id="modal-agrego-simple">
         <div class="modal-content modal-agrego-responsive">
             <div class="modal-header modal-header-agrego">
-                <h3><i class="fas fa-hamburger"></i> Registrar Producto Compuesto</h3>
+                <h3><i class="fas fa-hamburger"></i> Registrar Producto / Agrego</h3>
                 <button class="modal-close" onclick="cerrarModalAgrego()">&times;</button>
             </div>
             <div class="modal-body modal-body-agrego">
                 <!-- MENSAJES DE VALIDACIÓN -->
                 <div id="alertas-validacion" class="alertas-container"></div>
                 
-                <!-- ADVERTENCIA INTELIGENTE PAN -->
-                <div id="advertencia-pan" class="alert-warning-custom" style="display: none;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span id="texto-advertencia-pan"></span>
+                <!-- ADVERTENCIA INTELIGENTE -->
+                <div id="advertencia-tipo" class="alert-warning-custom" style="display: none;">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="texto-advertencia-tipo">
+                        Se registrará como <strong id="tipo-producto-detalle">Agrego Simple</strong>
+                    </span>
                 </div>
                 
                 <!-- SECCIÓN 1: INFORMACIÓN BÁSICA -->
@@ -1310,9 +1287,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <i class="fas fa-tag"></i> Nombre *
                             </label>
                             <input type="text" id="agrego-nombre" class="form-input-agrego" 
-                                   placeholder="Ej: Pan con Jamón, Combo Especial..." 
+                                   placeholder="Ej: Pan con Jamón, Queso extra..." 
                                    required oninput="validarNombreProducto(this.value)">
-                            <div class="form-helper">Describe claramente el producto</div>
+                            <div class="form-helper">Describe claramente el producto o agrego</div>
                         </div>
                         
                         <div class="form-group-agrego">
@@ -1334,6 +1311,18 @@ document.addEventListener('DOMContentLoaded', function () {
                                    required oninput="validarCantidadProducto(this.value)">
                             <div class="form-helper">Unidades a vender</div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- INDICADOR DE TIPO -->
+                <div id="indicador-tipo" class="indicador-tipo">
+                    <div class="tipo-item active" id="tipo-agrego">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Agrego Simple</span>
+                    </div>
+                    <div class="tipo-item" id="tipo-compuesto">
+                        <i class="fas fa-layer-group"></i>
+                        <span>Producto Compuesto</span>
                     </div>
                 </div>
                 
@@ -1365,6 +1354,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span id="mensaje-minimo" class="mensaje-error">
                                 <i class="fas fa-exclamation-circle"></i> Selecciona al menos 1 ingrediente
                             </span>
+                            <span id="mensaje-tipo" class="mensaje-info">
+                                <i class="fas fa-info-circle"></i> <span id="texto-tipo">Agrego Simple</span>
+                            </span>
                         </div>
                         
                         <div class="botones-accion">
@@ -1387,9 +1379,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span class="resumen-label">Ingredientes:</span>
                             <span id="calculo-checkbox-ingredientes" class="resumen-valor">0 seleccionados</span>
                         </div>
+                        <div class="resumen-item">
+                            <span class="resumen-label">Total:</span>
+                            <span id="calculo-checkbox-total" class="resumen-valor">0 unidades totales</span>
+                        </div>
                         <div class="resumen-item resumen-total">
-                            <span class="resumen-label">Consumo total:</span>
-                            <span id="calculo-checkbox-total" class="resumen-valor">0 unidades</span>
+                            <span class="resumen-label">Tipo:</span>
+                            <span id="calculo-checkbox-tipo" class="resumen-valor tipo-agrego">Agrego Simple</span>
                         </div>
                         <div class="resumen-lista">
                             <span id="lista-ingredientes-seleccionados">Ningún ingrediente seleccionado</span>
@@ -1450,7 +1446,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <i class="fas fa-times"></i> Cancelar
                 </button>
                 <button class="btn btn-primary" id="guardar-agrego-simple-modal" onclick="validarYGuardarAgrego()">
-                    <i class="fas fa-save"></i> Guardar Producto Compuesto
+                    <i class="fas fa-save"></i> <span id="texto-boton-guardar">Guardar Agrego Simple</span>
                 </button>
             </div>
         </div>
@@ -1462,476 +1458,193 @@ document.addEventListener('DOMContentLoaded', function () {
         // AGREGAR ESTILOS MEJORADOS
         const estilosModal = `
     <style>
-    /* MODAL RESPONSIVE */
+    /* Agregar estos estilos nuevos al CSS existente */
+
+/* MODAL RESPONSIVE MEJORADO */
+.modal-agrego-responsive {
+    max-width: 900px !important;
+    width: 95vw !important;
+    min-width: 320px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    margin: 20px auto;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+}
+
+/* INDICADOR DE TIPO */
+.indicador-tipo {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    padding: 10px;
+    background: #f8f9ff;
+    border-radius: 10px;
+    border: 1px solid #e0e2ff;
+}
+
+.tipo-item {
+    flex: 1;
+    padding: 12px 20px;
+    text-align: center;
+    border-radius: 8px;
+    background: white;
+    border: 2px solid #e8e8e8;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-weight: 500;
+    color: #666;
+}
+
+.tipo-item.active {
+    border-color: #4a6cf7;
+    background: #4a6cf7;
+    color: white;
+    box-shadow: 0 4px 12px rgba(74, 108, 247, 0.2);
+}
+
+.tipo-item:hover:not(.active) {
+    border-color: #4a6cf7;
+    color: #4a6cf7;
+}
+
+/* MENSAJE DE TIPO */
+.mensaje-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #e7f4ff;
+    border-radius: 6px;
+    color: #0066cc;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.mensaje-info i {
+    font-size: 12px;
+}
+
+/* BOTÓN GUARDAR DINÁMICO */
+#guardar-agrego-simple-modal {
+    min-width: 180px;
+    padding: 12px 25px;
+}
+
+/* RESPONSIVE MEJORADO */
+@media (min-width: 1200px) {
     .modal-agrego-responsive {
-        max-width: 800px;
-        width: 95%;
-        max-height: 90vh;
-        display: flex;
-        flex-direction: column;
-        margin: 20px auto;
+        width: 85vw !important;
+        max-width: 1100px !important;
     }
     
-    .modal-header-agrego {
-        padding: 20px 25px;
-        border-bottom: 1px solid #e8e8e8;
-        background: linear-gradient(135deg, #4a6cf7 0%, #6c8cff 100%);
-        color: white;
-        border-radius: 12px 12px 0 0;
+    .ingredientes-checkbox-grid {
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+    .modal-agrego-responsive {
+        width: 90vw !important;
+        max-width: 950px !important;
     }
     
-    .modal-header-agrego h3 {
-        margin: 0;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    .ingredientes-checkbox-grid {
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     }
-    
-    .modal-header-agrego .modal-close {
-        color: white;
-        opacity: 0.8;
-        transition: opacity 0.3s ease;
-    }
-    
-    .modal-header-agrego .modal-close:hover {
-        opacity: 1;
-        transform: scale(1.1);
-    }
-    
-    .modal-body-agrego {
-        flex: 1;
-        overflow-y: auto;
-        padding: 25px;
-        display: flex;
-        flex-direction: column;
-        gap: 25px;
-    }
-    
-    /* SECCIONES */
-    .seccion-basica,
-    .seccion-ingredientes-agrego,
-    .seccion-notas {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        border: 1px solid #f0f0f0;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    }
-    
-    .seccion-titulo {
-        margin: 0 0 20px 0;
-        font-size: 16px;
-        color: #333;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #f0f2ff;
-    }
-    
-    .seccion-titulo i {
-        color: #4a6cf7;
-    }
-    
-    /* FORMULARIO MEJORADO */
+}
+
+@media (max-width: 767px) {
     .form-grid-tres {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
+        grid-template-columns: 1fr;
+        gap: 15px;
     }
     
-    .form-group-agrego {
-        display: flex;
+    .ingredientes-checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .indicador-tipo {
         flex-direction: column;
-    }
-    
-    .form-label-agrego {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-        font-weight: 500;
-        color: #444;
-        font-size: 14px;
-    }
-    
-    .form-label-agrego i {
-        color: #666;
-        font-size: 14px;
-    }
-    
-    .form-input-agrego {
-        padding: 12px 15px;
-        border: 2px solid #e8e8e8;
-        border-radius: 8px;
-        font-size: 15px;
-        transition: all 0.3s ease;
-        background: white;
-    }
-    
-    .form-input-agrego:focus {
-        outline: none;
-        border-color: #4a6cf7;
-        box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
-    }
-    
-    .form-helper {
-        margin-top: 6px;
-        font-size: 12px;
-        color: #888;
-    }
-    
-    /* INGREDIENTES */
-    .instruccion-ingredientes {
-        background: #f8f9ff;
-        padding: 12px 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        color: #555;
-        border-left: 3px solid #4a6cf7;
-    }
-    
-    .instruccion-ingredientes i {
-        color: #4a6cf7;
     }
     
     .controles-ingredientes {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
+        flex-direction: column;
+        align-items: stretch;
         gap: 15px;
     }
     
     .contador-y-mensaje {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        flex: 1;
-    }
-    
-    .contador-badge {
-        background: #4a6cf7;
-        color: white;
-        padding: 6px 15px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
     }
     
     .botones-accion {
-        display: flex;
-        gap: 10px;
-    }
-    
-    .btn-outline {
-        background: white;
-        border: 2px solid #e8e8e8;
-        color: #555;
-        padding: 8px 15px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 14px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .btn-outline:hover {
-        border-color: #4a6cf7;
-        color: #4a6cf7;
-        background: #f8f9ff;
-    }
-    
-    /* RESUMEN MEJORADO */
-    .resumen-checkboxes {
-        background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
-        border-radius: 10px;
-        padding: 15px 20px;
-        margin-bottom: 20px;
-        border: 1px solid #e0e2ff;
-    }
-    
-    .resumen-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px dashed #d0d4ff;
-    }
-    
-    .resumen-item:last-child {
-        border-bottom: none;
-    }
-    
-    .resumen-total {
-        font-weight: 600;
-        color: #333;
-    }
-    
-    .resumen-label {
-        color: #666;
-        font-size: 14px;
-    }
-    
-    .resumen-valor {
-        font-weight: 500;
-        color: #4a6cf7;
-    }
-    
-    .resumen-lista {
-        margin-top: 10px;
-        padding: 10px;
-        background: white;
-        border-radius: 6px;
-        font-size: 13px;
-        color: #666;
-        border: 1px solid #eee;
-    }
-    
-    /* LISTA INGREDIENTES MEJORADA */
-    .ingredientes-checkbox-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 12px;
-        max-height: 300px;
-        overflow-y: auto;
-        padding-right: 5px;
-    }
-    
-    .ingrediente-checkbox-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px;
-        background: white;
-        border: 1px solid #e8e8e8;
-        border-radius: 10px;
-        transition: all 0.3s ease;
-        min-height: 80px;
-    }
-    
-    .ingrediente-checkbox-item:hover:not(.disabled) {
-        border-color: #4a6cf7;
-        box-shadow: 0 4px 12px rgba(74, 108, 247, 0.1);
-        transform: translateY(-2px);
-    }
-    
-    .checkbox-container {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        flex: 1;
-    }
-    
-    .ingrediente-info-detalle {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-    }
-    
-    .ingrediente-checkbox-nombre {
-        font-weight: 600;
-        color: #333;
-        font-size: 15px;
-    }
-    
-    .ingrediente-disponible-checkbox {
-        font-size: 13px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-    
-    .ingrediente-disponible-checkbox.available {
-        color: #28a745;
-    }
-    
-    .ingrediente-disponible-checkbox.unavailable {
-        color: #dc3545;
-    }
-    
-    .consumo-checkbox-display {
-        background: #f8f9ff;
-        padding: 8px 12px;
-        border-radius: 8px;
-        min-width: 100px;
-        text-align: center;
-        border: 1px solid #e0e2ff;
-    }
-    
-    .consumo-info {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        font-size: 14px;
-    }
-    
-    .consumo-info i {
-        color: #4a6cf7;
-    }
-    
-    .consumo-text {
-        color: #4a6cf7;
-        font-weight: 500;
-    }
-    
-    /* TEXTAREA */
-    .form-textarea-agrego {
         width: 100%;
-        padding: 12px 15px;
-        border: 2px solid #e8e8e8;
-        border-radius: 8px;
-        font-size: 15px;
-        transition: all 0.3s ease;
-        resize: vertical;
-        min-height: 100px;
-        font-family: inherit;
-    }
-    
-    .form-textarea-agrego:focus {
-        outline: none;
-        border-color: #4a6cf7;
-        box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
-    }
-    
-    /* FOOTER MODAL */
-    .modal-footer-agrego {
-        padding: 20px 25px;
-        border-top: 1px solid #e8e8e8;
-        display: flex;
         justify-content: space-between;
-        gap: 15px;
-        background: #fafafa;
-        border-radius: 0 0 12px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-agrego-responsive {
+        width: 98vw !important;
+        margin: 10px;
+        border-radius: 12px;
     }
     
-    /* ALERTAS */
-    .alertas-container {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+    .modal-header-agrego,
+    .modal-footer-agrego {
+        padding: 15px;
     }
     
-    /* RESPONSIVE */
-    @media (max-width: 768px) {
-        .modal-agrego-responsive {
-            width: 98%;
-            max-height: 95vh;
-            margin: 10px;
-        }
-        
-        .form-grid-tres {
-            grid-template-columns: 1fr;
-            gap: 15px;
-        }
-        
-        .ingredientes-checkbox-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .ingrediente-checkbox-item {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 15px;
-        }
-        
-        .checkbox-container {
-            width: 100%;
-        }
-        
-        .consumo-checkbox-display {
-            width: 100%;
-            text-align: left;
-            padding: 10px 15px;
-        }
-        
-        .consumo-info {
-            justify-content: flex-start;
-        }
-        
-        .controles-ingredientes {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        
-        .contador-y-mensaje {
-            justify-content: space-between;
-        }
-        
-        .botones-accion {
-            width: 100%;
-            justify-content: space-between;
-        }
-        
-        .modal-footer-agrego {
-            flex-direction: column;
-        }
-        
-        .modal-footer-agrego .btn {
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .modal-body-agrego {
-            padding: 20px;
-        }
+    .modal-body-agrego {
+        padding: 15px;
     }
     
-    @media (max-width: 480px) {
-        .modal-header-agrego,
-        .modal-footer-agrego {
-            padding: 15px;
-        }
-        
-        .modal-body-agrego {
-            padding: 15px;
-        }
-        
-        .seccion-basica,
-        .seccion-ingredientes-agrego,
-        .seccion-notas {
-            padding: 15px;
-        }
-        
-        .resumen-checkboxes {
-            padding: 12px 15px;
-        }
-        
-        .ingrediente-checkbox-item {
-            padding: 12px;
-        }
+    .seccion-basica,
+    .seccion-ingredientes-agrego,
+    .seccion-notas {
+        padding: 15px;
     }
     
-    /* SCROLLBAR PERSONALIZADO */
-    .ingredientes-checkbox-grid::-webkit-scrollbar {
-        width: 6px;
+    .tipo-item {
+        padding: 10px 15px;
+        font-size: 14px;
     }
     
-    .ingredientes-checkbox-grid::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
+    #guardar-agrego-simple-modal {
+        width: 100%;
+        justify-content: center;
     }
-    
-    .ingredientes-checkbox-grid::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 10px;
-    }
-    
-    .ingredientes-checkbox-grid::-webkit-scrollbar-thumb:hover {
-        background: #a1a1a1;
-    }
+}
+
+/* CLASES DINÁMICAS PARA TIPO */
+.tipo-agrego {
+    color: #28a745 !important;
+    font-weight: 600;
+}
+
+.tipo-compuesto {
+    color: #ff6b6b !important;
+    font-weight: 600;
+}
+
+.resumen-valor.tipo-agrego::before {
+    content: "✓ ";
+    margin-right: 5px;
+}
+
+.resumen-valor.tipo-compuesto::before {
+    content: "✓ ";
+    margin-right: 5px;
+}
     </style>
     `;
 
@@ -1992,8 +1705,12 @@ document.addEventListener('DOMContentLoaded', function () {
             actualizarCalculoCheckboxes();
             validarIngredientesMinimos();
             validarNombreProducto(document.getElementById('agrego-nombre').value);
+
+            // Detectar tipo dinámico
+            detectarTipoProducto();
         };
 
+        // Modificar actualizarCalculoCheckboxes para incluir tipo
         window.actualizarCalculoCheckboxes = function () {
             const cantidad = parseInt(document.getElementById('agrego-cantidad').value) || 1;
             const checkboxesSeleccionados = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)');
@@ -2008,6 +1725,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // Actualizar resumen
             document.getElementById('calculo-checkbox-unidades').textContent = `${cantidad} unidad(es)`;
             document.getElementById('calculo-checkbox-ingredientes').textContent = `${ingredientesSeleccionados.length} ingrediente(s)`;
+
+            // Actualizar tipo dinámicamente
+            detectarTipoProducto();
 
             const totalUnidadesIngredientes = cantidad * ingredientesSeleccionados.length;
             document.getElementById('calculo-checkbox-total').textContent = `${totalUnidadesIngredientes} unidades totales`;
@@ -2066,7 +1786,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 );
 
                 // Verificar si pan está seleccionado
-                const panSeleccionado = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)')
+                const panSeleccionado = Array.from(document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)'))
                     .some(checkbox => checkbox.dataset.ingredienteNombre.toLowerCase().includes('pan'));
 
                 const advertenciaDiv = document.getElementById('advertencia-pan');
@@ -2199,7 +1919,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         };
 
-        // FUNCIÓN PRINCIPAL DE VALIDACIÓN Y GUARDADO
+        // FUNCIÓN PRINCIPAL DE VALIDACIÓN Y GUARDADO - CORREGIDA
         window.validarYGuardarAgrego = function () {
             // 1. Validar campos básicos
             const nombre = document.getElementById('agrego-nombre').value.trim();
@@ -2291,14 +2011,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     let html = '';
                     problemasDisponibilidad.forEach(prob => {
                         html += `
-                        <div class="validacion-item insuficiente">
-                            <span class="nombre">${prob.nombre}</span>
-                            <span class="detalle">
-                                ${prob.disponible} disponible / ${prob.necesario} necesario
-                                <i class="fas fa-times-circle" style="color: #dc3545;"></i>
-                            </span>
-                        </div>
-                    `;
+                <div class="validacion-item insuficiente">
+                    <span class="nombre">${prob.nombre}</span>
+                    <span class="detalle">
+                        ${prob.disponible} disponible / ${prob.necesario} necesario
+                        <i class="fas fa-times-circle" style="color: #dc3545;"></i>
+                    </span>
+                </div>
+            `;
                     });
                     resultadoDiv.innerHTML = html;
                     validacionDiv.style.display = 'block';
@@ -2317,6 +2037,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const cantidad = parseInt(document.getElementById('agrego-cantidad').value) || 1;
             const notas = document.getElementById('agrego-notas').value.trim();
             const checkboxesSeleccionados = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)');
+
+            // Determinar tipo dinámico
+            const esCompuesto = detectarTipoProducto();
+            const tipo = esCompuesto ? 'producto-compuesto' : 'agrego-simple';
 
             // Obtener ingredientes consumidos
             const ingredientesConsumidos = Array.from(checkboxesSeleccionados).map(checkbox => ({
@@ -2337,7 +2061,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
 
-            // Crear el nuevo agrego
+            // Crear el nuevo agrego con tipo dinámico
             const nuevoAgrego = {
                 id: Date.now(),
                 nombre: nombre,
@@ -2348,7 +2072,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 hora: obtenerHoraActual(),
                 fecha: new Date().toISOString(),
                 montoTotal: precio * cantidad,
-                tipo: 'producto-checkbox'
+                tipo: tipo, // Usar tipo dinámico
+                esCompuesto: esCompuesto // Nueva propiedad para identificar fácilmente
             };
 
             // Agregar a la lista de agregos
@@ -2366,12 +2091,16 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modal) modal.remove();
 
             // Mostrar mensaje de éxito con resumen
-            let mensaje = `✅ ${nombre} registrado correctamente\n`;
+            let mensaje = `✅ ${nombre} registrado como ${esCompuesto ? 'Producto Compuesto' : 'Agrego Simple'}\n`;
             mensaje += `📦 Cantidad: ${cantidad} unidad(es)\n`;
             mensaje += `💰 Total: $${(precio * cantidad).toFixed(2)}\n`;
 
             if (ingredientesConsumidos.length > 0) {
-                mensaje += `🍽️ Ingredientes consumidos:\n`;
+                if (esCompuesto) {
+                    mensaje += `🍽️ Ingredientes (${ingredientesConsumidos.length}):\n`;
+                } else {
+                    mensaje += `🍽️ Ingrediente:\n`;
+                }
                 ingredientesConsumidos.forEach(i => {
                     mensaje += `   • ${i.cantidadTotal} ${i.nombre}\n`;
                 });
@@ -3690,7 +3419,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const totalImporte = cocinaData.reduce((sum, p) => sum + p.importe, 0);
         const totalAgregos = agregos.reduce((sum, a) => sum + a.montoTotal, 0);
         const ventasTotales = totalImporte + totalAgregos;
-
         const elementos = {
             'total-productos-cocina': totalProductos,
             'total-unidades-vendidas-cocina': `${totalUnidadesVendidas} unidades`,
@@ -3926,6 +3654,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const totalImporte = cocinaData.reduce((sum, p) => sum + p.importe, 0);
         const totalAgregos = agregos.reduce((sum, a) => sum + a.montoTotal, 0);
         return totalImporte + totalAgregos;
+
     };
 
     window.getCocinaAgregosTotal = function () {
@@ -3963,18 +3692,69 @@ document.addEventListener('DOMContentLoaded', function () {
         actualizarListaAgregos();
     };
 
-    // Exponer datos y funciones para uso global
-    window.cocinaData = cocinaData;
-    window.productosCocina = productosCocina;
-    window.agregos = agregos;
-    window.relacionesProductos = relacionesProductos;
-    window.relacionesPanIngredientes = relacionesPanIngredientes;
-    window.sincronizarProductosCocina = productoCocina;
-    window.guardarAgregoSimpleCheckboxes = guardarAgregoSimpleCheckboxes;
-});
+    window.detectarTipoProducto = function () {
+        const checkboxesSeleccionados = document.querySelectorAll('.ingrediente-checkbox:checked:not(:disabled)');
+        const cantidadSeleccionados = checkboxesSeleccionados.length;
 
-// Inicializar cuando se carga la sección de cocina
-document.addEventListener('DOMContentLoaded', function () {
+        const tipoAgrego = document.getElementById('tipo-agrego');
+        const tipoCompuesto = document.getElementById('tipo-compuesto');
+        const textoTipo = document.getElementById('texto-tipo');
+        const detalleTipo = document.getElementById('tipo-producto-detalle');
+        const textoBoton = document.getElementById('texto-boton-guardar');
+        const indicadorTipo = document.getElementById('calculo-checkbox-tipo');
+        const advertenciaTipo = document.getElementById('advertencia-tipo');
+
+        let esCompuesto = cantidadSeleccionados > 1;
+
+        // Actualizar indicadores visuales
+        if (tipoAgrego) tipoAgrego.classList.toggle('active', !esCompuesto);
+        if (tipoCompuesto) tipoCompuesto.classList.toggle('active', esCompuesto);
+
+        // Actualizar textos
+        const tipoTexto = esCompuesto ? 'Producto Compuesto' : 'Agrego Simple';
+        if (textoTipo) textoTipo.textContent = tipoTexto;
+        if (detalleTipo) detalleTipo.textContent = tipoTexto;
+        if (textoBoton) textoBoton.textContent = `Guardar ${tipoTexto}`;
+        if (indicadorTipo) {
+            indicadorTipo.textContent = tipoTexto;
+            indicadorTipo.className = esCompuesto ? 'resumen-valor tipo-compuesto' : 'resumen-valor tipo-agrego';
+        }
+
+        // Mostrar/ocultar advertencia
+        if (advertenciaTipo) {
+            advertenciaTipo.style.display = 'flex';
+            advertenciaTipo.style.background = esCompuesto ? '#fff3cd' : '#d4edda';
+            advertenciaTipo.style.borderColor = esCompuesto ? '#ffeaa7' : '#c3e6cb';
+        }
+
+        return esCompuesto;
+    };
+
+    // Agregar event listeners para los botones de tipo
+    setTimeout(() => {
+        // Configurar click en los indicadores de tipo
+        const tipoAgrego = document.getElementById('tipo-agrego');
+        const tipoCompuesto = document.getElementById('tipo-compuesto');
+
+        if (tipoAgrego) {
+            tipoAgrego.addEventListener('click', function () {
+                this.classList.add('active');
+                if (tipoCompuesto) tipoCompuesto.classList.remove('active');
+                detectarTipoProducto();
+            });
+        }
+
+        if (tipoCompuesto) {
+            tipoCompuesto.addEventListener('click', function () {
+                this.classList.add('active');
+                if (tipoAgrego) tipoAgrego.classList.remove('active');
+                detectarTipoProducto();
+            });
+        }
+
+        // Inicializar tipo
+        detectarTipoProducto();
+    }, 100);
     // Escuchar cambios en la navegación
     const cocinaLinks = document.querySelectorAll('a[data-section="cocina"]');
     cocinaLinks.forEach(link => {
@@ -3987,4 +3767,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 500);
         });
     });
+
+    // Exponer datos y funciones para uso global
+    window.cocinaData = cocinaData;
+    window.productosCocina = productosCocina;
+    window.agregos = agregos;
+    window.relacionesProductos = relacionesProductos;
+    window.relacionesPanIngredientes = relacionesPanIngredientes;
+    window.sincronizarProductosCocina = productoCocina;
+    window.guardarAgregoSimpleCheckboxes = guardarAgregoSimpleCheckboxes;
 });
