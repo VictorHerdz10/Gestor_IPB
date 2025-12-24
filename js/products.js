@@ -655,7 +655,7 @@ class ProductManager {
             this.closeEditModal();
             window.showNotification('Producto actualizado exitosamente', 'success');
         }
-        this.syncPriceToSalon(productId, nombre, precio, nuevaUbicacion);
+        this.syncPriceToSalon(this.currentEditId, nombre, precio, nuevaUbicacion);
     }
 
     confirmDeleteProduct(productId, ubicacion) {
@@ -756,4 +756,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
+     // Inicializar cuando se haga clic en el enlace del sidebar
+   const productosLinks = document.querySelectorAll('a[data-section="productos"]');
+    productosLinks.forEach(link => {
+        link.addEventListener('click', function () {
+            // Recargar productos cuando se entra a la sección
+            setTimeout(() => {
+                    window.forceReloadProducts();
+            }, 500);
+        });
+    });
 });
