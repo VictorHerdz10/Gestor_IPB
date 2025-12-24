@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/transitions.css">
     <link rel="stylesheet" href="css/historial.css">
     <link rel="stylesheet" href="css/backup.css">
+    <link rel="stylesheet" href="css/ganancias.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -104,6 +105,12 @@
                         <a href="#" data-section="backup">
                             <i class="fas fa-database"></i>
                             <span>Backup & Restore</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="ganancias">
+                            <i class="fas fa-money-bill-trend-up"></i>
+                            <span>Ganancias</span>
                         </a>
                     </li>
                 </ul>
@@ -1508,6 +1515,229 @@
                     </div>
                 </div>
             </section>
+            <!-- Ganancias Section -->
+            <section id="ganancias-section" class="content-section">
+                <div class="ganancias-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-line"></i> Gestión de Ganancias</h2>
+                        <div class="section-controls">
+                            <button class="btn btn-success" id="btn-calcular-ganancias">
+                                <i class="fas fa-calculator"></i>
+                                <span class="btn-text">Calcular Ganancias</span>
+                            </button>
+                            <button class="btn btn-primary" id="btn-agregar-gasto">
+                                <i class="fas fa-plus"></i>
+                                <span class="btn-text">Nuevo Gasto</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Configuración de precios con paginación -->
+                    <div class="configuracion-precios">
+                        <h3><i class="fas fa-cog"></i> Configurar Precios de Compra</h3>
+                        <div class="info-box">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Aquí puedes establecer el precio al que compras cada producto. Estos precios se usarán
+                                para calcular las ganancias reales.</p>
+                        </div>
+
+                        <!-- Controles de paginación -->
+                        <div class="paginacion-controls" style="margin: 15px 0;">
+                            <div class="paginacion-header">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="buscar-productos-ganancias" placeholder="Buscar productos..."
+                                        autocomplete="off">
+                                </div>
+                                <div class="total-display">
+                                    <span>Productos:</span>
+                                    <span class="amount" id="total-productos-ganancias">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Grid de productos con paginación -->
+                        <div class="configuracion-grid" id="configuracion-precios-grid">
+                            <!-- Los productos se cargarán aquí dinámicamente -->
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Cargando productos...</p>
+                            </div>
+                        </div>
+
+                        <!-- Paginación -->
+                        <div class="paginacion-productos" id="paginacion-productos" style="display: none;">
+                            <!-- La paginación se generará aquí dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Formulario para agregar gastos -->
+                    <div class="form-container" id="gasto-form" style="display: none;">
+                        <div class="form-card">
+                            <h3><i class="fas fa-edit"></i> Registrar Gasto Extra</h3>
+                            <form id="form-nuevo-gasto">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="gasto-descripcion">
+                                            <i class="fas fa-clipboard-list"></i> Descripción del Gasto *
+                                        </label>
+                                        <input type="text" id="gasto-descripcion"
+                                            placeholder="Ej: Transporte, servicios, materiales..." required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="gasto-monto">
+                                            <i class="fas fa-dollar-sign"></i> Monto del Gasto *
+                                        </label>
+                                        <input type="number" id="gasto-monto" placeholder="0.00" step="1.00" min="0"
+                                            required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="gasto-categoria">
+                                            <i class="fas fa-tag"></i> Categoría *
+                                        </label>
+                                        <select id="gasto-categoria" required>
+                                            <option value="">Seleccionar categoría...</option>
+                                            <option value="transporte">Transporte</option>
+                                            <option value="servicios">Servicios (luz, agua, etc.)</option>
+                                            <option value="materiales">Materiales de trabajo</option>
+                                            <option value="mantenimiento">Mantenimiento</option>
+                                            <option value="personal">Personal</option>
+                                            <option value="otros">Otros</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label for="gasto-notas">
+                                            <i class="fas fa-sticky-note"></i> Notas (Opcional)
+                                        </label>
+                                        <textarea id="gasto-notas" placeholder="Detalles adicionales sobre el gasto..."
+                                            rows="2"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-secondary" id="btn-cancelar-gasto">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Guardar Gasto
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Lista de gastos -->
+                    <div class="gastos-container">
+                        <div class="list-header">
+                            <h3><i class="fas fa-receipt"></i> Gastos Extras del Día</h3>
+                            <div class="total-display">
+                                <span>Total Gastos:</span>
+                                <span class="amount negative" id="total-gastos">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="gastos-list" id="lista-gastos">
+                            <!-- Los gastos se mostrarán aquí -->
+                            <div class="empty-state-card">
+                                <i class="fas fa-receipt"></i>
+                                <p>No hay gastos extras registrados</p>
+                                <button class="btn btn-outline" id="btn-add-first-gasto">
+                                    <i class="fas fa-plus"></i> Agregar primer gasto
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen de Ganancias -->
+                    <div class="resumen-ganancias">
+                        <div class="resumen-card">
+                            <h3><i class="fas fa-chart-pie"></i> Resumen de Ganancias del Día</h3>
+
+                            <div class="resumen-grid">
+                                <div class="resumen-item">
+                                    <span>Ventas Totales (Salón + Cocina):</span>
+                                    <span class="amount" id="resumen-ventas-totales">$0.00</span>
+                                </div>
+                                <div class="resumen-item">
+                                    <span>Costo de Mercancía:</span>
+                                    <span class="amount negative" id="resumen-costo-mercancia">$0.00</span>
+                                </div>
+                                <div class="resumen-item highlight">
+                                    <span>Ganancia Bruta:</span>
+                                    <span class="amount positive" id="resumen-ganancia-bruta">$0.00</span>
+                                </div>
+                                <div class="resumen-item">
+                                    <span>Gastos Extras:</span>
+                                    <span class="amount negative" id="resumen-gastos-extras">$0.00</span>
+                                </div>
+                                <div class="resumen-item total">
+                                    <span>GANANCIA NETA:</span>
+                                    <span class="amount total-ganancia" id="resumen-ganancia-neta">$0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="metricas-extra">
+                                <div class="metrica">
+                                    <span>Margen de Ganancia:</span>
+                                    <span class="badge badge-success" id="margen-ganancia">0%</span>
+                                </div>
+                                <div class="metrica">
+                                    <span>ROI (Retorno sobre Inversión):</span>
+                                    <span class="badge badge-info" id="roi">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desglose detallado -->
+                    <div class="desglose-ganancias">
+                        <h3><i class="fas fa-list-alt"></i> Desglose Detallado</h3>
+
+                        <div class="desglose-grid">
+                            <!-- Ventas por área -->
+                            <div class="desglose-card">
+                                <h4>Ventas</h4>
+                                <div class="desglose-item">
+                                    <span>Ventas Salón:</span>
+                                    <span id="desglose-ventas-salon">$0.00</span>
+                                </div>
+                                <div class="desglose-item">
+                                    <span>Ventas Cocina:</span>
+                                    <span id="desglose-ventas-cocina">$0.00</span>
+                                </div>
+                                <div class="desglose-item total">
+                                    <span>Total Ventas:</span>
+                                    <span id="desglose-total-ventas">$0.00</span>
+                                </div>
+                            </div>
+
+                            <!-- Costos por área -->
+                            <div class="desglose-card">
+                                <h4>Costos</h4>
+                                <div class="desglose-item">
+                                    <span>Costo Salón:</span>
+                                    <span id="desglose-costo-salon">$0.00</span>
+                                </div>
+                                <div class="desglose-item">
+                                    <span>Costo Cocina:</span>
+                                    <span id="desglose-costo-cocina">$0.00</span>
+                                </div>
+                                <div class="desglose-item">
+                                    <span>Costo Agregos:</span>
+                                    <span id="desglose-costo-agregos">$0.00</span>
+                                </div>
+                                <div class="desglose-item total">
+                                    <span>Total Costos:</span>
+                                    <span id="desglose-total-costos">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
     </div>
     </main>
     <nav class="bottom-nav">
@@ -1613,6 +1843,7 @@
     <script src="js/consumo.js"></script>
     <script src="js/salon.js"></script>
     <script src="js/cocina.js"></script>
+    <script src="js/ganancias.js"></script>
     <script src="js/extracciones.js"></script>
     <script src="js/transferencias.js"></script>
 
