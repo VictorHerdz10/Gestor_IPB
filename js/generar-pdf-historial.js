@@ -20,13 +20,13 @@ window.showHistorialPDFOptionsModal = function () {
     }
 
     const reporte = window.historialIPV.reporteSeleccionado;
-    
+
     // Cerrar cualquier modal existente primero
     const existingModal = document.querySelector('.historial-pdf-export');
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     const modalHtml = `
         <div class="modal active pdf-export-modal historial-pdf-export">
             <div class="modal-overlay" id="historial-modal-overlay"></div>
@@ -140,7 +140,7 @@ window.showHistorialPDFOptionsModal = function () {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
+
     // Configurar event listeners después de que el modal esté en el DOM
     setupHistorialModalEvents();
 };
@@ -162,11 +162,11 @@ function setupHistorialModalEvents() {
     if (closeBtn) {
         closeBtn.addEventListener('click', closeModal);
     }
-    
+
     if (cancelBtn) {
         cancelBtn.addEventListener('click', closeModal);
     }
-    
+
     if (overlay) {
         overlay.addEventListener('click', closeModal);
     }
@@ -178,13 +178,13 @@ function setupHistorialModalEvents() {
     if (downloadBtn) {
         downloadBtn.addEventListener('click', handleHistorialDownload);
     }
-    
+
     if (shareBtn) {
         shareBtn.addEventListener('click', handleHistorialShare);
     }
-    
+
     // Permitir cerrar con ESC
-    const escHandler = function(e) {
+    const escHandler = function (e) {
         if (e.key === 'Escape' && modal) {
             closeModal();
             document.removeEventListener('keydown', escHandler);
@@ -199,20 +199,20 @@ async function handleHistorialDownload() {
 
     const reporte = window.historialIPV.reporteSeleccionado;
     const options = getHistorialExportOptions();
-    
+
     // Mostrar progreso
     showHistorialProgress(true);
-    
+
     try {
         const pdfBlob = await generateHistorialPDF(reporte.datos, options);
         await downloadHistorialPDF(pdfBlob, options.title);
-        
+
         // Cerrar modal después de éxito
         modal.remove();
     } catch (error) {
         console.error('Error generando PDF del historial:', error);
         showNotification('Error al generar el PDF: ' + error.message, 'error');
-        
+
         // Restaurar vista
         showHistorialProgress(false);
     }
@@ -224,20 +224,20 @@ async function handleHistorialShare() {
 
     const reporte = window.historialIPV.reporteSeleccionado;
     const options = getHistorialExportOptions();
-    
+
     // Mostrar progreso
     showHistorialProgress(true);
-    
+
     try {
         const pdfBlob = await generateHistorialPDF(reporte.datos, options);
         await shareHistorialPDF(pdfBlob, options.title);
-        
+
         // Cerrar modal después de éxito
         modal.remove();
     } catch (error) {
         console.error('Error compartiendo PDF del historial:', error);
         showNotification('Error al compartir PDF: ' + error.message, 'error');
-        
+
         // Restaurar vista
         showHistorialProgress(false);
     }
@@ -260,7 +260,7 @@ function showHistorialProgress(show) {
     const optionsEl = document.getElementById('historial-pdf-options');
     const actionsEl = document.getElementById('historial-export-actions');
     const progressEl = document.getElementById('historial-pdf-progress');
-    
+
     if (optionsEl) optionsEl.style.display = show ? 'none' : 'block';
     if (actionsEl) actionsEl.style.display = show ? 'none' : 'block';
     if (progressEl) progressEl.style.display = show ? 'block' : 'none';
@@ -284,13 +284,13 @@ function updateHistorialProgress(percent, message) {
 // 1. Descargar PDF (con apertura automática)
 async function downloadHistorialPDF(pdfBlob, title) {
     updateHistorialProgress(95, 'Preparando PDF...');
-    
+
     if (isCapacitor && filesystem) {
         // En Capacitor: Guardar y abrir
         try {
             const base64Data = await blobToBase64(pdfBlob);
             const fileName = `${title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
-            
+
             // Guardar en Documents
             await filesystem.writeFile({
                 path: fileName,
@@ -298,20 +298,20 @@ async function downloadHistorialPDF(pdfBlob, title) {
                 directory: Directory.Documents,
                 recursive: true
             });
-            
+
             // Obtener URI para abrir
             const uriResult = await filesystem.getUri({
                 path: fileName,
                 directory: Directory.Documents
             });
-            
+
             showNotification('PDF generado correctamente', 'success');
-            
+
             // Intentar abrir el PDF
             setTimeout(() => {
                 window.open(uriResult.uri, '_system');
             }, 500);
-            
+
         } catch (error) {
             console.error('Error guardando con Capacitor:', error);
             // Fallback: descarga normal
@@ -331,11 +331,11 @@ async function shareHistorialPDF(pdfBlob, title) {
     }
 
     updateHistorialProgress(95, 'Preparando para compartir...');
-    
+
     try {
         const base64Data = await blobToBase64(pdfBlob);
         const fileName = `${title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-        
+
         // Guardar temporalmente en caché
         await filesystem.writeFile({
             path: fileName,
@@ -343,13 +343,13 @@ async function shareHistorialPDF(pdfBlob, title) {
             directory: Directory.Cache,
             recursive: true
         });
-        
+
         // Obtener URI
         const uriResult = await filesystem.getUri({
             path: fileName,
             directory: Directory.Cache
         });
-        
+
         // Compartir
         await share.share({
             title: title,
@@ -357,9 +357,9 @@ async function shareHistorialPDF(pdfBlob, title) {
             url: uriResult.uri,
             dialogTitle: 'Compartir PDF'
         });
-        
+
         showNotification('PDF listo para compartir', 'success');
-        
+
     } catch (error) {
         console.error('Error compartiendo:', error);
         showNotification('Error al compartir: ' + error.message, 'error');
@@ -369,7 +369,7 @@ async function shareHistorialPDF(pdfBlob, title) {
 // Fallback para descarga en navegador
 function fallbackHistorialDownload(pdfBlob, title, openAfter = false) {
     const url = URL.createObjectURL(pdfBlob);
-    
+
     if (openAfter) {
         // Abrir en nueva pestaña
         window.open(url, '_blank');
@@ -384,7 +384,7 @@ function fallbackHistorialDownload(pdfBlob, title, openAfter = false) {
         document.body.removeChild(link);
         showNotification('PDF descargado correctamente', 'success');
     }
-    
+
     // Liberar memoria después de un tiempo
     setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
@@ -411,17 +411,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-    async function loadPDFLibraries() {
-        // Cargar jsPDF
-        if (typeof window.jspdf === 'undefined') {
-            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-        }
-
-        // Cargar jsPDF AutoTable
-        if (typeof window.jspdfAutoTable === 'undefined') {
-            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js');
-        }
+async function loadPDFLibraries() {
+    // Cargar jsPDF
+    if (typeof window.jspdf === 'undefined') {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     }
+
+    // Cargar jsPDF AutoTable
+    if (typeof window.jspdfAutoTable === 'undefined') {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js');
+    }
+}
 
 function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -434,10 +434,10 @@ function loadScript(src) {
 }
 
 // Función global para ser llamada desde historial.js
-window.generatePDFWithData = async function(reportData, title) {
+window.generatePDFWithData = async function (reportData, title) {
     // Cargar librerías si no están cargadas
     await loadPDFLibraries();
-    
+
     const options = {
         resumen: true,
         salon: true,
@@ -448,10 +448,21 @@ window.generatePDFWithData = async function(reportData, title) {
         billetes: true,
         title: title
     };
-    
+
     const pdfBlob = await generateHistorialPDF(reportData, options);
     await downloadHistorialPDF(pdfBlob, title);
 };
+function obtenerGanancias() {
+    // Intentar obtener de gananciasManager
+    if (window.gananciasManager && window.gananciasManager.calcularGanancias) {
+        const datosGanancias = window.gananciasManager.calcularGanancias();
+        if (datosGanancias && datosGanancias.gananciaNeta) {
+            return datosGanancias.gananciaNeta;
+        }
+    }
+    return 0;
+}
+
 
 // ========== GENERACIÓN DEL PDF PARA HISTORIAL ==========
 async function generateHistorialPDF(reportData, options) {
@@ -482,7 +493,7 @@ async function generateHistorialPDF(reportData, options) {
     doc.text('Reporte Histórico - Gestor IPV', pageWidth / 2, 55, { align: 'center' });
 
     const fechaReporte = new Date(window.historialIPV.reporteSeleccionado.timestamp);
-    
+
     doc.setFontSize(14);
     doc.text(`Fecha original: ${fechaReporte.toLocaleDateString('es-ES', {
         weekday: 'long',
@@ -539,7 +550,9 @@ async function generateHistorialPDF(reportData, options) {
             ['Dinero Real:', `$${reportData.ventas.dineroReal.toFixed(0)}`],
             ['', ''],
             ['Diferencia:', `$${reportData.ventas.diferencia.toFixed(0)}`],
-            ['1% de Ventas:', `$${reportData.ventas.porciento.toFixed(0)}`]
+            ['1% de Ventas:', `$${reportData.ventas.porciento.toFixed(0)}`],
+            ['', ''], // Línea en blanco
+            ['Ganancias del Día:', `$${obtenerGanancias().toFixed(0)}`]
         ];
 
         // Usar autoTable globalmente
@@ -574,6 +587,10 @@ async function generateHistorialPDF(reportData, options) {
                 if (data.row.index === 11) {
                     data.cell.styles.fontStyle = 'bold';
                     data.cell.styles.textColor = [40, 167, 69];
+                }
+                if (data.row.index === 13) {
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.textColor = [255, 153, 0]; // Color naranja
                 }
             }
         });
@@ -784,7 +801,7 @@ async function generateHistorialPDF(reportData, options) {
                 currentY += 5;
                 doc.setFont('helvetica', 'normal');
                 agrego.ingredientes.forEach(ingrediente => {
-                    doc.text(`• ${ingrediente.nombre}: ${ingrediente.cantidad} ${ingrediente.unidad || 'unidades'}`, margin + 10, currentY);
+                    doc.text(`• ${ingrediente.nombre}: ${ingrediente.cantidadTotal} ${ingrediente.unidad || 'unidades'}`, margin + 10, currentY);
                     currentY += 5;
                 });
             }
