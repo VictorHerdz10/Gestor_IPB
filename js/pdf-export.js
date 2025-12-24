@@ -36,83 +36,123 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showPDFOptionsModal() {
         const modalHtml = `
-            <div class="modal active pdf-modal">
-                <div class="modal-overlay"></div>
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-file-pdf"></i> Exportar a PDF</h3>
-                        <button class="modal-close">&times;</button>
+    <div class="modal active pdf-export-modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-pdf"></i> Exportar a PDF</h3>
+                <div class="modal-header-actions">
+                    <button class="modal-close">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="pdf-progress" style="display: none;" id="pdf-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
                     </div>
-                    <div class="modal-body">
-                        <div class="pdf-progress" style="display: none;" id="pdf-progress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="progress-fill"></div>
-                            </div>
-                            <div class="progress-text" id="progress-text">Preparando datos...</div>
-                        </div>
-                        
-                        <div class="pdf-options" id="pdf-options">
-                            <p><i class="fas fa-info-circle"></i> Selecciona las secciones a incluir en el reporte:</p>
-                            
-                            <div class="option-checkbox">
-                                <input type="checkbox" id="opt-resumen" checked>
-                                <label for="opt-resumen">Resumen General</label>
-                            </div>
-                            
-                            <div class="option-checkbox">
-                                <input type="checkbox" id="opt-salon" checked>
-                                <label for="opt-salon">Productos Salón</label>
-                            </div>
-                            
-                            <div class="option-checkbox">
-                                <input type="checkbox" id="opt-cocina" checked>
-                                <label for="opt-cocina">Productos Cocina</label>
-                            </div>
-                            
-                            <div class="option-checkbox">
-                                <input type="checkbox" id="opt-agregos" checked>
-                                <label for="opt-agregos">Agregos y Productos Compuestos</label>
-                            </div>
-                            
-                            <div class="option-checkbox">
-                                <input type="checkbox" id="opt-financiero" checked>
-                                <label for="opt-financiero">Registros Financieros</label>
-                            </div>
-                            
-                            <div class="option-checkbox">
-                                <input type="checkbox" id="opt-transferencias" checked>
-                                <label for="opt-transferencias">Transferencias</label>
-                            </div>
-                            
-                            <div class="option-checkbox">
-                                <input type="checkbox" id="opt-billetes" checked>
-                                <label for="opt-billetes">Conteo de Billetes</label>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="pdf-title">
-                                <i class="fas fa-heading"></i> Título del Reporte
-                            </label>
-                            <input type="text" id="pdf-title" class="form-input" 
-                                   value="Reporte IPV - ${new Date().toLocaleDateString('es-ES')}">
-                        </div>
+                    <div class="progress-text" id="progress-text">Preparando datos...</div>
+                </div>
+                
+                <div class="pdf-options" id="pdf-options">
+                    <p><i class="fas fa-info-circle"></i> Selecciona las secciones a incluir en el reporte:</p>
+                    
+                    <div class="option-checkbox">
+                        <input type="checkbox" id="opt-resumen" checked>
+                        <label for="opt-resumen">Resumen General</label>
                     </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" id="pdf-cancel">
-                            Cancelar
-                        </button>
-                        <button class="btn btn-success" id="pdf-generate">
-                            <i class="fas fa-file-pdf"></i> Generar PDF
+                    
+                    <div class="option-checkbox">
+                        <input type="checkbox" id="opt-salon" checked>
+                        <label for="opt-salon">Productos Salón</label>
+                    </div>
+                    
+                    <div class="option-checkbox">
+                        <input type="checkbox" id="opt-cocina" checked>
+                        <label for="opt-cocina">Productos Cocina</label>
+                    </div>
+                    
+                    <div class="option-checkbox">
+                        <input type="checkbox" id="opt-agregos" checked>
+                        <label for="opt-agregos">Agregos y Productos Compuestos</label>
+                    </div>
+                    
+                    <div class="option-checkbox">
+                        <input type="checkbox" id="opt-financiero" checked>
+                        <label for="opt-financiero">Registros Financieros</label>
+                    </div>
+                    
+                    <div class="option-checkbox">
+                        <input type="checkbox" id="opt-transferencias" checked>
+                        <label for="opt-transferencias">Transferencias</label>
+                    </div>
+                    
+                    <div class="option-checkbox">
+                        <input type="checkbox" id="opt-billetes" checked>
+                        <label for="opt-billetes">Conteo de Billetes</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pdf-title">
+                        <i class="fas fa-heading"></i> Título del Reporte
+                    </label>
+                    <input type="text" id="pdf-title" class="form-input" 
+                           value="Reporte IPV - ${new Date().toLocaleDateString('es-ES')}">
+                </div>
+
+                <!-- SECCIÓN NUEVA: FIRMAS Y RESPONSABLES -->
+                <div class="form-section" style="margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px;">
+                    <h4 style="margin-bottom: 15px; color: var(--primary-color);">
+                        <i class="fas fa-signature"></i> Firmas y Responsables
+                    </h4>
+                    
+                    <div class="form-group">
+                        <label for="firma-administrador">
+                            <i class="fas fa-user-tie"></i> Administrador / Responsable
+                        </label>
+                        <input type="text" id="firma-administrador" class="form-input" 
+                               placeholder="Nombre del administrador/responsable">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="firma-turno-saliente">
+                            <i class="fas fa-sign-out-alt"></i> Turno Saliente
+                        </label>
+                        <input type="text" id="firma-turno-saliente" class="form-input" 
+                               placeholder="Nombre del turno saliente">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="firma-turno-entrante">
+                            <i class="fas fa-sign-in-alt"></i> Turno Entrante
+                        </label>
+                        <input type="text" id="firma-turno-entrante" class="form-input" 
+                               placeholder="Nombre del turno entrante">
+                    </div>
+                </div>
+
+                <div class="export-actions" id="export-actions" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <p><i class="fas fa-save"></i> Opciones de exportación:</p>
+                    
+                    <div class="action-buttons">
+                        <button class="btn-action" id="pdf-generate">
+                            <i class="fas fa-download"></i> Generar y Descargar PDF
                         </button>
                     </div>
                 </div>
             </div>
-        `;
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="pdf-cancel">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+`;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        const modal = document.querySelector('.pdf-modal');
+        const modal = document.querySelector('.pdf-export-modal');
         const cancelBtn = document.getElementById('pdf-cancel');
         const generateBtn = document.getElementById('pdf-generate');
         const closeBtn = modal.querySelector('.modal-close');
@@ -134,7 +174,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 financiero: document.getElementById('opt-financiero').checked,
                 transferencias: document.getElementById('opt-transferencias').checked,
                 billetes: document.getElementById('opt-billetes').checked,
-                title: document.getElementById('pdf-title').value || `Reporte IPV - ${new Date().toLocaleDateString('es-ES')}`
+                title: document.getElementById('pdf-title').value || `Reporte IPV - ${new Date().toLocaleDateString('es-ES')}`,
+                // Nuevos campos para firmas
+                firmaAdministrador: document.getElementById('firma-administrador').value || '',
+                firmaTurnoSaliente: document.getElementById('firma-turno-saliente').value || '',
+                firmaTurnoEntrante: document.getElementById('firma-turno-entrante').value || ''
             };
 
             // Mostrar progreso
@@ -169,6 +213,17 @@ document.addEventListener('DOMContentLoaded', function () {
             progressText.textContent = message;
         }
     }
+    function obtenerGanancias() {
+        // Intentar obtener de gananciasManager
+        if (window.gananciasManager && window.gananciasManager.calcularGanancias) {
+            const datosGanancias = window.gananciasManager.calcularGanancias();
+            if (datosGanancias && datosGanancias.gananciaNeta) {
+                return datosGanancias.gananciaNeta;
+            }
+        }
+        return 0;
+    }
+
 
     async function generatePDF(options) {
         updateProgress(20, 'Recopilando datos...');
@@ -248,6 +303,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 ['', ''],
                 ['Diferencia:', `$${reportData.ventas.diferencia.toFixed(0)}`],
                 ['1% de Ventas:', `$${reportData.ventas.porciento.toFixed(0)}`]
+                ['', ''],
+                ['Ganancias del Día:', `$${obtenerGanancias().toFixed(0)}`]
             ];
 
             doc.autoTable({
@@ -350,6 +407,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Resaltar totales en columna Importe
                     if (data.column.index === 7 && data.cell.raw !== 'Importe') {
                         data.cell.styles.fontStyle = 'bold';
+                    }
+                    if (data.row.index === 13) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [255, 153, 0]; // Color naranja
                     }
                 }
             });
@@ -531,7 +592,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             currentY = margin;
                         }
 
-                        const ingredienteText = `• ${ingrediente.nombre}: ${ingrediente.cantidad} ${ingrediente.unidad || 'unidades'}`;
+                        const ingredienteText = `• ${ingrediente.nombre}: ${ingrediente.cantidadTotal} ${ingrediente.unidad || 'unidades'}`;
 
                         // Verificar si el texto cabe en la línea
                         const textWidth = doc.getStringUnitWidth(ingredienteText) * doc.internal.getFontSize() / doc.internal.scaleFactor;
@@ -1166,7 +1227,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         currentY += 25;
 
-        // Firma Administrador
+        // Firma Administrador - Usar nombre si está disponible
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.text('ADMINISTRADOR / RESPONSABLE:', margin, currentY);
@@ -1174,33 +1235,51 @@ document.addEventListener('DOMContentLoaded', function () {
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
-        doc.text('Nombre:', margin, currentY);
+
+        if (options.firmaAdministrador) {
+            doc.text(`Nombre: ${options.firmaAdministrador}`, margin, currentY);
+        } else {
+            doc.text('Nombre:', margin, currentY);
+        }
+
         doc.line(margin + 25, currentY + 2, margin + 100, currentY + 2);
 
         doc.text('Firma:', margin + 110, currentY);
         doc.line(margin + 130, currentY + 2, pageWidth - margin, currentY + 2);
         currentY += 20;
 
-        // Turno Saliente
+        // Turno Saliente - Usar nombre si está disponible
         doc.setFont('helvetica', 'bold');
         doc.text('TURNO SALIENTE:', margin, currentY);
         currentY += 7;
 
         doc.setFont('helvetica', 'normal');
-        doc.text('Nombre:', margin, currentY);
+
+        if (options.firmaTurnoSaliente) {
+            doc.text(`Nombre: ${options.firmaTurnoSaliente}`, margin, currentY);
+        } else {
+            doc.text('Nombre:', margin, currentY);
+        }
+
         doc.line(margin + 25, currentY + 2, margin + 100, currentY + 2);
 
         doc.text('Firma:', margin + 110, currentY);
         doc.line(margin + 130, currentY + 2, pageWidth - margin, currentY + 2);
         currentY += 20;
 
-        // Turno Entrante
+        // Turno Entrante - Usar nombre si está disponible
         doc.setFont('helvetica', 'bold');
         doc.text('TURNO ENTRANTE:', margin, currentY);
         currentY += 7;
 
         doc.setFont('helvetica', 'normal');
-        doc.text('Nombre:', margin, currentY);
+
+        if (options.firmaTurnoEntrante) {
+            doc.text(`Nombre: ${options.firmaTurnoEntrante}`, margin, currentY);
+        } else {
+            doc.text('Nombre:', margin, currentY);
+        }
+
         doc.line(margin + 25, currentY + 2, margin + 100, currentY + 2);
 
         doc.text('Firma:', margin + 110, currentY);
@@ -1328,7 +1407,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const efectivoHoy = efectivoData;
 
         // Billetes
-        const billetesHoy =JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]');
+        const billetesHoy = JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]');
 
         // Calcular ventas
         const ventasSalon = productosSalon.reduce((sum, p) => sum + (p.importe || 0), 0);
@@ -1433,4 +1512,152 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     }
+    // Agregar estilos CSS para el modal y debug
+    const style = document.createElement('style');
+    style.textContent = `
+    /* Estilos para la sección de firmas */
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .form-section h4 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.1rem;
+        color: var(--primary-color);
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--dark-color);
+    }
+    
+    .form-group label i {
+        color: var(--primary-color);
+        width: 18px;
+        text-align: center;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: all 0.3s;
+        background: white;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+    }
+    
+    .form-input::placeholder {
+        color: #6c757d;
+        opacity: 0.7;
+    }
+    
+    /* Estilos para el modal de exportación */
+    .pdf-export-modal .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    
+    .pdf-export-modal .btn-action {
+        flex: 1;
+        min-width: 120px;
+        padding: 12px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .pdf-export-modal .btn-action:hover {
+        background: var(--secondary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .pdf-export-modal .btn-action i {
+        font-size: 1.1rem;
+    }
+    
+    .option-checkbox {
+        display: flex;
+        align-items: center;
+        margin: 8px 0;
+        padding: 8px;
+        border-radius: 5px;
+        transition: background 0.3s;
+    }
+    
+    .option-checkbox:hover {
+        background: #f8f9fa;
+    }
+    
+    .option-checkbox input[type="checkbox"] {
+        margin-right: 10px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .option-checkbox label {
+        cursor: pointer;
+        font-weight: 500;
+        color: var(--dark-color);
+    }
+    
+    .pdf-progress {
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 10px;
+        background: #e0e0e0;
+        border-radius: 5px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        border-radius: 5px;
+        transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+        color: var(--gray-dark);
+        font-size: 0.95rem;
+        margin-top: 10px;
+    }
+`;
+    document.head.appendChild(style);
 });
