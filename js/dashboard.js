@@ -22,6 +22,55 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     currentDate.textContent = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
+    // Verificar parámetros de URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const fileUrl = urlParams.get('file') || urlParams.get('url') || urlParams.get('uri');
+
+    if (fileUrl) {
+        console.log('📂 Archivo detectado en dashboard:', fileUrl);
+
+        // Esperar a que backupManager esté listo
+        const waitForBackupManager = setInterval(() => {
+            if (window.backupManager && window.backupManager.handleFileOpen) {
+                clearInterval(waitForBackupManager);
+
+                // Decodificar URL si es necesario
+                const decodedUrl = decodeURIComponent(fileUrl);
+                console.log('🔄 Procesando archivo en dashboard:', decodedUrl);
+
+                // Procesar el archivo
+                window.backupManager.handleFileOpen(decodedUrl);
+
+                // Limpiar la URL para no procesar de nuevo
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }, 100);
+    }
+
+    // También verificar sessionStorage
+    const pendingFile = sessionStorage.getItem('pending_backup_file');
+    if (pendingFile) {
+        console.log('📂 Archivo pendiente en sessionStorage:', pendingFile);
+
+        setTimeout(() => {
+            if (window.backupManager && window.backupManager.handleFileOpen) {
+                window.backupManager.handleFileOpen(pendingFile);
+                sessionStorage.removeItem('pending_backup_file');
+            }
+        }, 500);
+    }
+
+    // Configurar listener para mensajes
+    window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'FILE_TO_OPEN') {
+            console.log('📤 Archivo recibido en dashboard via message:', event.data.fileUrl);
+
+            if (window.backupManager && window.backupManager.handleFileOpen) {
+                window.backupManager.handleFileOpen(event.data.fileUrl);
+            }
+        }
+    });
+
     // Navegación entre secciones
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function (e) {
@@ -130,7 +179,6 @@ document.addEventListener('DOMContentLoaded', function () {
             sidebarToggle.innerHTML = '<i class="fas fa-bars"></i>';
         }
     }
-setupRestoreListeners();
 
     // Actualizar resumen
     function updateSummary() {
@@ -240,6 +288,40 @@ setupRestoreListeners();
 
         // Actualizar resumen de billetes si existe
         updateBilletesResumen();
+        // Actualizar ganancias si están disponibles
+        if (window.gananciasManager) {
+            const ganancias = window.gananciasManager.calcularGanancias();
+            if (ganancias) {
+                // Actualizar card de ganancias en el resumen
+                let gananciasCard = document.querySelector('.summary-card .ganancias-info');
+                if (!gananciasCard) {
+                    // Crear card si no existe
+                    const summaryCards = document.querySelector('.summary-cards');
+                    if (summaryCards) {
+                        const nuevaCard = document.createElement('div');
+                        nuevaCard.className = 'summary-card';
+                        nuevaCard.innerHTML = `
+                        <div class="card-header">
+                            <h3>Ganancias Netas</h3>
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="card-body ganancias-info">
+                            <p class="amount ${ganancias.gananciaNeta >= 0 ? 'positive' : 'negative'}" id="dashboard-ganancia-neta">$${ganancias.gananciaNeta.toFixed(2)}</p>
+                            <p class="description">Después de costos y gastos</p>
+                        </div>
+                    `;
+                        summaryCards.appendChild(nuevaCard);
+                    }
+                } else {
+                    const gananciaElement = document.getElementById('dashboard-ganancia-neta');
+                    if (gananciaElement) {
+                        gananciaElement.textContent = `$${ganancias.gananciaNeta.toFixed(2)}`;
+                        gananciaElement.className = `amount ${ganancias.gananciaNeta >= 0 ? 'positive' : 'negative'}`;
+                    }
+                }
+            }
+        }
+
     }
 
     // Función para obtener datos de efectivo
@@ -311,20 +393,13 @@ setupRestoreListeners();
         return [];
     }
 
-    // dashboard.js - Función resetDay CORREGIDA (versión mejorada)
+    // dashboard.js - Función resetDay SIMPLIFICADA
     async function resetDay() {
         try {
-            // 1. MOSTRAR CONFIRMACIÓN
+            // 1. CONFIRMACIÓN SIMPLE
             const confirmacion = await showConfirmationModalPromise(
-                'Finalizar e Iniciar Nuevo Día',
-                `¿Estás seguro de finalizar el día e iniciar uno nuevo?<br><br>
-        <strong>ACCIONES QUE SE REALIZARÁN:</strong><br>
-        • Guardar reporte final en historial<br>
-        • Los finales del día anterior → Inicios del nuevo día<br>
-        • Resetear vendidos a CERO<br>
-        • Resetear importe a CERO<br>
-        • Limpiar agregos, consumo, transacciones<br>
-        • Mantener relaciones de ingredientes`,
+                'Reiniciar Día',
+                '¿Estas seguro de que quieres reiniciar el día? Los finales se guardarán como inicios del nuevo día.',
                 'warning'
             );
 
@@ -333,34 +408,34 @@ setupRestoreListeners();
             showNotification('⏳ Procesando cierre del día...', 'info');
 
             // 2. ASEGURAR QUE HISTORIAL ESTÉ DISPONIBLE
-        let historialDisponible = false;
-        let historialInstancia = null;
-        
-        try {
-            historialInstancia = await asegurarHistorialDisponible();
-            historialDisponible = true;
-            console.log('✅ Historial disponible para guardar reporte');
-        } catch (error) {
-            console.warn('⚠️ Historial no disponible:', error.message);
-            historialDisponible = false;
-        }
+            let historialDisponible = false;
+            let historialInstancia = null;
 
-        // 3. GUARDAR REPORTE FINAL EN HISTORIAL (si está disponible)
-        if (historialDisponible && historialInstancia) {
             try {
-                const reporte = await historialInstancia.guardarReporteActual('Reporte Final del Día');
-                if (!reporte) {
-                    showNotification('⚠️ No se pudo guardar el reporte final (posible duplicado)', 'warning');
-                } else {
-                    showNotification('✅ Reporte final guardado en historial', 'success');
-                }
+                historialInstancia = await asegurarHistorialDisponible();
+                historialDisponible = true;
+                console.log('✅ Historial disponible para guardar reporte');
             } catch (error) {
-                console.error('Error guardando reporte:', error);
-                showNotification('⚠️ Error al guardar reporte en historial', 'warning');
+                console.warn('⚠️ Historial no disponible:', error.message);
+                historialDisponible = false;
             }
-        } else {
-            showNotification('ℹ️ Historial no disponible, continuando sin guardar reporte', 'info');
-        }
+
+            // 3. GUARDAR REPORTE FINAL EN HISTORIAL (si está disponible)
+            if (historialDisponible && historialInstancia) {
+                try {
+                    const reporte = await historialInstancia.guardarReporteActual('Reporte Final del Día');
+                    if (!reporte) {
+                        showNotification('⚠️ No se pudo guardar el reporte final (posible duplicado)', 'warning');
+                    } else {
+                        showNotification('✅ Reporte final guardado en historial', 'success');
+                    }
+                } catch (error) {
+                    console.error('Error guardando reporte:', error);
+                    showNotification('⚠️ Error al guardar reporte en historial', 'warning');
+                }
+            } else {
+                showNotification('ℹ️ Historial no disponible, continuando sin guardar reporte', 'info');
+            }
 
             // 3. OBTENER DATOS ACTUALES
             const salonData = StorageManager.getSalonData();
@@ -368,134 +443,102 @@ setupRestoreListeners();
             const productosSalon = StorageManager.getProducts();
             const productosCocina = StorageManager.getCocinaProducts();
 
-            console.log('=== DEBUG SALON DATA BEFORE RESET ===');
-            salonData.forEach((p, i) => {
-                console.log(`${i}. ${p.nombre}:`);
-                console.log(`  inicio: ${p.inicio}, entrada: ${p.entrada}`);
-                console.log(`  venta: ${p.venta}, final: ${p.final}`);
-                console.log(`  vendido: ${p.vendido}, importe: ${p.importe}`);
-                console.log(`  finalEditado: ${p.finalEditado}`);
-            });
-
-            // 4. CREAR NUEVOS DATOS CON LA LÓGICA CORRECTA
-            const newSalonData = salonData.map((producto, index) => {
+            // 4. CREAR NUEVOS DATOS CON FINALES COMO INICIOS
+            const newSalonData = salonData.map(producto => {
                 const productoBase = productosSalon.find(p => p.id === producto.id) || {};
 
-                // IMPORTANTE: Calcular venta correctamente según la lógica de salon.js
-                const nuevoInicio = producto.final; // FINAL anterior → INICIO nuevo
-                const nuevaEntrada = 0; // Resetear entrada
-
-                // La venta se debe calcular como inicio + entrada
-                const nuevaVenta = nuevoInicio + nuevaEntrada;
-
-                const nuevoProducto = {
+                return {
                     id: producto.id,
                     nombre: productoBase.nombre || producto.nombre,
                     precio: productoBase.precio || producto.precio,
-                    inicio: nuevoInicio,           // FINAL del día anterior → INICIO del nuevo día
-                    entrada: nuevaEntrada,         // Resetear a CERO
-                    venta: nuevaVenta,             // Venta = INICIO + ENTRADA (esto es clave)
-                    final: nuevoInicio,            // FINAL = INICIO al empezar el día (porque entrada es 0)
-                    finalEditado: false,           // Resetear estado de edición
-                    vendido: 0,                    // ← CRÍTICO: Resetear a CERO
-                    importe: 0,                    // ← CRÍTICO: Resetear a CERO
-                    historial: [],                 // Limpiar historial
+                    inicio: producto.final,
+                    entrada: 0,
+                    venta: producto.final,
+                    final: producto.final,
+                    finalEditado: false,
+                    vendido: 0,
+                    importe: 0,
+                    historial: [],
                     ultimaActualizacion: obtenerHoraActual()
                 };
-
-                console.log(`${producto.nombre}: INICIO=${nuevoInicio}, ENTRADA=${nuevaEntrada}, VENTA=${nuevaVenta}, FINAL=${nuevoInicio}`);
-
-                return nuevoProducto;
             });
 
-            console.log('\n=== DEBUG NEW SALON DATA ===');
-            newSalonData.forEach((p, i) => {
-                console.log(`${i}. ${p.nombre}: inicio=${p.inicio}, entrada=${p.entrada}, venta=${p.venta}, final=${p.final}`);
-            });
-
-            // 5. CREAR NUEVOS DATOS PARA COCINA - Misma lógica
             const newCocinaData = cocinaData.map(producto => {
                 const productoBase = productosCocina.find(p => p.id === producto.id) || {};
-
-                const nuevoInicio = producto.final;
-                const nuevaEntrada = 0;
-                const nuevaVenta = nuevoInicio + nuevaEntrada;
 
                 return {
                     id: producto.id,
                     nombre: productoBase.nombre || producto.nombre,
                     precio: productoBase.precio || producto.precio,
                     esIngrediente: (productoBase.precio === 0) || (producto.esIngrediente || false),
-                    inicio: nuevoInicio,           // FINAL del día anterior → INICIO del nuevo día
-                    entrada: nuevaEntrada,         // Resetear a CERO
-                    venta: nuevaVenta,             // Venta = INICIO + ENTRADA
-                    final: nuevoInicio,            // FINAL = INICIO al empezar
-                    vendido: 0,                    // ← CRÍTICO: Resetear a CERO
-                    importe: 0,                    // ← CRÍTICO: Resetear a CERO
-                    disponible: nuevoInicio,       // Disponible = FINAL (porque vendido es 0)
-                    historial: [],                 // Limpiar historial
+                    inicio: producto.final,
+                    entrada: 0,
+                    venta: producto.final,
+                    final: producto.final,
+                    vendido: 0,
+                    importe: 0,
+                    disponible: producto.final,
+                    historial: [],
                     ultimaActualizacion: obtenerHoraActual(),
-                    finalEditado: false            // Resetear estado de edición
+                    finalEditado: false
                 };
             });
 
-            // 6. GUARDAR NUEVOS DATOS INMEDIATAMENTE
+            // 5. GUARDAR DATOS PRINCIPALES
             StorageManager.saveSalonData(newSalonData);
             StorageManager.saveCocinaData(newCocinaData);
 
-            console.log('=== DATOS GUARDADOS EN STORAGE ===');
-            const datosGuardados = StorageManager.getSalonData();
-            datosGuardados.forEach((p, i) => {
-                console.log(`${i}. ${p.nombre}: inicio=${p.inicio}, entrada=${p.entrada}, venta=${p.venta}, final=${p.final}, vendido=${p.vendido}`);
-            });
-
-            // 7. LIMPIAR TODOS LOS DATOS TRANSACCIONALES
-            const datosALimpiar = [
-                'cocina_agregos',
+            // 6. LIMPIAR DATOS TRANSACCIONALES
+            const datosParaLimpiar = [
+                'ipb_precios_compra',
+                'ipb_gastos_extras',
+                'ipb_billetes_registros',
+                'ipb_billetes_config',
                 'ipb_consumo_data',
-                'ipb_extracciones',
                 'ipb_transferencias_data',
-                'ipb_efectivo_data'
+                'ipb_extracciones',
+                'ipb_efectivo_data',
+                'cocina_agregos',
+                'cocina_agregos_historial',
+                'ipb_daily_data',
+                'ipb_today_transactions',
+                'ipb_today_summary'
             ];
 
-            datosALimpiar.forEach(key => {
+            datosParaLimpiar.forEach(key => {
                 localStorage.removeItem(key);
             });
 
-            // 8. RESETEAR BILLETES SI EXISTE LA FUNCIÓN
-            if (typeof window.resetBilletes === 'function') {
-                window.resetBilletes();
+            // 7. LLAMAR RESET ESPECÍFICOS
+            if (typeof window.resetBilletes === 'function') window.resetBilletes();
+            if (typeof window.resetEfectivo === 'function') window.resetEfectivo();
+            if (typeof window.resetExtraccionesDia === 'function') window.resetExtraccionesDia();
+            if (typeof window.gananciasManager?.resetDia === 'function') {
+                window.gananciasManager.resetDia();
             }
 
-            // 9. RESETEAR EFECTIVO SI EXISTE LA FUNCIÓN
-            if (typeof window.resetEfectivo === 'function') {
-                window.resetEfectivo();
-            }
-
-            // 10. GUARDAR FECHA DEL RESET
+            // 8. GUARDAR FECHA DEL RESET
             const hoy = new Date().toISOString().split('T')[0];
             localStorage.setItem('ipb_last_reset', hoy);
 
-            // 11. FORZAR RECARGA INMEDIATA DE DATOS EN LAS SECCIONES
-            // Forzar recarga de salón
-            if (typeof window.resetSalonDia === 'function') {
-                // Primero actualizar los datos globales
-                window.salonData = newSalonData;
-                // Luego llamar a la función de reset
-                setTimeout(() => window.resetSalonDia(), 100);
-            }
+            // 9. RECARGAR MÓDULOS
+            setTimeout(() => {
+                if (typeof window.resetSalonDia === 'function') window.resetSalonDia();
+                else if (typeof window.cargarSalonData === 'function') window.cargarSalonData();
 
-            // Forzar recarga de cocina
-            if (typeof window.resetCocinaDia === 'function') {
-                setTimeout(() => window.resetCocinaDia(), 150);
-            }
+                if (typeof window.resetCocinaDia === 'function') window.resetCocinaDia();
+                else if (typeof window.cargarDatosCocina === 'function') window.cargarDatosCocina();
 
-            // Actualizar resumen del dashboard
-            if (typeof window.updateSummary === 'function') {
-                setTimeout(() => window.updateSummary(), 200);
-            }
+                if (typeof window.productManager?.renderProducts === 'function') window.productManager.renderProducts();
+                if (typeof window.cargarConsumos === 'function') window.cargarConsumos();
+                if (typeof window.cargarTransferencias === 'function') window.cargarTransferencias();
+                if (typeof window.reloadExtraccionesData === 'function') window.reloadExtraccionesData();
+                else if (typeof window.initExtracciones === 'function') window.initExtracciones();
 
-            // 12. MOSTRAR RESUMEN Y RECARGAR
+                if (typeof window.updateSummary === 'function') window.updateSummary();
+            }, 500);
+
+            // 10. NOTIFICACIÓN FINAL
             setTimeout(() => {
                 showNotification(`
             🎉 NUEVO DÍA INICIADO<br>
@@ -511,26 +554,15 @@ setupRestoreListeners();
             <br>
             🔄 Recargando sistema...
         `, 'success');
-
-
-
-            }, 2000);
+            }, 1000);
 
         } catch (error) {
-            console.error('Error crítico al resetear día:', error);
-            showNotification(`
-        ❌ ERROR CRÍTICO<br>
-        <br>
-        No se pudo completar el reset del día.<br>
-        Error: ${error.message}<br>
-        <br>
-        Por favor, recarga la página manualmente.
-    `, 'error');
-
-
+            console.error('Error al reiniciar día:', error);
+            showNotification('Error al reiniciar día', 'error');
         }
     }
-    // Función auxiliar para mostrar confirmación como Promise
+
+    // Función auxiliar para confirmación simple
     function showConfirmationModalPromise(title, message, type = 'warning') {
         return new Promise((resolve) => {
             if (typeof window.showConfirmationModal === 'function') {
@@ -542,13 +574,12 @@ setupRestoreListeners();
                     () => resolve(false)
                 );
             } else {
-                // Fallback simple
                 resolve(confirm(`${title}\n\n${message}`));
             }
         });
     }
 
-    // Función auxiliar para obtener hora actual
+    // Función para obtener hora actual
     function obtenerHoraActual() {
         const now = new Date();
         return now.toLocaleString('es-ES', {
@@ -682,7 +713,7 @@ function setupNotificationStyles() {
         style.textContent = `
             .notification {
                 position: fixed;
-                top: 20px;
+                top: 40px;
                 right: 20px;
                 background: white;
                 border-radius: 12px;
@@ -808,7 +839,7 @@ function setupNotificationStyles() {
             /* Responsive para móviles */
             @media (max-width: 768px) {
                 .notification {
-                    top: 15px;
+                    top: 40px;
                     right: 15px;
                     left: 15px;
                     max-width: none;
@@ -840,7 +871,7 @@ function setupNotificationStyles() {
             /* Para pantallas pequeñas (mínimo 360px) */
             @media (max-width: 480px) {
                 .notification {
-                    top: 10px;
+                    top: 40px;
                     right: 10px;
                     left: 10px;
                     width: calc(100% - 20px);
@@ -855,7 +886,7 @@ function setupNotificationStyles() {
             /* Para pantallas muy pequeñas (mínimo 360px) */
             @media (max-width: 360px) {
                 .notification {
-                    top: 8px;
+                    top: 40px;
                     right: 8px;
                     left: 8px;
                     width: calc(100% - 16px);
@@ -966,9 +997,9 @@ function showConfirmationModal(title, message, type, confirmCallback, cancelCall
             </div>
             <div class="modal-body">
                 <div class="modal-icon ${type}">
-                    <i class="fas fa-${type === 'warning' ? 'exclamation-triangle' : 
-                                        type === 'error' ? 'exclamation-circle' : 
-                                        type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                    <i class="fas fa-${type === 'warning' ? 'exclamation-triangle' :
+            type === 'error' ? 'exclamation-circle' :
+                type === 'success' ? 'check-circle' : 'info-circle'}"></i>
                 </div>
                 <p>${message}</p>
             </div>
@@ -1272,18 +1303,18 @@ async function asegurarHistorialDisponible() {
     if (window.historialIPV) {
         return window.historialIPV;
     }
-    
+
     // Si el archivo ya está cargado pero no se inicializó
     if (window.HistorialIPV) {
         window.historialIPV = new window.HistorialIPV();
         return window.historialIPV;
     }
-    
+
     // Si no está cargado, cargarlo dinámicamente
     return new Promise((resolve, reject) => {
         // Verificar si ya está en el DOM
         const existingScript = document.querySelector('script[src*="historial.js"]');
-        
+
         if (existingScript) {
             // Esperar a que se cargue
             existingScript.onload = () => {
@@ -1294,7 +1325,7 @@ async function asegurarHistorialDisponible() {
                     reject(new Error('HistorialIPV no disponible después de cargar'));
                 }
             };
-            
+
             // Si ya está cargado pero no inicializado
             if (window.HistorialIPV) {
                 window.historialIPV = new window.HistorialIPV();
@@ -1304,7 +1335,7 @@ async function asegurarHistorialDisponible() {
             // Cargar el script
             const script = document.createElement('script');
             script.src = 'js/historial.js';
-            
+
             script.onload = () => {
                 setTimeout(() => {
                     if (window.HistorialIPV) {
@@ -1315,79 +1346,13 @@ async function asegurarHistorialDisponible() {
                     }
                 }, 500);
             };
-            
+
             script.onerror = reject;
             document.head.appendChild(script);
         }
     });
 }
-function setupRestoreListeners() {
-    // Escuchar eventos personalizados de restore
-    document.addEventListener('restoreCompleted', function(event) {
-        const detail = event.detail || {};
-        console.log('🔄 Restore detectado:', detail.type);
-        
-        // Actualizar todas las secciones visibles
-        updateAllVisibleSections(detail.type);
-    });
-}
 
-function updateAllVisibleSections(restoreType) {
-    // Verificar qué sección está activa y actualizarla
-    const activeSection = document.querySelector('.content-section.active');
-    
-    if (!activeSection) return;
-    
-    const sectionId = activeSection.id;
-    console.log(`🔄 Actualizando sección activa: ${sectionId}`);
-    
-    // Actualizar según la sección activa
-    switch(sectionId) {
-        case 'salon-section':
-            if (typeof window.actualizarSalonDesdeProductos === 'function') {
-                window.actualizarSalonDesdeProductos();
-            }
-            break;
-            
-        case 'cocina-section':
-            if (typeof window.cargarDatosCocina === 'function') {
-                window.cargarDatosCocina();
-                if (typeof window.actualizarTablaCocina === 'function') {
-                    window.actualizarTablaCocina();
-                }
-            }
-            break;
-            
-        case 'productos-section':
-            if (typeof window.productManager?.renderProducts === 'function') {
-                window.productManager.renderProducts();
-            }
-            break;
-            
-        case 'historial-section':
-            if (typeof window.cargarHistorial === 'function') {
-                window.cargarHistorial();
-            }
-            break;
-            
-        case 'resumen-section':
-            if (typeof window.updateSummary === 'function') {
-                window.updateSummary();
-            }
-            break;
-    }
-    
-    // Siempre actualizar el resumen del dashboard
-    setTimeout(() => {
-        if (typeof window.updateSummary === 'function') {
-            window.updateSummary();
-        }
-        showNotification(`✅ Restore de ${restoreType} completado. Datos actualizados.`, 'success');
-    }, 500);
-}
-
-// Hacer disponible globalmente
-window.updateAllVisibleSections = updateAllVisibleSections;
 
 
 window.showConfirmationModal = showConfirmationModal;
