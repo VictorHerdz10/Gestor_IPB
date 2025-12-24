@@ -120,29 +120,541 @@ class BackupManager {
     }
 
     async handleFileOpen(url) {
-        if (!url || !url.includes(this.CUSTOM_EXTENSION)) return;
+        console.log('📂 Archivo recibido en handleFileOpen:', url);
+
+        // Verificar que la URL no esté vacía
+        if (!url || url.trim() === '') {
+            console.warn('URL vacía recibida');
+            return;
+        }
+
+        // Verificar si estamos en la página correcta (dashboard)
+        if (!window.location.pathname.includes('dashboard.html')) {
+            console.warn('No estamos en dashboard, redirigiendo...');
+
+            // Guardar en sessionStorage y redirigir
+            sessionStorage.setItem('pending_backup_file', url);
+
+            // Si estamos en index.html, redirigir a dashboard
+            if (window.location.pathname.includes('index.html') ||
+                window.location.pathname === '/' ||
+                window.location.pathname.endsWith('index.html')) {
+                window.location.href = `dashboard.html?file=${encodeURIComponent(url)}`;
+            } else {
+                // Si no estamos en index, ir directamente
+                window.location.href = `dashboard.html`;
+            }
+            return;
+        }
 
         try {
-            this.showNotification('Archivo de backup detectado', 'info');
+            let fileUri = url;
+            let fileName = null; // Inicializar como null
+            let isContentUri = false;
+            let originalFileName = null; // Guardar el nombre original
 
-            const fileName = url.split('/').pop();
-            const filePath = decodeURIComponent(url);
+            // Normalizar la URL
+            if (url.includes('appUrlOpen:')) {
+                // URL viene de Capacitor App plugin
+                fileUri = url.replace('appUrlOpen:', '');
+            }
+
+            console.log('URI procesada:', fileUri);
+
+            // Determinar tipo de URI y extraer información
+            if (fileUri.startsWith('content://')) {
+                isContentUri = true;
+
+                // Para content URIs, intentamos extraer el nombre real
+                try {
+                    // Los content URIs suelen tener el nombre en el final
+                    const uriParts = fileUri.split('/');
+                    let potentialName = uriParts[uriParts.length - 1];
+
+                    // Limpiar query parameters
+                    if (potentialName.includes('?')) {
+                        potentialName = potentialName.split('?')[0];
+                    }
+
+                    // Decodificar caracteres especiales
+                    potentialName = decodeURIComponent(potentialName);
+
+                    // Verificar si parece un nombre de archivo válido
+                    if (potentialName && potentialName.includes('.')) {
+                        originalFileName = potentialName;
+
+                        // Si ya termina en .ipvbak, usarlo directamente
+                        if (potentialName.toLowerCase().endsWith('.ipvbak')) {
+                            fileName = potentialName;
+                        } else {
+                            // Si no termina en .ipvbak, mostrarlo tal cual pero con advertencia
+                            fileName = potentialName;
+                            console.log('Archivo no termina en .ipvbak:', fileName);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('No se pudo extraer nombre del archivo:', e);
+                }
+
+                // Si no se pudo determinar el nombre
+                if (!fileName) {
+                    fileName = 'archivo_recibido.ipvbak';
+                }
+
+            } else if (fileUri.startsWith('file://')) {
+                // URI de archivo local - aquí SÍ podemos obtener el nombre real
+                const decodedPath = decodeURIComponent(fileUri);
+                originalFileName = decodedPath.split('/').pop() || '';
+
+                // Usar el nombre real del archivo
+                fileName = originalFileName;
+
+                // Si no tiene extensión .ipvbak, mantener el nombre pero mostrar advertencia
+                if (!fileName.toLowerCase().endsWith('.ipvbak')) {
+                    console.log('Archivo local sin extensión .ipvbak:', fileName);
+                }
+
+            } else if (fileUri.startsWith('gestoripv://')) {
+                // Deep link personalizado - intentar extraer info
+                try {
+                    const base64Path = fileUri.replace('gestoripv://open/backup/', '');
+                    const decodedPath = atob(base64Path);
+                    originalFileName = decodedPath.split('/').pop() || '';
+                    fileName = originalFileName;
+                } catch (e) {
+                    console.warn('Error decodificando deep link:', e);
+                    fileName = 'backup_desde_deeplink.ipvbak';
+                }
+            } else {
+                // URL no reconocida
+                console.warn('Tipo de URL no reconocido:', fileUri);
+                fileName = 'archivo_desconocido.ipvbak';
+            }
+
+            console.log('Nombre del archivo detectado:', fileName);
+            console.log('Nombre original:', originalFileName);
+
+            // Verificar extensión PERO permitir abrir igual
+            const hasCorrectExtension = fileName.toLowerCase().endsWith('.ipvbak');
+
+            if (!hasCorrectExtension) {
+                // Mostrar advertencia pero permitir continuar
+                const warning = await this.showConfirmationModal(
+                    '⚠️ Extensión no reconocida',
+                    `El archivo "${fileName}" no tiene la extensión .ipvbak.\n\n` +
+                    `¿Desea intentar abrirlo de todos modos?\n\n` +
+                    `Nota: Esto podría no funcionar si el archivo no es un backup válido.`,
+                    'warning'
+                );
+
+                if (!warning) {
+                    this.showNotification('Operación cancelada', 'info');
+                    return;
+                }
+            }
+
+            this.showNotification(`📂 Archivo detectado: ${fileName}`, 'info');
+
+            // Método mejorado para leer el archivo
+            let backupData;
+
+            if (this.isMobile) {
+                backupData = await this.readBackupFileMobile(fileUri, fileName, isContentUri);
+            } else {
+                backupData = await this.readBackupFileWeb(fileUri);
+            }
+
+            if (!backupData) {
+                // Intentar analizar el archivo aunque no sea JSON válido
+                const forceOpen = await this.showConfirmationModal(
+                    'Archivo no reconocido',
+                    `No se pudo leer "${fileName}" como backup válido.\n\n` +
+                    `¿Desea intentar analizarlo de otra manera?`,
+                    'warning'
+                );
+
+                if (forceOpen) {
+                    // Crear un objeto de backup básico con la información que tenemos
+                    backupData = {
+                        type: 'desconocido',
+                        timestamp: new Date().toISOString(),
+                        metadata: {
+                            fileName: fileName,
+                            originalName: originalFileName,
+                            sourceUri: fileUri
+                        },
+                        data: {}
+                    };
+                } else {
+                    return;
+                }
+            }
+
+            // Verificar estructura del backup
+            if (!backupData.type) {
+                // Intentar inferir tipo basado en el nombre del archivo
+                backupData.type = this.inferBackupTypeFromFileName(fileName) ||
+                    this.inferBackupTypeFromData(backupData) ||
+                    'desconocido';
+            }
+
+            const backupType = backupData.type;
+            const backupDate = backupData.timestamp ?
+                new Date(backupData.timestamp).toLocaleDateString('es-ES') :
+                'Fecha desconocida';
+
+            const typeLabels = {
+                'productos': '📦 Productos',
+                'reportes': '📊 Reportes',
+                'dia_actual': '📅 Día Actual',
+                'completo': '💾 Completo',
+                'desconocido': '❓ Desconocido'
+            };
+
+            const typeLabel = typeLabels[backupType] || backupType;
 
             const confirm = await this.showConfirmationModal(
-                'Archivo de Backup Detectado',
-                `Se detectó el archivo de backup: ${fileName}\n\n¿Desea restaurar este backup?`,
-                'info'
+                '📂 Backup Detectado',
+                `<div style="text-align: left; padding: 10px 0;">
+            <p><strong>Archivo:</strong> ${fileName}</p>
+            ${originalFileName && originalFileName !== fileName ?
+                    `<p><strong>Original:</strong> ${originalFileName}</p>` : ''}
+            <p><strong>Tipo detectado:</strong> ${typeLabel}</p>
+            <p><strong>Fecha:</strong> ${backupDate}</p>
+            <p><strong>Fuente:</strong> ${isContentUri ? 'Otra App' : 'Archivo Local'}</p>
+            ${!hasCorrectExtension ?
+                    '<p style="color: #e74c3c; font-weight: bold;">⚠️ Advertencia: Extensión no es .ipvbak</p>' : ''}
+            ${backupType === 'dia_actual' || backupType === 'completo' ?
+                    '<p style="color: #e67e22; font-weight: bold;">📋 Se cargarán TODOS los datos del día</p>' : ''}
+        </div>
+        <p>¿Desea restaurar este backup?</p>`,
+                hasCorrectExtension ? 'info' : 'warning'
             );
 
             if (confirm) {
-                await this.restoreFromFilePath(filePath);
+                // Cerrar index.html y abrir dashboard si estamos en index
+                if (window.location.pathname.includes('index.html')) {
+                    // Redirigir al dashboard
+                    window.location.href = 'dashboard.html';
+
+                    // Esperar un momento para que cargue el dashboard antes de restaurar
+                    setTimeout(async () => {
+                        await this.restoreBackupByType(backupData, backupType, fileUri);
+                    }, 1000);
+                } else {
+                    // Ya estamos en dashboard, restaurar directamente
+                    await this.restoreBackupByType(backupData, backupType, fileUri);
+                }
             }
 
         } catch (error) {
-            console.error('Error handling file open:', error);
+            console.error('Error en handleFileOpen:', error);
             this.showError('Error al procesar el archivo: ' + error.message);
         }
     }
+
+    // Nueva función para leer archivos en móvil
+    async readBackupFileMobile(uri, fileName, isContentUri) {
+        try {
+            if (!this.isMobile || !this.filesystem) {
+                throw new Error('Filesystem no disponible');
+            }
+
+            let base64Data;
+
+            if (isContentUri) {
+                // Para content URIs, usar un enfoque diferente
+                console.log('Leyendo content URI:', uri);
+
+                // Intentar con Capacitor Filesystem
+                try {
+                    // Primero intentar copiar el archivo a un lugar accesible
+                    const tempFileName = `temp_${Date.now()}.ipvbak`;
+
+                    // Leer el contenido (esto podría requerir permisos adicionales)
+                    const result = await fetch(uri);
+                    if (!result.ok) throw new Error('No se pudo leer el contenido');
+
+                    const blob = await result.blob();
+                    const reader = new FileReader();
+
+                    return new Promise((resolve) => {
+                        reader.onload = async (e) => {
+                            const text = e.target.result;
+                            const data = this.parseBackupFile(text);
+                            resolve(data);
+                        };
+                        reader.readAsText(blob);
+                    });
+
+                } catch (fetchError) {
+                    console.warn('Error con fetch, intentando método alternativo:', fetchError);
+
+                    // Método alternativo: mostrar selector de archivo
+                    return await this.selectBackupFile();
+                }
+
+            } else {
+                // Para file URIs
+                let filePath = uri;
+
+                // Limpiar file:// si existe
+                if (filePath.startsWith('file://')) {
+                    filePath = filePath.replace('file://', '');
+                }
+
+                // Decodificar caracteres especiales
+                filePath = decodeURIComponent(filePath);
+
+                console.log('Leyendo archivo local:', filePath);
+
+                // Intentar leer con Filesystem
+                const result = await this.filesystem.readFile({
+                    path: filePath,
+                    directory: this.Directory.Documents
+                });
+
+                const text = atob(result.data);
+                return this.parseBackupFile(text);
+            }
+
+        } catch (error) {
+            console.error('Error en readBackupFileMobile:', error);
+
+            // Fallback: usar el método web
+            return await this.readBackupFileWeb(uri);
+        }
+    }
+
+    // Función para leer archivos en web
+    async readBackupFileWeb(url) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('No se pudo leer el archivo');
+
+            const text = await response.text();
+            return this.parseBackupFile(text);
+        } catch (error) {
+            console.error('Error en readBackupFileWeb:', error);
+            return null;
+        }
+    }
+
+    // Función para inferir tipo de backup
+    inferBackupType(backupData) {
+        if (backupData.productosSalon || backupData.productosCocina) return 'productos';
+        if (backupData.reportes && Array.isArray(backupData.reportes)) return 'reportes';
+        if (backupData.salon || backupData.cocina || backupData.consumo) return 'dia_actual';
+        if (backupData._metadata && backupData._metadata.backupType === 'completo') return 'completo';
+
+        // Verificar por estructura de datos
+        const keys = Object.keys(backupData);
+        if (keys.includes('productosSalon') && keys.includes('reportes')) return 'completo';
+
+        return 'desconocido';
+    }
+
+    // Función para obtener resumen del backup
+    getBackupSummary(backupData) {
+        if (!backupData.data) return 'Sin datos';
+
+        const data = backupData.data;
+        let summary = [];
+
+        if (data.productosSalon) summary.push(`${data.productosSalon.length} productos salón`);
+        if (data.productosCocina) summary.push(`${data.productosCocina.length} productos cocina`);
+        if (Array.isArray(data.reportes)) summary.push(`${data.reportes.length} reportes`);
+        if (data.salon) summary.push(`${data.salon.length} registros salón`);
+        if (data.cocina) summary.push(`${data.cocina.length} registros cocina`);
+
+        return summary.length > 0 ? summary.join(', ') : 'Datos detectados';
+    }
+
+    // Nueva función para inferir tipo basado en el nombre del archivo
+    inferBackupTypeFromFileName(fileName) {
+        if (!fileName) return null;
+
+        const lowerName = fileName.toLowerCase();
+
+        if (lowerName.includes('producto') || lowerName.includes('productos')) return 'productos';
+        if (lowerName.includes('reporte') || lowerName.includes('reportes')) return 'reportes';
+        if (lowerName.includes('dia') || lowerName.includes('diario') || lowerName.includes('actual')) return 'dia_actual';
+        if (lowerName.includes('completo') || lowerName.includes('full') || lowerName.includes('total')) return 'completo';
+        if (lowerName.includes('backup') || lowerName.includes('respaldo')) return 'desconocido'; // Podría ser cualquiera
+
+        return null;
+    }
+
+    // Función mejorada para inferir tipo basado en datos
+    inferBackupTypeFromData(backupData) {
+        // Verificar estructura de datos
+        if (backupData.productosSalon || backupData.productosCocina) {
+            return 'productos';
+        }
+
+        if (backupData.reportes && Array.isArray(backupData.reportes)) {
+            return 'reportes';
+        }
+
+        if (backupData.salon || backupData.cocina || backupData.consumo) {
+            return 'dia_actual';
+        }
+
+        if (backupData._metadata && backupData._metadata.backupType) {
+            return backupData._metadata.backupType;
+        }
+
+        // Verificar múltiples tipos de datos
+        const hasProducts = backupData.productosSalon || backupData.productosCocina;
+        const hasReports = backupData.reportes && Array.isArray(backupData.reportes);
+        const hasDayData = backupData.salon || backupData.cocina;
+
+        if (hasProducts && hasReports && hasDayData) {
+            return 'completo';
+        }
+
+        return 'desconocido';
+    }
+
+    async analyzeBackupFileByUrl(url) {
+        try {
+            // Intentar fetch si es una URL accesible
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('No se pudo leer el archivo');
+
+            const text = await response.text();
+            return this.parseBackupFile(text);
+
+        } catch (error) {
+            console.error('Error en analyzeBackupFileByUrl:', error);
+
+            // Si no se puede leer, intentar determinar por el nombre
+            const fileName = url.split('/').pop() || '';
+
+            // Inferir tipo por nombre de archivo
+            if (fileName.includes('productos')) return { type: 'productos' };
+            if (fileName.includes('reportes')) return { type: 'reportes' };
+            if (fileName.includes('dia_actual') || fileName.includes('dia')) return { type: 'dia_actual' };
+            if (fileName.includes('completo')) return { type: 'completo' };
+
+            return { type: 'desconocido' };
+        }
+    }
+
+    async restoreBackupByType(backupData, backupType, filePath) {
+        try {
+            this.showProgressModal(`Restaurando backup de ${this.getTypeLabel(backupType)}...`);
+
+            switch (backupType) {
+                case 'productos':
+                    await this.restoreProductosFromData(backupData);
+                    break;
+
+                case 'reportes':
+                    await this.restoreReportesFromData(backupData);
+                    break;
+
+                case 'dia_actual':
+                    await this.restoreDiaActualFromData(backupData);
+                    break;
+
+                case 'completo':
+                    await this.restoreCompletoFromData(backupData);
+                    break;
+
+                default:
+                    await this.showBackupTypeSelector(backupData);
+                    break;
+            }
+
+            // Guardar referencia del último archivo abierto
+            if (this.preferences && filePath) {
+                await this.preferences.set({
+                    key: 'last_opened_backup',
+                    value: JSON.stringify({
+                        path: filePath,
+                        type: backupType,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            }
+
+        } catch (error) {
+            console.error('Error en restoreBackupByType:', error);
+            this.showError('Error al restaurar: ' + error.message);
+        } finally {
+            this.hideProgressModal();
+        }
+    }
+
+    async showBackupTypeSelector(backupData) {
+        const modalHtml = `
+        <div class="modal active" id="backup-type-modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-question-circle"></i> Seleccionar Tipo de Backup</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>No se pudo determinar el tipo de backup automáticamente.</p>
+                    <p>Por favor seleccione el tipo:</p>
+                    
+                    <div class="backup-type-options">
+                        <button class="btn btn-outline-primary btn-block mb-2" data-type="productos">
+                            <i class="fas fa-box"></i> Productos
+                        </button>
+                        <button class="btn btn-outline-primary btn-block mb-2" data-type="reportes">
+                            <i class="fas fa-chart-bar"></i> Reportes
+                        </button>
+                        <button class="btn btn-outline-primary btn-block mb-2" data-type="dia_actual">
+                            <i class="fas fa-calendar-day"></i> Día Actual
+                        </button>
+                        <button class="btn btn-outline-primary btn-block" data-type="completo">
+                            <i class="fas fa-database"></i> Completo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        return new Promise((resolve) => {
+            const modal = document.getElementById('backup-type-modal');
+            const closeModal = () => modal.remove();
+
+            // Event listeners para botones de tipo
+            document.querySelectorAll('.backup-type-options button').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const type = e.target.closest('button').dataset.type;
+                    closeModal();
+
+                    try {
+                        // Asignar tipo y restaurar
+                        backupData.type = type;
+                        await this.restoreBackupByType(backupData, type, null);
+                        resolve(true);
+                    } catch (error) {
+                        this.showError('Error: ' + error.message);
+                        resolve(false);
+                    }
+                });
+            });
+
+            // Cerrar modal
+            modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
+            modal.querySelector('.modal-close').addEventListener('click', closeModal);
+
+            // Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeModal();
+            });
+        });
+    }
+
+
 
     async checkPendingFileOperations() {
         if (!this.isMobile || !this.preferences) return;
@@ -221,7 +733,13 @@ class BackupManager {
         if (ultimoBackup) {
             const lastBackup = localStorage.getItem('ipb_last_backup');
             if (lastBackup) {
-                ultimoBackup.textContent = new Date(lastBackup).toLocaleString('es-ES');
+                ultimoBackup.textContent = new Date(lastBackup).toLocaleString('es-ES', {
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
             }
         }
     }
@@ -260,24 +778,63 @@ class BackupManager {
         if (!this.isMobile || !this.filesystem) return null;
 
         try {
-            // Crear carpeta principal "Gestor IPV"
-            await this.filesystem.mkdir({
-                path: 'Gestor IPV',
-                directory: this.Directory.Documents,
-                recursive: true
-            });
+            const folderPath = 'Gestor IPV/Backup';
 
-            // Crear subcarpeta "Backup"
-            await this.filesystem.mkdir({
-                path: 'Gestor IPV/Backup',
-                directory: this.Directory.Documents,
-                recursive: true
-            });
+            // PRIMERO: Intentar listar el directorio para ver si ya existe
+            try {
+                await this.filesystem.readdir({
+                    path: folderPath,
+                    directory: this.Directory.Documents
+                });
 
-            return 'Gestor IPV/Backup';
+                // Si llega aquí, la carpeta YA EXISTE
+                console.log('✅ Carpeta de backup ya existe, usando:', folderPath);
+                return folderPath;
+
+            } catch (readError) {
+                // Si hay error al leer, la carpeta NO EXISTE, entonces crearla
+                console.log('📁 Carpeta no existe, creando:', folderPath);
+
+                // Crear carpeta principal "Gestor IPV" si no existe
+                try {
+                    await this.filesystem.mkdir({
+                        path: 'Gestor IPV',
+                        directory: this.Directory.Documents,
+                        recursive: true
+                    });
+                } catch (mkdir1Error) {
+                    // Ignorar si ya existe
+                    console.log('Carpeta "Gestor IPV" ya existe o error:', mkdir1Error.message);
+                }
+
+                // Crear subcarpeta "Backup"
+                await this.filesystem.mkdir({
+                    path: folderPath,
+                    directory: this.Directory.Documents,
+                    recursive: true
+                });
+
+                console.log('✅ Carpeta creada exitosamente:', folderPath);
+                return folderPath;
+            }
+
         } catch (error) {
-            console.error('Error creando carpetas:', error);
-            return null;
+            console.error('Error creando/verificando carpeta:', error);
+
+            // Intentar método alternativo: usar solo "Backup" si "Gestor IPV/Backup" falla
+            try {
+                const simplePath = 'Backup';
+                await this.filesystem.mkdir({
+                    path: simplePath,
+                    directory: this.Directory.Documents,
+                    recursive: true
+                });
+                console.log('✅ Carpeta alternativa creada:', simplePath);
+                return simplePath;
+            } catch (fallbackError) {
+                console.error('Error con método alternativo:', fallbackError);
+                return null;
+            }
         }
     }
 
@@ -376,7 +933,7 @@ class BackupManager {
 
             // ACTUALIZAR SECCIONES VISIBLES
             if (typeof window.updateAllVisibleSections === 'function') {
-                window.updateAllVisibleSections('productos');
+                window.updateAllVisibleSections('Productos');
             }
 
 
@@ -474,18 +1031,25 @@ class BackupManager {
             this.showError('Error al restaurar reportes: ' + error.message);
         }
     }
-
     async backupDiaActual() {
         const confirm = await this.showConfirmationModal(
             'Backup del Día Actual',
-            '¿Desea crear un backup de todos los datos del día actual?',
+            '¿Desea crear un backup de TODOS los datos del día actual?\n\n' +
+            '📦 Incluye TODOS los productos actuales\n' +
+            '🏪 Incluye todos los datos de ventas del día\n' +
+            '💰 Incluye todos los registros financieros\n\n' +
+            '⚠️ Al restaurar, TODOS los datos actuales serán REEMPLAZADOS.',
             'info'
         );
 
         if (!confirm) return;
 
         try {
-            this.showProgressModal('Generando backup del día actual...');
+            this.showProgressModal('Generando backup COMPLETO del día actual...');
+
+            // Obtener datos ACTUALES de ventas del día (esto es lo que falta)
+            const salonDataActual = StorageManager.getSalonData(); // Esto incluye venta, vendido, importe
+            const cocinaDataActual = StorageManager.getCocinaData(); // Esto incluye venta, vendido, importe
 
             const backupData = {
                 type: 'dia_actual',
@@ -494,23 +1058,55 @@ class BackupManager {
                 metadata: {
                     ...this.FILE_METADATA,
                     backupType: 'dia_actual',
+                    note: 'Incluye TODOS los productos actuales y datos de ventas del día para reemplazo completo',
                     itemCount: {
-                        salon: StorageManager.getSalonData().length,
-                        cocina: StorageManager.getCocinaData().length,
+                        productosSalon: StorageManager.getProducts().length,
+                        productosCocina: StorageManager.getCocinaProducts().length,
+                        salon: salonDataActual.length,
+                        cocina: cocinaDataActual.length,
+                        agregos: JSON.parse(localStorage.getItem('cocina_agregos') || '[]').length,
                         consumo: StorageManager.getConsumoData().length,
                         extracciones: StorageManager.getExtraccionesData().length,
-                        transferencias: StorageManager.getTransferenciasData().length
+                        transferencias: StorageManager.getTransferenciasData().length,
+                        efectivo: JSON.parse(localStorage.getItem('ipb_efectivo_data') || '[]').length,
+                        billetes: JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]').length
                     }
                 },
                 data: {
-                    salon: StorageManager.getSalonData(),
-                    cocina: StorageManager.getCocinaData(),
+                    // PRODUCTOS BASE
+                    productosSalon: StorageManager.getProducts(),
+                    productosCocina: StorageManager.getCocinaProducts(),
+
+                    // DATOS DE VENTAS DEL DÍA ACTUAL (¡ESTO ES LO IMPORTANTE!)
+                    salon: salonDataActual, // Ahora SÍ guarda venta, vendido, importe
+                    cocina: cocinaDataActual, // Ahora SÍ guarda venta, vendido, importe
+
+                    // DATOS ADICIONALES DE COCINA
+                    agregos: JSON.parse(localStorage.getItem('cocina_agregos') || '[]'),
+                    agregosHistorial: JSON.parse(localStorage.getItem('cocina_agregos_historial') || '[]'),
+
+                    // DATOS FINANCIEROS
                     consumo: StorageManager.getConsumoData(),
                     extracciones: StorageManager.getExtraccionesData(),
                     transferencias: StorageManager.getTransferenciasData(),
                     efectivo: JSON.parse(localStorage.getItem('ipb_efectivo_data') || '[]'),
                     billetes: JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]'),
-                    dailyData: StorageManager.getDailyData()
+                    conteoBilletes: JSON.parse(localStorage.getItem('ipb_conteo_billetes') || '[]'),
+
+                    // CONFIGURACIÓN
+                    dailyData: StorageManager.getDailyData(),
+                    configuracionDia: {
+                        fecha: new Date().toISOString().split('T')[0],
+                        tasasUSD: JSON.parse(localStorage.getItem('ipb_tasas_usd') || '{}'),
+                        efectivoInicial: localStorage.getItem('ipb_efectivo_inicial') || '0',
+                        lastReset: localStorage.getItem('ipb_last_reset')
+                    },
+
+                    // HISTORIALES RELACIONADOS
+                    historialCocina: JSON.parse(localStorage.getItem('cocina_historial') || '[]'),
+                    historialSalon: JSON.parse(localStorage.getItem('salon_historial') || '[]'),
+                    gastos: JSON.parse(localStorage.getItem("ipb_gastos_extras") || '[]'),
+                    preciosCompra: JSON.parse(localStorage.getItem("ipb_precios_compra") || '[]')
                 }
             };
 
@@ -518,10 +1114,10 @@ class BackupManager {
 
             if (this.isMobile) {
                 const result = await this.saveBackupToDevice(jsonString, 'dia_actual');
-                this.showSuccess(`Backup guardado en: ${result.fileName}`);
+                this.showSuccess(`✅ Backup del dia actual guardado`);
             } else {
                 this.downloadBackup(jsonString, 'dia_actual');
-                this.showSuccess('Backup descargado exitosamente');
+                this.showSuccess(`✅ Backup del dia actual descargado`);
             }
 
             this.addToHistory(backupData);
@@ -537,8 +1133,12 @@ class BackupManager {
 
     async restoreDiaActual() {
         const confirm = await this.showConfirmationModal(
-            'Restore del Día',
-            '⚠️ ADVERTENCIA: Esto reemplazará todos los datos del día actual. ¿Continuar?',
+            'Restore del Día Actual<br><br>',
+            '⚠️ ADVERTENCIA: Esto reemplazará TODOS los datos del día actual.\n\n<br>' +
+            '📦 Incluye TODOS los productos actuales\n<br>' +
+            '🏪 Incluye todos los datos de ventas del día\n<br>' +
+            '💰 Incluye todos los registros financieros\n\n<br><br>' +
+            '¿Continuar?',
             'warning'
         );
 
@@ -553,85 +1153,258 @@ class BackupManager {
                 return;
             }
 
-            // Restaurar datos del día
-            if (backupData.data.salon) {
-                StorageManager.saveSalonData(backupData.data.salon);
+            // Calcular estadísticas para confirmación adicional
+            const ventasSalon = backupData.data?.salon?.length || 0;
+            const ventasCocina = backupData.data?.cocina?.length || 0;
+            const totalVentasSalon = backupData.data?.salon?.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0) || 0;
+            const totalVentasCocina = backupData.data?.cocina?.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0) || 0;
+
+            const finalConfirm = await this.showConfirmationModal(
+                'Confirmación Final - Restore del Día',
+                `Estas seguro de restablecer los datos:\n\n` +
+                `⚠️ Todos los datos actuales serán reemplazados.\n\n` +
+                `¿Continuar?`,
+                'warning'
+            );
+
+            if (!finalConfirm) return;
+
+            this.showProgressModal('Restaurando datos del día actual...');
+
+            // ==================== 1. PRODUCTOS BASE ====================
+            if (backupData.data.productosSalon && Array.isArray(backupData.data.productosSalon)) {
+                console.log(`📦 Restaurando ${backupData.data.productosSalon.length} productos de salón`);
+                StorageManager.saveProducts(backupData.data.productosSalon);
             }
 
-            if (backupData.data.cocina) {
-                StorageManager.saveCocinaData(backupData.data.cocina);
+            if (backupData.data.productosCocina && Array.isArray(backupData.data.productosCocina)) {
+                console.log(`👨‍🍳 Restaurando ${backupData.data.productosCocina.length} productos de cocina`);
+                StorageManager.saveCocinaProducts(backupData.data.productosCocina);
             }
 
-            if (backupData.data.consumo) {
+            // ==================== 2. DATOS DE VENTAS (¡CRÍTICO!) ====================
+            if (backupData.data.salon && Array.isArray(backupData.data.salon)) {
+                console.log(`🏪 Restaurando ${backupData.data.salon.length} ventas de salón`);
+
+                // Sincronizar IDs con productos actuales
+                const productosActualesSalon = StorageManager.getProducts();
+                const datosSalonValidados = backupData.data.salon.map(item => {
+                    // Buscar producto correspondiente
+                    let productoCorrespondiente = productosActualesSalon.find(p => p.id === item.id);
+
+                    if (!productoCorrespondiente) {
+                        productoCorrespondiente = productosActualesSalon.find(p =>
+                            p.nombre.toLowerCase() === item.nombre.toLowerCase()
+                        );
+                    }
+
+                    const productoFinal = productoCorrespondiente || { id: item.id, nombre: item.nombre, precio: item.precio };
+
+                    return {
+                        id: productoFinal.id,
+                        nombre: productoFinal.nombre,
+                        precio: parseFloat(productoFinal.precio) || 0,
+                        inicio: parseInt(item.inicio) || 0,
+                        entrada: parseInt(item.entrada) || 0,
+                        venta: parseInt(item.venta) || 0,
+                        final: parseInt(item.final) || 0,
+                        finalEditado: Boolean(item.finalEditado) || false,
+                        vendido: parseInt(item.vendido) || 0,
+                        importe: parseFloat(item.importe) || 0,
+                        historial: Array.isArray(item.historial) ? item.historial : [],
+                        ultimaActualizacion: item.ultimaActualizacion || new Date().toLocaleTimeString('es-ES')
+                    };
+                });
+
+                StorageManager.saveSalonData(datosSalonValidados);
+                console.log(`💰 Total ventas salón: $${totalVentasSalon.toFixed(2)}`);
+            }
+
+            if (backupData.data.cocina && Array.isArray(backupData.data.cocina)) {
+                console.log(`🍳 Restaurando ${backupData.data.cocina.length} ventas de cocina`);
+
+                // Sincronizar IDs con productos actuales de cocina
+                const productosActualesCocina = StorageManager.getCocinaProducts();
+                const datosCocinaValidados = backupData.data.cocina.map(item => {
+                    let productoCorrespondiente = productosActualesCocina.find(p => p.id === item.id);
+
+                    if (!productoCorrespondiente) {
+                        productoCorrespondiente = productosActualesCocina.find(p =>
+                            p.nombre.toLowerCase() === item.nombre.toLowerCase()
+                        );
+                    }
+
+                    const productoFinal = productoCorrespondiente || { id: item.id, nombre: item.nombre, precio: item.precio };
+
+                    return {
+                        id: productoFinal.id,
+                        nombre: productoFinal.nombre,
+                        precio: parseFloat(productoFinal.precio) || 0,
+                        inicio: parseInt(item.inicio) || 0,
+                        entrada: parseInt(item.entrada) || 0,
+                        venta: parseInt(item.venta) || 0,
+                        final: parseInt(item.final) || 0,
+                        finalEditado: Boolean(item.finalEditado) || false,
+                        vendido: parseInt(item.vendido) || 0,
+                        importe: parseFloat(item.importe) || 0,
+                        historial: Array.isArray(item.historial) ? item.historial : [],
+                        ultimaActualizacion: item.ultimaActualizacion || new Date().toLocaleTimeString('es-ES')
+                    };
+                });
+
+                StorageManager.saveCocinaData(datosCocinaValidados);
+                console.log(`💰 Total ventas cocina: $${totalVentasCocina.toFixed(2)}`);
+            }
+
+            // ==================== 3. DATOS FINANCIEROS ====================
+            if (backupData.data.consumo && Array.isArray(backupData.data.consumo)) {
                 StorageManager.saveConsumoData(backupData.data.consumo);
+                console.log(`💵 Consumo restaurado: ${backupData.data.consumo.length} registros`);
             }
 
-            if (backupData.data.extracciones) {
+            if (backupData.data.extracciones && Array.isArray(backupData.data.extracciones)) {
                 StorageManager.saveExtraccionesData(backupData.data.extracciones);
+                console.log(`💰 Extracciones restauradas: ${backupData.data.extracciones.length} registros`);
             }
 
-            if (backupData.data.transferencias) {
+            if (backupData.data.transferencias && Array.isArray(backupData.data.transferencias)) {
                 StorageManager.saveTransferenciasData(backupData.data.transferencias);
+                console.log(`🔄 Transferencias restauradas: ${backupData.data.transferencias.length} registros`);
             }
 
-            if (backupData.data.efectivo) {
+            if (backupData.data.efectivo && Array.isArray(backupData.data.efectivo)) {
                 localStorage.setItem('ipb_efectivo_data', JSON.stringify(backupData.data.efectivo));
+                console.log(`💵 Efectivo restaurado: ${backupData.data.efectivo.length} registros`);
             }
 
-            if (backupData.data.billetes) {
+            if (backupData.data.billetes && Array.isArray(backupData.data.billetes)) {
                 localStorage.setItem('ipb_billetes_registros', JSON.stringify(backupData.data.billetes));
+                console.log(`💵 Billetes restaurados: ${backupData.data.billetes.length} registros`);
             }
 
-            if (backupData.data.dailyData) {
+            // ==================== 4. DATOS ADICIONALES DE COCINA ====================
+            if (backupData.data.agregos && Array.isArray(backupData.data.agregos)) {
+                localStorage.setItem('cocina_agregos', JSON.stringify(backupData.data.agregos));
+                console.log(`➕ Agregos cocina: ${backupData.data.agregos.length}`);
+            }
+
+            if (backupData.data.agregosHistorial && Array.isArray(backupData.data.agregosHistorial)) {
+                localStorage.setItem('cocina_agregos_historial', JSON.stringify(backupData.data.agregosHistorial));
+            }
+
+            // ==================== 5. CONFIGURACIONES ====================
+            if (backupData.data.dailyData && typeof backupData.data.dailyData === 'object') {
                 StorageManager.saveDailyData(backupData.data.dailyData);
             }
 
-            this.showSuccess('Datos del día restaurados exitosamente');
+            if (backupData.data.configuracionDia) {
+                if (backupData.data.configuracionDia.tasasUSD && typeof backupData.data.configuracionDia.tasasUSD === 'object') {
+                    localStorage.setItem('ipb_tasas_usd', JSON.stringify(backupData.data.configuracionDia.tasasUSD));
+                }
+                if (backupData.data.configuracionDia.efectivoInicial) {
+                    localStorage.setItem('ipb_efectivo_inicial', backupData.data.configuracionDia.efectivoInicial.toString());
+                }
+                if (backupData.data.configuracionDia.lastReset) {
+                    localStorage.setItem('ipb_last_reset', backupData.data.configuracionDia.lastReset);
+                }
+                console.log(`⚙️ Configuraciones restauradas`);
+            }
+
+            // ==================== 6. HISTORIALES ====================
+            if (backupData.data.historialCocina && Array.isArray(backupData.data.historialCocina)) {
+                localStorage.setItem('cocina_historial', JSON.stringify(backupData.data.historialCocina));
+            }
+
+            if (backupData.data.historialSalon && Array.isArray(backupData.data.historialSalon)) {
+                localStorage.setItem('salon_historial', JSON.stringify(backupData.data.historialSalon));
+            }
+
+            if (backupData.data.gastos && Array.isArray(backupData.data.gastos)) {
+                localStorage.setItem('ipb_gastos_extras', JSON.stringify(backupData.data.gastos));
+            }
+            if (backupData.data.preciosCompra && Array.isArray(backupData.data.preciosCompra)) {
+                localStorage.setItem('ipb_precios_compra', JSON.stringify(backupData.data.preciosCompra));
+            }
+
+            this.showSuccess(`✅ Todos los datos del día han sido restaurados`);
+
             this.updateSystemInfo();
             this.updateStats();
 
-            // Recargar secciones
-            if (typeof window.updateSummary === 'function') {
-                window.updateSummary();
-            }
-            // ACTUALIZAR SECCIONES ESPECÍFICAS
-            if (typeof window.actualizarSalonDesdeProductos === 'function') {
-                setTimeout(() => window.actualizarSalonDesdeProductos(), 300);
-            }
-            if (typeof window.cargarDatosCocina === 'function') {
-                setTimeout(() => window.cargarDatosCocina(), 400);
-            }
-            if (typeof window.updateSummary === 'function') {
-                setTimeout(() => window.updateSummary(), 500);
-            }
+            // ==================== 7. ACTUALIZAR TODAS LAS UI ====================
+            setTimeout(() => {
+                console.log('🔄 Actualizando todas las UI después del restore...');
 
-            // DISPARAR EVENTO GLOBAL
-            document.dispatchEvent(new CustomEvent('restoreCompleted', {
-                detail: { type: 'dia_actual' }
-            }));
+                // Forzar recarga de productos
+                if (typeof window.forceReloadProducts === 'function') {
+                    window.forceReloadProducts();
+                }
 
-            // ACTUALIZAR SECCIONES VISIBLES
-            if (typeof window.updateAllVisibleSections === 'function') {
-                window.updateAllVisibleSections('dia_actual');
-            }
+                // Actualizar cocina
+                if (typeof window.cargarDatosCocina === 'function') {
+                    setTimeout(() => window.cargarDatosCocina(), 400);
+                }
+
+                // Actualizar resumen
+                if (typeof window.updateSummary === 'function') {
+                    setTimeout(() => window.updateSummary(), 300);
+                }
+
+                // Actualizar todas las secciones visibles
+                if (typeof window.updateAllVisibleSections === 'function') {
+                    setTimeout(() => {
+                        window.updateAllVisibleSections('Dia actual');
+                    }, 500);
+                }
+
+                // Disparar evento global
+                document.dispatchEvent(new CustomEvent('restoreCompleted', {
+                    detail: {
+                        type: 'dia_actual',
+                        timestamp: new Date().toISOString(),
+                        datos: {
+                            productosSalon: backupData.data?.productosSalon?.length || 0,
+                            productosCocina: backupData.data?.productosCocina?.length || 0,
+                            ventasSalon: ventasSalon,
+                            ventasCocina: ventasCocina
+                        }
+                    }
+                }));
+
+                window.location.reload()
+
+
+            }, 1500);
 
         } catch (error) {
-            console.error('Error en restore del día:', error);
+            console.error('❌ Error en restore del día:', error);
             this.showError('Error al restaurar datos del día: ' + error.message);
+        } finally {
+            this.hideProgressModal();
         }
     }
 
     async backupCompleto() {
         const confirm = await this.showConfirmationModal(
             'Backup Completo',
-            '¿Desea crear un backup completo de todo el sistema?',
+            '¿Desea crear un backup completo de todo el sistema?\n\n<br><br>' +
+            '📦 Incluye TODOS los productos (Salón y Cocina)\n<br>' +
+            '🏪 Incluye todos los datos de ventas del día actual\n<br>' +
+            '📊 Incluye todos los reportes históricos\n<br>' +
+            '💰 Incluye todos los registros financieros\n<br>' +
+            '⚙️ Incluye todas las configuraciones\n\n<br>' +
+            '⚠️ Este backup contiene TODO su sistema para restaurar completamente.',
             'info'
         );
 
         if (!confirm) return;
 
         try {
-            this.showProgressModal('Generando backup completo...');
+            this.showProgressModal('Generando backup completo del sistema...');
+
+            // Obtener datos ACTUALES de ventas del día (¡IMPORTANTE!)
+            const salonDataActual = StorageManager.getSalonData(); // Incluye venta, vendido, importe
+            const cocinaDataActual = StorageManager.getCocinaData(); // Incluye venta, vendido, importe
 
             const backupData = {
                 type: 'completo',
@@ -640,30 +1413,70 @@ class BackupManager {
                 metadata: {
                     ...this.FILE_METADATA,
                     backupType: 'completo',
+                    note: 'Backup completo del sistema incluyendo productos, ventas del día, reportes históricos y configuraciones',
                     itemCount: {
-                        productos: StorageManager.getProducts().length + StorageManager.getCocinaProducts().length,
-                        reportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]').length,
-                        registros: StorageManager.getConsumoData().length +
-                            StorageManager.getExtraccionesData().length +
-                            StorageManager.getTransferenciasData().length
+                        productosSalon: StorageManager.getProducts().length,
+                        productosCocina: StorageManager.getCocinaProducts().length,
+                        salon: salonDataActual.length,
+                        cocina: cocinaDataActual.length,
+                        agregos: JSON.parse(localStorage.getItem('cocina_agregos') || '[]').length,
+                        consumo: StorageManager.getConsumoData().length,
+                        extracciones: StorageManager.getExtraccionesData().length,
+                        transferencias: StorageManager.getTransferenciasData().length,
+                        efectivo: JSON.parse(localStorage.getItem('ipb_efectivo_data') || '[]').length,
+                        billetes: JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]').length,
+                        reportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]').length
+                    },
+                    ventasDelDia: {
+                        totalSalon: salonDataActual.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0).toFixed(2),
+                        totalCocina: cocinaDataActual.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0).toFixed(2),
+                        fecha: new Date().toISOString().split('T')[0]
                     }
                 },
                 data: {
+                    // PRODUCTOS BASE
                     productosSalon: StorageManager.getProducts(),
                     productosCocina: StorageManager.getCocinaProducts(),
-                    salon: StorageManager.getSalonData(),
-                    cocina: StorageManager.getCocinaData(),
+
+                    // DATOS DE VENTAS DEL DÍA ACTUAL (¡CRÍTICO!)
+                    salon: salonDataActual, // Con venta, vendido, importe
+                    cocina: cocinaDataActual, // Con venta, vendido, importe
+
+                    // DATOS ADICIONALES DE COCINA
+                    agregos: JSON.parse(localStorage.getItem('cocina_agregos') || '[]'),
+                    agregosHistorial: JSON.parse(localStorage.getItem('cocina_agregos_historial') || '[]'),
+
+                    // DATOS FINANCIEROS DEL DÍA
                     consumo: StorageManager.getConsumoData(),
                     extracciones: StorageManager.getExtraccionesData(),
                     transferencias: StorageManager.getTransferenciasData(),
                     efectivo: JSON.parse(localStorage.getItem('ipb_efectivo_data') || '[]'),
                     billetes: JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]'),
+                    conteoBilletes: JSON.parse(localStorage.getItem('ipb_conteo_billetes') || '[]'),
+
+                    // DATOS DIARIOS CONSOLIDADOS
                     dailyData: StorageManager.getDailyData(),
+
+                    // REPORTES HISTÓRICOS
                     reportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]'),
+
+                    // CONFIGURACIONES COMPLETAS DEL SISTEMA
                     configuraciones: {
                         lastReset: localStorage.getItem('ipb_last_reset'),
-                        tasasUSD: JSON.parse(localStorage.getItem('ipb_tasas_usd') || '{}')
-                    }
+                        tasasUSD: JSON.parse(localStorage.getItem('ipb_tasas_usd') || '{}'),
+                        efectivoInicial: localStorage.getItem('ipb_efectivo_inicial') || '0',
+                        fechaActual: new Date().toISOString().split('T')[0],
+                        totalProductos: StorageManager.getProducts().length + StorageManager.getCocinaProducts().length,
+                        totalReportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]').length
+                    },// CONFIGURACIONES DE PRODUCTOS
+                    configProductos: {
+                        ultimaActualizacion: new Date().toISOString(),
+                        categoriasSalon: JSON.parse(localStorage.getItem('ipb_categorias_salon') || '[]'),
+                        categoriasCocina: JSON.parse(localStorage.getItem('ipb_categorias_cocina') || '[]'),
+                        productosDeshabilitados: JSON.parse(localStorage.getItem('ipb_productos_deshabilitados') || '[]')
+                    },
+                    gastos: JSON.parse(localStorage.getItem("ipb_gastos_extras") || '[]'),
+                    preciosCompra: JSON.parse(localStorage.getItem("ipb_precios_compra") || '[]')
                 }
             };
 
@@ -671,10 +1484,10 @@ class BackupManager {
 
             if (this.isMobile) {
                 const result = await this.saveBackupToDevice(jsonString, 'completo');
-                this.showSuccess(`Backup completo guardado en: ${result.fileName}`);
+                this.showSuccess(`✅ Backup COMPLETO guardado`);
             } else {
                 this.downloadBackup(jsonString, 'completo');
-                this.showSuccess('Backup completo descargado exitosamente');
+                this.showSuccess(`✅ Backup COMPLETO descargado`);
             }
 
             this.addToHistory(backupData);
@@ -682,7 +1495,7 @@ class BackupManager {
 
         } catch (error) {
             console.error('Error en backup completo:', error);
-            this.showError('Error al crear backup: ' + error.message);
+            this.showError('Error al crear backup completo: ' + error.message);
         } finally {
             this.hideProgressModal();
         }
@@ -690,8 +1503,14 @@ class BackupManager {
 
     async restoreCompleto() {
         const confirm = await this.showConfirmationModal(
-            'Restore Completo',
-            '⚠️ ADVERTENCIA CRÍTICA: Esto reemplazará TODO el sistema. ¿Está absolutamente seguro?',
+            'Restore Completo del Sistema<br>',
+            '⚠️ ADVERTENCIA CRÍTICA: Esto reemplazará TODO el sistema.\n\n<br><br>' +
+            '📦 Productos: Salón y Cocina\n<br>' +
+            '🏪 Ventas del día: Datos actuales de ventas\n<br>' +
+            '📊 Reportes: Historial completo\n<br>' +
+            '💰 Finanzas: Consumo, extracciones, transferencias\n<br>' +
+            '⚙️ Configuraciones: Tasas, reset, iniciales\n\n<br>' +
+            '¿Está absolutamente seguro?',
             'error'
         );
 
@@ -706,10 +1525,19 @@ class BackupManager {
                 return;
             }
 
-            // Confirmación final
+            // Calcular estadísticas para confirmación final
+            const ventasSalon = backupData.data?.salon?.length || 0;
+            const ventasCocina = backupData.data?.cocina?.length || 0;
+            const totalVentasSalon = backupData.data?.salon?.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0) || 0;
+            const totalVentasCocina = backupData.data?.cocina?.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0) || 0;
+            const productosSalonCount = backupData.data?.productosSalon?.length || 0;
+            const productosCocinaCount = backupData.data?.productosCocina?.length || 0;
+            const reportesCount = backupData.data?.reportes?.length || 0;
+
             const finalConfirm = await this.showConfirmationModal(
-                'CONFIRMACIÓN FINAL',
-                'Esta acción NO se puede deshacer. ¿Continuar con el restore completo?',
+                'CONFIRMACIÓN FINAL - Restore Completo',
+                '✅ Se remplasaran todos los datos actuales guardados :<br><br>' +
+                `⚠️ Esta acción NO se puede deshacer. ¿Continuar con el restore completo?`,
                 'error'
             );
 
@@ -717,56 +1545,240 @@ class BackupManager {
 
             this.showProgressModal('Restaurando sistema completo...');
 
-            // Restaurar todo el sistema
             const data = backupData.data;
 
-            // Productos
-            if (data.productosSalon) StorageManager.saveProducts(data.productosSalon);
-            if (data.productosCocina) StorageManager.saveCocinaProducts(data.productosCocina);
+            console.log('🔄 Iniciando restore completo del sistema...');
 
-            // Datos del día
-            if (data.salon) StorageManager.saveSalonData(data.salon);
-            if (data.cocina) StorageManager.saveCocinaData(data.cocina);
-            if (data.consumo) StorageManager.saveConsumoData(data.consumo);
-            if (data.extracciones) StorageManager.saveExtraccionesData(data.extracciones);
-            if (data.transferencias) StorageManager.saveTransferenciasData(data.transferencias);
-            if (data.efectivo) localStorage.setItem('ipb_efectivo_data', JSON.stringify(data.efectivo));
-            if (data.billetes) localStorage.setItem('ipb_billetes_registros', JSON.stringify(data.billetes));
-            if (data.dailyData) StorageManager.saveDailyData(data.dailyData);
+            // ==================== 1. PRODUCTOS BASE ====================
+            if (data.productosSalon && Array.isArray(data.productosSalon)) {
+                console.log(`📦 Restaurando ${data.productosSalon.length} productos de salón`);
+                StorageManager.saveProducts(data.productosSalon);
+            }
 
-            // Reportes
-            if (data.reportes) localStorage.setItem('ipb_historial_reportes', JSON.stringify(data.reportes));
+            if (data.productosCocina && Array.isArray(data.productosCocina)) {
+                console.log(`👨‍🍳 Restaurando ${data.productosCocina.length} productos de cocina`);
+                StorageManager.saveCocinaProducts(data.productosCocina);
+            }
 
-            // Configuraciones
+            // ==================== 2. DATOS DE VENTAS DEL DÍA ====================
+            if (data.salon && Array.isArray(data.salon)) {
+                console.log(`🏪 Restaurando ${data.salon.length} ventas de salón`);
+
+                // Sincronizar IDs con productos actuales
+                const productosActualesSalon = StorageManager.getProducts();
+                const datosSalonValidados = data.salon.map(item => {
+                    // Buscar producto correspondiente por ID
+                    let productoCorrespondiente = productosActualesSalon.find(p => p.id === item.id);
+
+                    // Si no se encuentra por ID, buscar por nombre
+                    if (!productoCorrespondiente) {
+                        productoCorrespondiente = productosActualesSalon.find(p =>
+                            p.nombre.toLowerCase() === item.nombre.toLowerCase()
+                        );
+                    }
+
+                    const productoFinal = productoCorrespondiente || { id: item.id, nombre: item.nombre, precio: item.precio };
+
+                    return {
+                        id: productoFinal.id,
+                        nombre: productoFinal.nombre,
+                        precio: parseFloat(productoFinal.precio) || 0,
+                        inicio: parseInt(item.inicio) || 0,
+                        entrada: parseInt(item.entrada) || 0,
+                        venta: parseInt(item.venta) || 0,
+                        final: parseInt(item.final) || 0,
+                        finalEditado: Boolean(item.finalEditado) || false,
+                        vendido: parseInt(item.vendido) || 0,
+                        importe: parseFloat(item.importe) || 0,
+                        historial: Array.isArray(item.historial) ? item.historial : [],
+                        ultimaActualizacion: item.ultimaActualizacion || new Date().toLocaleTimeString('es-ES')
+                    };
+                });
+
+                StorageManager.saveSalonData(datosSalonValidados);
+            }
+
+            if (data.cocina && Array.isArray(data.cocina)) {
+                console.log(`🍳 Restaurando ${data.cocina.length} ventas de cocina`);
+
+                // Sincronizar IDs con productos actuales de cocina
+                const productosActualesCocina = StorageManager.getCocinaProducts();
+                const datosCocinaValidados = data.cocina.map(item => {
+                    let productoCorrespondiente = productosActualesCocina.find(p => p.id === item.id);
+
+                    if (!productoCorrespondiente) {
+                        productoCorrespondiente = productosActualesCocina.find(p =>
+                            p.nombre.toLowerCase() === item.nombre.toLowerCase()
+                        );
+                    }
+
+                    const productoFinal = productoCorrespondiente || { id: item.id, nombre: item.nombre, precio: item.precio };
+
+                    return {
+                        id: productoFinal.id,
+                        nombre: productoFinal.nombre,
+                        precio: parseFloat(productoFinal.precio) || 0,
+                        inicio: parseInt(item.inicio) || 0,
+                        entrada: parseInt(item.entrada) || 0,
+                        venta: parseInt(item.venta) || 0,
+                        final: parseInt(item.final) || 0,
+                        finalEditado: Boolean(item.finalEditado) || false,
+                        vendido: parseInt(item.vendido) || 0,
+                        importe: parseFloat(item.importe) || 0,
+                        historial: Array.isArray(item.historial) ? item.historial : [],
+                        ultimaActualizacion: item.ultimaActualizacion || new Date().toLocaleTimeString('es-ES')
+                    };
+                });
+
+                StorageManager.saveCocinaData(datosCocinaValidados);
+            }
+
+            // ==================== 3. DATOS ADICIONALES DE COCINA ====================
+            if (data.agregos && Array.isArray(data.agregos)) {
+                localStorage.setItem('cocina_agregos', JSON.stringify(data.agregos));
+                console.log(`➕ Agregos cocina: ${data.agregos.length}`);
+            }
+
+            if (data.agregosHistorial && Array.isArray(data.agregosHistorial)) {
+                localStorage.setItem('cocina_agregos_historial', JSON.stringify(data.agregosHistorial));
+            }
+
+            // ==================== 4. DATOS FINANCIEROS ====================
+            if (data.consumo && Array.isArray(data.consumo)) {
+                StorageManager.saveConsumoData(data.consumo);
+                console.log(`💵 Consumo: ${data.consumo.length} registros`);
+            }
+
+            if (data.extracciones && Array.isArray(data.extracciones)) {
+                StorageManager.saveExtraccionesData(data.extracciones);
+                console.log(`💰 Extracciones: ${data.extracciones.length} registros`);
+            }
+
+            if (data.transferencias && Array.isArray(data.transferencias)) {
+                StorageManager.saveTransferenciasData(data.transferencias);
+                console.log(`🔄 Transferencias: ${data.transferencias.length} registros`);
+            }
+
+            if (data.efectivo && Array.isArray(data.efectivo)) {
+                localStorage.setItem('ipb_efectivo_data', JSON.stringify(data.efectivo));
+                console.log(`💵 Efectivo: ${data.efectivo.length} registros`);
+            }
+
+            if (data.billetes && Array.isArray(data.billetes)) {
+                localStorage.setItem('ipb_billetes_registros', JSON.stringify(data.billetes));
+                console.log(`💵 Billetes: ${data.billetes.length} registros`);
+            }
+
+            if (data.conteoBilletes && Array.isArray(data.conteoBilletes)) {
+                localStorage.setItem('ipb_conteo_billetes', JSON.stringify(data.conteoBilletes));
+            }
+
+            if (data.dailyData && typeof data.dailyData === 'object') {
+                StorageManager.saveDailyData(data.dailyData);
+                console.log(`📅 Daily Data restaurado`);
+            }
+
+            // ==================== 5. REPORTES HISTÓRICOS ====================
+            if (data.reportes && Array.isArray(data.reportes)) {
+                localStorage.setItem('ipb_historial_reportes', JSON.stringify(data.reportes));
+                console.log(`📊 Reportes históricos: ${data.reportes.length}`);
+            }
+
+            // ==================== 6. CONFIGURACIONES ====================
             if (data.configuraciones) {
                 if (data.configuraciones.lastReset) {
                     localStorage.setItem('ipb_last_reset', data.configuraciones.lastReset);
                 }
-                if (data.configuraciones.tasasUSD) {
+                if (data.configuraciones.tasasUSD && typeof data.configuraciones.tasasUSD === 'object') {
                     localStorage.setItem('ipb_tasas_usd', JSON.stringify(data.configuraciones.tasasUSD));
                 }
+                if (data.configuraciones.efectivoInicial) {
+                    localStorage.setItem('ipb_efectivo_inicial', data.configuraciones.efectivoInicial.toString());
+                }
+                console.log(`⚙️ Configuraciones restauradas`);
             }
 
-            this.showSuccess('Sistema restaurado exitosamente. Recargando...');
+
+            // ==================== 8. CONFIGURACIONES DE PRODUCTOS ====================
+            if (data.configProductos) {
+                if (data.configProductos.categoriasSalon && Array.isArray(data.configProductos.categoriasSalon)) {
+                    localStorage.setItem('ipb_categorias_salon', JSON.stringify(data.configProductos.categoriasSalon));
+                }
+                if (data.configProductos.categoriasCocina && Array.isArray(data.configProductos.categoriasCocina)) {
+                    localStorage.setItem('ipb_categorias_cocina', JSON.stringify(data.configProductos.categoriasCocina));
+                }
+                console.log(`🏷️ Configuraciones de productos restauradas`);
+            }
+
+
+            if (backupData.data.gastos && Array.isArray(backupData.data.gastos)) {
+                localStorage.setItem('ipb_gastos_extras', JSON.stringify(backupData.data.gastos));
+            }
+            if (backupData.data.preciosCompra && Array.isArray(backupData.data.preciosCompra)) {
+                localStorage.setItem('ipb_precios_compra', JSON.stringify(backupData.data.preciosCompra));
+            }
+
+            this.showSuccess(`✅ Sistema completo restaurado exitosamente. Actualizando interfaz...`);
             this.updateSystemInfo();
 
-            // DISPARAR EVENTO GLOBAL
-            document.dispatchEvent(new CustomEvent('restoreCompleted', {
-                detail: { type: 'completo' }
-            }));
-
-            // ACTUALIZAR TODAS LAS SECCIONES VISIBLES
-            if (typeof window.updateAllVisibleSections === 'function') {
-                window.updateAllVisibleSections('completo');
-            }
-
-            // Recargar página después de 2 segundos
+            // ==================== 9. ACTUALIZAR TODAS LAS UI ====================
             setTimeout(() => {
-                window.location.reload();
-            }, 2000);
+                console.log('🔄 Actualizando todas las UI después del restore completo...');
+
+                // Forzar recarga completa de productos
+                if (typeof window.forceReloadProducts === 'function') {
+                    window.forceReloadProducts();
+                }
+
+                // Actualizar salón
+                if (typeof window.actualizarSalonDesdeProductos === 'function') {
+                    setTimeout(() => window.actualizarSalonDesdeProductos(), 300);
+                }
+
+                // Actualizar cocina
+                if (typeof window.cargarDatosCocina === 'function') {
+                    setTimeout(() => window.cargarDatosCocina(), 400);
+                }
+
+                // Actualizar historial de reportes
+                if (typeof window.historialIPV?.cargarHistorial === 'function') {
+                    setTimeout(() => window.historialIPV.cargarHistorial(), 500);
+                }
+
+                // Actualizar todas las secciones visibles
+                if (typeof window.updateAllVisibleSections === 'function') {
+                    setTimeout(() => {
+                        window.updateAllVisibleSections('Completo');
+                    }, 600);
+                }
+
+                // Actualizar resumen
+                if (typeof window.updateSummary === 'function') {
+                    setTimeout(() => window.updateSummary(), 300);
+                }
+
+                // Disparar evento global
+                document.dispatchEvent(new CustomEvent('restoreCompleted', {
+                    detail: {
+                        type: 'completo',
+                        timestamp: new Date().toISOString(),
+                        datos: {
+                            productosSalon: productosSalonCount,
+                            productosCocina: productosCocinaCount,
+                            ventasSalon: ventasSalon,
+                            ventasCocina: ventasCocina,
+                            reportes: reportesCount
+                        }
+                    }
+                }));
+
+                console.log('✅ Restore completo finalizado exitosamente');
+                window.location.reload()
+
+            }, 1500);
 
         } catch (error) {
-            console.error('Error en restore completo:', error);
+            console.error('❌ Error en restore completo:', error);
             this.showError('Error al restaurar sistema: ' + error.message);
         } finally {
             this.hideProgressModal();
@@ -778,55 +1790,89 @@ class BackupManager {
             throw new Error('Sistema de archivos no disponible');
         }
 
-        // Crear carpeta si no existe
-        const backupFolder = await this.createBackupFolder();
-        if (!backupFolder) {
-            throw new Error('No se pudo crear la carpeta de backup');
-        }
-
-        // Generar nombre de archivo con extensión personalizada
-        const date = new Date();
-        const timestamp = date.toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' +
-            date.getHours() + date.getMinutes();
-        const fileName = `${type}_${timestamp}${this.CUSTOM_EXTENSION}`;
-        const filePath = `${backupFolder}/${fileName}`;
-
-        // Agregar cabecera mágica y firma
-        const enhancedData = this.createEnhancedBackupData(jsonString, type);
-
-        // Convertir a base64
-        const base64Data = btoa(unescape(encodeURIComponent(enhancedData)));
-
-        // Guardar archivo
-        const result = await this.filesystem.writeFile({
-            path: filePath,
-            data: base64Data,
-            directory: this.Directory.Documents,
-            recursive: true
-        });
-
-        // Registrar en historial
-        localStorage.setItem('ipb_last_backup', new Date().toISOString());
-
-        // Guardar metadatos del archivo
-        await this.setFileProperties(filePath, type);
-
-        // Si está disponible, usar Share API para opción de compartir
-        if (this.share) {
-            try {
-                // Guardar referencia para compartir
-                await this.preferences?.set({
-                    key: 'last_backup_shared',
-                    value: filePath
-                });
-            } catch (error) {
-                console.warn('No se pudo guardar referencia para compartir:', error);
+        try {
+            // Obtener carpeta de backup (puede que ya exista)
+            const backupFolder = await this.createBackupFolder();
+            if (!backupFolder) {
+                throw new Error('No se pudo acceder a la carpeta de backup');
             }
+
+            // Generar nombre de archivo
+            const date = new Date();
+            const timestamp = date.toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' +
+                date.getHours() + date.getMinutes();
+            const fileName = `${type}_${timestamp}${this.CUSTOM_EXTENSION}`;
+            const filePath = `${backupFolder}/${fileName}`;
+
+            console.log(`Guardando backup en: ${filePath}`);
+
+            // Agregar cabecera mágica y firma
+            const enhancedData = this.createEnhancedBackupData(jsonString, type);
+
+            // Convertir a base64
+            const base64Data = btoa(unescape(encodeURIComponent(enhancedData)));
+
+            // Guardar archivo
+            const result = await this.filesystem.writeFile({
+                path: filePath,
+                data: base64Data,
+                directory: this.Directory.Documents,
+                recursive: true
+            });
+
+            console.log('✅ Backup guardado exitosamente');
+
+            // Registrar en historial
+            localStorage.setItem('ipb_last_backup', new Date().toISOString());
+
+            // Guardar metadatos del archivo
+            await this.setFileProperties(filePath, type);
+
+            return { path: filePath, fileName, result };
+
+        } catch (error) {
+            console.error('Error en saveBackupToDevice:', error);
+
+            // Si el error es específico de carpeta, intentar método directo
+            if (error.message.includes('folder') || error.message.includes('directory') ||
+                error.message.includes('mkdir') || error.message.includes('exist')) {
+
+                console.log('Intentando método de guardado directo...');
+
+                try {
+                    // Guardar directamente en Documents sin subcarpeta
+                    const date = new Date();
+                    const timestamp = date.toISOString().replace(/[:.]/g, '-').split('T')[0];
+                    const fileName = `${type}_${timestamp}${this.CUSTOM_EXTENSION}`;
+
+                    const enhancedData = this.createEnhancedBackupData(jsonString, type);
+                    const base64Data = btoa(unescape(encodeURIComponent(enhancedData)));
+
+                    const result = await this.filesystem.writeFile({
+                        path: fileName,
+                        data: base64Data,
+                        directory: this.Directory.Documents,
+                        recursive: true
+                    });
+
+                    console.log('✅ Backup guardado directamente en Documents');
+                    localStorage.setItem('ipb_last_backup', new Date().toISOString());
+
+                    return {
+                        path: fileName,
+                        fileName,
+                        result,
+                        note: 'Guardado directamente en Documents'
+                    };
+
+                } catch (directError) {
+                    throw new Error(`No se pudo guardar el backup: ${directError.message}`);
+                }
+            }
+
+            throw error;
         }
-
-        return { path: filePath, fileName, result };
     }
-
     createEnhancedBackupData(jsonString, type) {
         const backupData = JSON.parse(jsonString);
 
@@ -888,55 +1934,183 @@ class BackupManager {
     }
 
     async shareBackupFile() {
-        if (!this.isMobile || !this.share || !this.preferences) {
+        if (!this.isMobile || !this.share) {
             this.showError('Compartir solo disponible en dispositivos móviles');
             return;
         }
 
         try {
-            // Obtener el último backup guardado
-            const lastBackup = await this.preferences.get({ key: 'last_backup_file' });
+            this.showProgressModal('Preparando archivo para compartir...');
 
-            if (!lastBackup || !lastBackup.value) {
-                this.showError('No hay backups recientes para compartir');
+            // Buscar el archivo más reciente en la carpeta de backups
+            const backupFolder = 'Gestor IPV/Backup';
+            let latestFile = null;
+            let latestTime = 0;
+
+            try {
+                // Listar archivos en la carpeta de backup
+                const dirResult = await this.filesystem.readdir({
+                    path: backupFolder,
+                    directory: this.Directory.Documents
+                });
+
+                if (dirResult.files && dirResult.files.length > 0) {
+                    // Buscar el archivo más reciente con extensión .ipvbak
+                    for (const file of dirResult.files) {
+                        if (file.name.endsWith(this.CUSTOM_EXTENSION)) {
+                            const fileStat = await this.filesystem.stat({
+                                path: `${backupFolder}/${file.name}`,
+                                directory: this.Directory.Documents
+                            });
+
+                            if (fileStat.mtime && fileStat.mtime > latestTime) {
+                                latestTime = fileStat.mtime;
+                                latestFile = file.name;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('No se pudo leer directorio:', error);
+            }
+
+            if (!latestFile) {
+                this.hideProgressModal();
+                this.showError('No se encontraron archivos de backup. Cree uno primero.');
                 return;
             }
 
-            // Leer el archivo
-            const result = await this.filesystem.readFile({
-                path: lastBackup.value,
+            const filePath = `${backupFolder}/${latestFile}`;
+
+            // Obtener información del archivo
+            const fileStat = await this.filesystem.stat({
+                path: filePath,
                 directory: this.Directory.Documents
             });
 
-            // Convertir de base64 a Blob
-            const binaryString = atob(result.data);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
+            if (!fileStat || !fileStat.uri) {
+                this.hideProgressModal();
+                throw new Error('No se pudo obtener la URI del archivo');
             }
 
-            const blob = new Blob([bytes.buffer], {
-                type: 'application/octet-stream'
+            // Convertir timestamp a fecha legible
+            const fileDate = new Date(latestTime);
+            const dateStr = fileDate.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
             });
 
-            // Crear archivo temporal para compartir
-            const fileName = lastBackup.value.split('/').pop();
+            // Método 1: Intentar compartir con parámetros simplificados
+            try {
+                this.hideProgressModal();
 
-            // Compartir usando Share API
-            await this.share.share({
-                title: 'Compartir Backup Gestor IPV',
-                text: 'Backup de Gestor IPV - ' + fileName,
-                files: [{
-                    path: lastBackup.value,
-                    mimeType: 'application/octet-stream',
-                    fileName: fileName
-                }],
-                dialogTitle: 'Compartir backup'
-            });
+                // Solo pasar parámetros esenciales como strings
+                await this.share.share({
+                    title: 'Backup Gestor IPV',  // Solo string
+                    text: `Backup creado el ${dateStr}`,  // Solo string
+                    url: fileStat.uri,  // Solo string
+                    dialogTitle: 'Compartir backup'  // Solo string
+                });
+
+                this.showSuccess('Archivo compartido exitosamente');
+                return;
+
+            } catch (shareError) {
+                console.log('Método 1 falló, intentando método 2:', shareError);
+
+                // Método 2: Intentar con solo el parámetro obligatorio
+                try {
+                    await this.share.share({
+                        title: 'Backup Gestor IPV',
+                        text: `Backup del sistema Gestor IPV (${dateStr})`,
+                        url: fileStat.uri
+                    });
+
+                    this.showSuccess('Archivo compartido exitosamente');
+                    return;
+
+                } catch (shareError2) {
+                    console.log('Método 2 falló, intentando método 3:', shareError2);
+
+                    // Método 3: Intentar con solo la URL (mínimo requerido)
+                    try {
+                        await this.share.share({
+                            url: fileStat.uri
+                        });
+
+                        this.showSuccess('Archivo compartido exitosamente');
+                        return;
+
+                    } catch (shareError3) {
+                        console.log('Método 3 falló:', shareError3);
+
+                        // Método 4: Leer y convertir a base64 para compartir como datos
+                        try {
+                            const readResult = await this.filesystem.readFile({
+                                path: filePath,
+                                directory: this.Directory.Documents
+                            });
+
+                            // Crear un archivo temporal con un nombre único
+                            const tempFileName = `temp_${Date.now()}${this.CUSTOM_EXTENSION}`;
+                            const tempPath = `${backupFolder}/${tempFileName}`;
+
+                            await this.filesystem.writeFile({
+                                path: tempPath,
+                                data: readResult.data,
+                                directory: this.Directory.Documents,
+                                recursive: true
+                            });
+
+                            const tempStat = await this.filesystem.stat({
+                                path: tempPath,
+                                directory: this.Directory.Documents
+                            });
+
+                            // Compartir con parámetros mínimos
+                            await this.share.share({
+                                title: 'Backup Gestor IPV',
+                                url: tempStat.uri
+                            });
+
+                            // Limpiar temporal después de 10 segundos
+                            setTimeout(async () => {
+                                try {
+                                    await this.filesystem.deleteFile({
+                                        path: tempPath,
+                                        directory: this.Directory.Documents
+                                    });
+                                } catch (e) {
+                                    console.warn('No se pudo eliminar archivo temporal:', e);
+                                }
+                            }, 10000);
+
+                            this.showSuccess('Archivo compartido exitosamente');
+
+                        } catch (finalError) {
+                            throw new Error(`No se pudo compartir: ${finalError.message}`);
+                        }
+                    }
+                }
+            }
 
         } catch (error) {
-            console.error('Error compartiendo backup:', error);
-            this.showError('Error al compartir: ' + error.message);
+            this.hideProgressModal();
+            console.error('Error al compartir:', error);
+
+            // Mostrar mensaje más amigable
+            if (error.message.includes('JSONObject') || error.message.includes('JSON')) {
+                this.showError('Error de formato. Por favor, cree un nuevo backup e intente nuevamente.');
+            } else if (error.message.includes('permission') || error.message.includes('PERMISSION')) {
+                this.showError('Permiso denegado. Verifique los permisos de la aplicación.');
+            } else if (error.message.includes('no app') || error.message.includes('No app')) {
+                this.showError('No hay aplicaciones disponibles para compartir.');
+            } else {
+                this.showError('Error al compartir: ' + error.message);
+            }
         }
     }
 
@@ -1035,17 +2209,35 @@ class BackupManager {
         });
     }
 
+
     parseBackupFile(text) {
         try {
             const data = JSON.parse(text);
 
-            // Verificar si tiene la estructura mejorada
-            if (data._header === this.MAGIC_HEADER) {
-                return data;
+            // Verificar estructura básica
+            if (data && typeof data === 'object') {
+                // Si tiene cabecera mágica, es formato nuevo
+                if (data._header === this.MAGIC_HEADER) {
+                    return data;
+                }
+
+                // Si no tiene cabecera pero tiene estructura conocida
+                if (data.type && data.data) {
+                    return data; // Formato antiguo pero válido
+                }
+
+                // Intentar inferir tipo por contenido
+                if (data.productosSalon || data.productosCocina) {
+                    data.type = 'productos';
+                    return data;
+                }
+                if (Array.isArray(data) && data[0] && data[0].timestamp) {
+                    // Podría ser reportes
+                    return { type: 'reportes', data: data };
+                }
             }
 
-            // Si no tiene cabecera, podría ser un backup antiguo
-            return data;
+            return null;
         } catch (error) {
             console.error('Error parsing backup file:', error);
             return null;
@@ -1210,46 +2402,269 @@ class BackupManager {
     async restoreDiaActualFromData(backupData) {
         const confirm = await this.showConfirmationModal(
             'Restore del Día',
-            '⚠️ ADVERTENCIA: Esto reemplazará todos los datos del día actual. ¿Continuar?',
+            '⚠️ ADVERTENCIA: Esto reemplazará TODOS los datos del día actual, incluyendo productos y ventas.\n\n' +
+            '📦 PRODUCTOS: Se reemplazarán TODOS sus productos actuales con los del backup.\n' +
+            '🏪 SALÓN: Todos los datos de ventas del salón (venta, vendido, importe) serán reemplazados.\n' +
+            '👨‍🍳 COCINA: Todos los datos de ventas de cocina (venta, vendido, importe) serán reemplazados.\n' +
+            '💰 FINANCIEROS: Consumo, extracciones, transferencias, efectivo y billetes serán reemplazados.\n\n' +
+            '¿Continuar?',
             'warning'
         );
 
         if (!confirm) return;
 
         try {
-            if (backupData.data.salon) StorageManager.saveSalonData(backupData.data.salon);
-            if (backupData.data.cocina) StorageManager.saveCocinaData(backupData.data.cocina);
-            if (backupData.data.consumo) StorageManager.saveConsumoData(backupData.data.consumo);
-            if (backupData.data.extracciones) StorageManager.saveExtraccionesData(backupData.data.extracciones);
-            if (backupData.data.transferencias) StorageManager.saveTransferenciasData(backupData.data.transferencias);
-            if (backupData.data.efectivo) localStorage.setItem('ipb_efectivo_data', JSON.stringify(backupData.data.efectivo));
-            if (backupData.data.billetes) localStorage.setItem('ipb_billetes_registros', JSON.stringify(backupData.data.billetes));
-            if (backupData.data.dailyData) StorageManager.saveDailyData(backupData.data.dailyData);
+            this.showProgressModal('Restaurando todos los datos del día...');
 
-            this.showSuccess('Datos del día restaurados exitosamente');
+            const data = backupData.data || backupData;
+
+            // 1. REEMPLAZAR PRODUCTOS BASE
+            if (data.productosSalon) {
+                console.log(`📦 Reemplazando ${StorageManager.getProducts().length} productos de salón con ${data.productosSalon.length} del backup`);
+                StorageManager.saveProducts(data.productosSalon);
+            }
+
+            if (data.productosCocina) {
+                console.log(`👨‍🍳 Reemplazando ${StorageManager.getCocinaProducts().length} productos de cocina con ${data.productosCocina.length} del backup`);
+                StorageManager.saveCocinaProducts(data.productosCocina);
+            }
+
+            // 2. REEMPLAZAR DATOS DE VENTAS DEL DÍA (¡ESTO ES CRÍTICO!)
+            if (data.salon) {
+                console.log(`🏪 Reemplazando ${StorageManager.getSalonData().length} registros de salón con ${data.salon.length} del backup`);
+
+                // Obtener productos actuales para sincronizar
+                const productosActualesSalon = StorageManager.getProducts();
+                const datosSalonParaGuardar = [];
+
+                // Sincronizar cada dato del backup con los productos actuales
+                data.salon.forEach(datoBackup => {
+                    // Buscar producto correspondiente por ID
+                    let productoCorrespondiente = productosActualesSalon.find(p => p.id === datoBackup.id);
+
+                    // Si no se encuentra por ID, buscar por nombre exacto
+                    if (!productoCorrespondiente) {
+                        productoCorrespondiente = productosActualesSalon.find(p =>
+                            p.nombre.toLowerCase() === datoBackup.nombre.toLowerCase()
+                        );
+                    }
+
+                    if (productoCorrespondiente) {
+                        // Usar el ID y datos actuales del producto
+                        datosSalonParaGuardar.push({
+                            ...datoBackup,
+                            id: productoCorrespondiente.id,
+                            nombre: productoCorrespondiente.nombre,
+                            precio: productoCorrespondiente.precio
+                        });
+                    } else {
+                        // Si no hay producto correspondiente, usar datos del backup directamente
+                        datosSalonParaGuardar.push(datoBackup);
+                        console.warn(`⚠️ Producto salón no encontrado: ${datoBackup.nombre} (ID: ${datoBackup.id})`);
+                    }
+                });
+
+                StorageManager.saveSalonData(datosSalonParaGuardar);
+
+                // Mostrar suma de ventas para verificar
+                const totalVentasSalon = datosSalonParaGuardar.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0);
+                console.log(`💰 Total ventas salón en backup: $${totalVentasSalon.toFixed(2)}`);
+            }
+
+            if (data.cocina) {
+                console.log(`🍳 Reemplazando ${StorageManager.getCocinaData().length} registros de cocina con ${data.cocina.length} del backup`);
+
+                // Mismo proceso para cocina
+                const productosActualesCocina = StorageManager.getCocinaProducts();
+                const datosCocinaParaGuardar = [];
+
+                data.cocina.forEach(datoBackup => {
+                    let productoCorrespondiente = productosActualesCocina.find(p => p.id === datoBackup.id);
+
+                    if (!productoCorrespondiente) {
+                        productoCorrespondiente = productosActualesCocina.find(p =>
+                            p.nombre.toLowerCase() === datoBackup.nombre.toLowerCase()
+                        );
+                    }
+
+                    if (productoCorrespondiente) {
+                        datosCocinaParaGuardar.push({
+                            ...datoBackup,
+                            id: productoCorrespondiente.id,
+                            nombre: productoCorrespondiente.nombre,
+                            precio: productoCorrespondiente.precio
+                        });
+                    } else {
+                        datosCocinaParaGuardar.push(datoBackup);
+                        console.warn(`⚠️ Producto cocina no encontrado: ${datoBackup.nombre}`);
+                    }
+                });
+
+                StorageManager.saveCocinaData(datosCocinaParaGuardar);
+
+                const totalVentasCocina = datosCocinaParaGuardar.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0);
+                console.log(`💰 Total ventas cocina en backup: $${totalVentasCocina.toFixed(2)}`);
+            }
+
+            // 3. REEMPLAZAR AGREGOS DE COCINA
+            if (data.agregos) {
+                localStorage.setItem('cocina_agregos', JSON.stringify(data.agregos));
+                console.log(`➕ Agregos cocina restaurados: ${data.agregos.length}`);
+            }
+
+            if (data.agregosHistorial) {
+                localStorage.setItem('cocina_agregos_historial', JSON.stringify(data.agregosHistorial));
+            }
+
+            // 4. REEMPLAZAR DATOS FINANCIEROS
+            if (data.consumo) {
+                StorageManager.saveConsumoData(data.consumo);
+                console.log(`💵 Consumo restaurado: ${data.consumo.length} registros`);
+            }
+
+            if (data.extracciones) {
+                StorageManager.saveExtraccionesData(data.extracciones);
+                console.log(`💰 Extracciones restauradas: ${data.extracciones.length} registros`);
+            }
+
+            if (data.transferencias) {
+                StorageManager.saveTransferenciasData(data.transferencias);
+                console.log(`🔄 Transferencias restauradas: ${data.transferencias.length} registros`);
+            }
+
+            if (data.efectivo) {
+                localStorage.setItem('ipb_efectivo_data', JSON.stringify(data.efectivo));
+                console.log(`💵 Efectivo restaurado: ${data.efectivo.length} registros`);
+            }
+
+            if (data.billetes) {
+                localStorage.setItem('ipb_billetes_registros', JSON.stringify(data.billetes));
+                console.log(`💵 Billetes restaurados: ${data.billetes.length} registros`);
+            }
+
+            if (data.conteoBilletes) {
+                localStorage.setItem('ipb_conteo_billetes', JSON.stringify(data.conteoBilletes));
+            }
+
+            if (data.dailyData) {
+                StorageManager.saveDailyData(data.dailyData);
+                console.log(`📅 Daily Data restaurado`);
+            }
+
+            // 5. REEMPLAZAR CONFIGURACIONES
+            if (data.configuracionDia) {
+                if (data.configuracionDia.tasasUSD) {
+                    localStorage.setItem('ipb_tasas_usd', JSON.stringify(data.configuracionDia.tasasUSD));
+                }
+                if (data.configuracionDia.efectivoInicial) {
+                    localStorage.setItem('ipb_efectivo_inicial', data.configuracionDia.efectivoInicial.toString());
+                }
+                if (data.configuracionDia.lastReset) {
+                    localStorage.setItem('ipb_last_reset', data.configuracionDia.lastReset);
+                }
+                console.log(`⚙️ Configuraciones restauradas`);
+            }
+
+            // 6. REEMPLAZAR HISTORIALES
+            if (data.historialCocina) {
+                localStorage.setItem('cocina_historial', JSON.stringify(data.historialCocina));
+            }
+            if (data.historialSalon) {
+                localStorage.setItem('salon_historial', JSON.stringify(data.historialSalon));
+            }
+
+            if (data.gastos) {
+                localStorage.setItem('ipb_gastos_extras', JSON.stringify(data.gastos));
+            }
+            if (data.preciosCompra) {
+                localStorage.setItem('ipb_precios_compra', JSON.stringify(data.preciosCompra));
+            }
+
+            this.showSuccess('✅ TODOS los datos del día han sido REEMPLAZADOS exitosamente');
             this.updateSystemInfo();
             this.updateStats();
 
-            if (typeof window.updateSummary === 'function') {
-                window.updateSummary();
-            }
+            // 7. ACTUALIZAR TODAS LAS UI
+            setTimeout(() => {
+                console.log('🔄 Actualizando todas las UI después del restore del día...');
+
+                // Forzar recarga de productos
+                if (typeof window.forceReloadProducts === 'function') {
+                    window.forceReloadProducts();
+                }
+
+                // Actualizar salón
+                if (typeof window.actualizarSalonDesdeProductos === 'function') {
+                    setTimeout(() => window.actualizarSalonDesdeProductos(), 400);
+                }
+
+                // Actualizar cocina
+                if (typeof window.cargarDatosCocina === 'function') {
+                    setTimeout(() => window.cargarDatosCocina(), 500);
+                }
+
+                // Actualizar resumen
+                if (typeof window.updateSummary === 'function') {
+                    setTimeout(() => window.updateSummary(), 300);
+                }
+
+                // Actualizar todas las secciones visibles
+                if (typeof window.updateAllVisibleSections === 'function') {
+                    setTimeout(() => {
+                        window.updateAllVisibleSections('Dia actual');
+                    }, 600);
+                }
+
+                // Disparar evento global
+                document.dispatchEvent(new CustomEvent('restoreCompleted', {
+                    detail: {
+                        type: 'dia_actual',
+                        timestamp: new Date().toISOString(),
+                        datos: {
+                            productosSalon: data.productosSalon?.length || 0,
+                            productosCocina: data.productosCocina?.length || 0,
+                            ventasSalon: data.salon?.length || 0,
+                            ventasCocina: data.cocina?.length || 0
+                        }
+                    }
+                }));
+
+                window.location.reload()
+
+            }, 1500);
+
         } catch (error) {
-            throw error;
+            console.error('❌ Error en restore del día:', error);
+            this.showError('Error al restaurar datos del día: ' + error.message);
+        } finally {
+            this.hideProgressModal();
         }
     }
 
     async restoreCompletoFromData(backupData) {
         const confirm = await this.showConfirmationModal(
-            'Restore Completo',
-            '⚠️ ADVERTENCIA CRÍTICA: Esto reemplazará TODO el sistema. ¿Está absolutamente seguro?',
+            'Restore Completo del Sistema',
+            '⚠️ ADVERTENCIA CRÍTICA: Esto reemplazará TODO el sistema.\n\n' +
+            '📦 Productos: Salón y Cocina\n' +
+            '🏪 Ventas del día: Datos actuales de ventas (venta, vendido, importe)\n' +
+            '📊 Reportes: Historial completo\n' +
+            '💰 Finanzas: Consumo, extracciones, transferencias, efectivo, billetes\n' +
+            '⚙️ Configuraciones: Tasas, reset, iniciales\n\n' +
+            '¿Está absolutamente seguro?',
             'error'
         );
 
         if (!confirm) return;
 
+        const ventasSalon = backupData.data?.salon?.length || 0;
+        const ventasCocina = backupData.data?.cocina?.length || 0;
+        const totalVentasSalon = backupData.data?.salon?.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0) || 0;
+        const totalVentasCocina = backupData.data?.cocina?.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0) || 0;
+
         const finalConfirm = await this.showConfirmationModal(
-            'CONFIRMACIÓN FINAL',
-            'Esta acción NO se puede deshacer. ¿Continuar con el restore completo?',
+            'CONFIRMACIÓN FINAL - Backup Completo<br>',
+            '✅ Se remplasaran todos los datos actuales guardados :<br>' +
+            '⚠️ Esta acción NO se puede deshacer. ¿Continuar con el restore completo?',
             'error'
         );
 
@@ -1260,36 +2675,338 @@ class BackupManager {
 
             const data = backupData.data;
 
-            if (data.productosSalon) StorageManager.saveProducts(data.productosSalon);
-            if (data.productosCocina) StorageManager.saveCocinaProducts(data.productosCocina);
-            if (data.salon) StorageManager.saveSalonData(data.salon);
-            if (data.cocina) StorageManager.saveCocinaData(data.cocina);
+            // 1. PRODUCTOS BASE
+            if (data.productosSalon) {
+                StorageManager.saveProducts(data.productosSalon);
+                console.log('✅ Productos salón restaurados:', data.productosSalon.length);
+            }
+            if (data.productosCocina) {
+                StorageManager.saveCocinaProducts(data.productosCocina);
+                console.log('✅ Productos cocina restaurados:', data.productosCocina.length);
+            }
+
+            // 2. DATOS DE VENTAS DEL DÍA (¡CRÍTICO!)
+            if (data.salon) {
+                // Sincronizar IDs con productos actuales
+                const productosActualesSalon = StorageManager.getProducts();
+                const datosSalonParaGuardar = data.salon.map(item => {
+                    let productoCorrespondiente = productosActualesSalon.find(p => p.id === item.id);
+
+                    if (!productoCorrespondiente) {
+                        productoCorrespondiente = productosActualesSalon.find(p =>
+                            p.nombre.toLowerCase() === item.nombre.toLowerCase()
+                        );
+                    }
+
+                    const productoFinal = productoCorrespondiente || { id: item.id, nombre: item.nombre, precio: item.precio };
+
+                    return {
+                        ...item,
+                        id: productoFinal.id,
+                        nombre: productoFinal.nombre,
+                        precio: parseFloat(productoFinal.precio) || 0,
+                        inicio: parseInt(item.inicio) || 0,
+                        entrada: parseInt(item.entrada) || 0,
+                        venta: parseInt(item.venta) || 0,
+                        final: parseInt(item.final) || 0,
+                        finalEditado: Boolean(item.finalEditado) || false,
+                        vendido: parseInt(item.vendido) || 0,
+                        importe: parseFloat(item.importe) || 0,
+                        historial: Array.isArray(item.historial) ? item.historial : [],
+                        ultimaActualizacion: item.ultimaActualizacion || new Date().toLocaleTimeString('es-ES')
+                    };
+                });
+
+                StorageManager.saveSalonData(datosSalonParaGuardar);
+                console.log('✅ Ventas salón restauradas:', data.salon.length);
+                console.log('   Total importe salón: $' + totalVentasSalon.toFixed(2));
+            }
+
+            if (data.cocina) {
+                // Sincronizar IDs con productos actuales de cocina
+                const productosActualesCocina = StorageManager.getCocinaProducts();
+                const datosCocinaParaGuardar = data.cocina.map(item => {
+                    let productoCorrespondiente = productosActualesCocina.find(p => p.id === item.id);
+
+                    if (!productoCorrespondiente) {
+                        productoCorrespondiente = productosActualesCocina.find(p =>
+                            p.nombre.toLowerCase() === item.nombre.toLowerCase()
+                        );
+                    }
+
+                    const productoFinal = productoCorrespondiente || { id: item.id, nombre: item.nombre, precio: item.precio };
+
+                    return {
+                        ...item,
+                        id: productoFinal.id,
+                        nombre: productoFinal.nombre,
+                        precio: parseFloat(productoFinal.precio) || 0,
+                        inicio: parseInt(item.inicio) || 0,
+                        entrada: parseInt(item.entrada) || 0,
+                        venta: parseInt(item.venta) || 0,
+                        final: parseInt(item.final) || 0,
+                        finalEditado: Boolean(item.finalEditado) || false,
+                        vendido: parseInt(item.vendido) || 0,
+                        importe: parseFloat(item.importe) || 0,
+                        historial: Array.isArray(item.historial) ? item.historial : [],
+                        ultimaActualizacion: item.ultimaActualizacion || new Date().toLocaleTimeString('es-ES')
+                    };
+                });
+
+                StorageManager.saveCocinaData(datosCocinaParaGuardar);
+                console.log('✅ Ventas cocina restauradas:', data.cocina.length);
+                console.log('   Total importe cocina: $' + totalVentasCocina.toFixed(2));
+            }
+
+            // 3. DATOS ADICIONALES DE COCINA
+            if (data.agregos) {
+                localStorage.setItem('cocina_agregos', JSON.stringify(data.agregos));
+                console.log('✅ Agregos cocina restaurados:', data.agregos.length);
+            }
+            if (data.agregosHistorial) {
+                localStorage.setItem('cocina_agregos_historial', JSON.stringify(data.agregosHistorial));
+            }
+
+            // 4. DATOS FINANCIEROS
             if (data.consumo) StorageManager.saveConsumoData(data.consumo);
             if (data.extracciones) StorageManager.saveExtraccionesData(data.extracciones);
             if (data.transferencias) StorageManager.saveTransferenciasData(data.transferencias);
             if (data.efectivo) localStorage.setItem('ipb_efectivo_data', JSON.stringify(data.efectivo));
             if (data.billetes) localStorage.setItem('ipb_billetes_registros', JSON.stringify(data.billetes));
+            if (data.conteoBilletes) localStorage.setItem('ipb_conteo_billetes', JSON.stringify(data.conteoBilletes));
             if (data.dailyData) StorageManager.saveDailyData(data.dailyData);
-            if (data.reportes) localStorage.setItem('ipb_historial_reportes', JSON.stringify(data.reportes));
 
-            if (data.configuraciones) {
-                if (data.configuraciones.lastReset) localStorage.setItem('ipb_last_reset', data.configuraciones.lastReset);
-                if (data.configuraciones.tasasUSD) localStorage.setItem('ipb_tasas_usd', JSON.stringify(data.configuraciones.tasasUSD));
+            // 5. REPORTES HISTÓRICOS
+            if (data.reportes) {
+                localStorage.setItem('ipb_historial_reportes', JSON.stringify(data.reportes));
+                console.log('✅ Reportes históricos restaurados:', data.reportes.length);
             }
 
-            this.showSuccess('Sistema restaurado exitosamente. Recargando...');
+            // 6. CONFIGURACIONES
+            if (data.configuraciones) {
+                if (data.configuraciones.lastReset) {
+                    localStorage.setItem('ipb_last_reset', data.configuraciones.lastReset);
+                }
+                if (data.configuraciones.tasasUSD) {
+                    localStorage.setItem('ipb_tasas_usd', JSON.stringify(data.configuraciones.tasasUSD));
+                }
+                if (data.configuraciones.efectivoInicial) {
+                    localStorage.setItem('ipb_efectivo_inicial', data.configuraciones.efectivoInicial);
+                }
+                console.log('✅ Configuraciones restauradas');
+            }
+
+            // 7. HISTORIALES ADICIONALES
+            if (data.historialBilletes) {
+                localStorage.setItem('ipb_historial_billetes', JSON.stringify(data.historialBilletes));
+            }
+            if (data.historialConsumo) {
+                localStorage.setItem('ipb_historial_consumo', JSON.stringify(data.historialConsumo));
+            }
+            if (data.historialCocina) {
+                localStorage.setItem('cocina_historial', JSON.stringify(data.historialCocina));
+            }
+            if (data.historialSalon) {
+                localStorage.setItem('salon_historial', JSON.stringify(data.historialSalon));
+            }
+
+            // 8. CONFIGURACIONES DE PRODUCTOS
+            if (data.configProductos) {
+                if (data.configProductos.categoriasSalon) {
+                    localStorage.setItem('ipb_categorias_salon', JSON.stringify(data.configProductos.categoriasSalon));
+                }
+                if (data.configProductos.categoriasCocina) {
+                    localStorage.setItem('ipb_categorias_cocina', JSON.stringify(data.configProductos.categoriasCocina));
+                }
+            }
+            if (data.gastos) {
+                localStorage.setItem('ipb_gastos_extras', JSON.stringify(data.gastos));
+                console.log('✅ Reportes históricos restaurados:', data.gastos.length);
+            }
+            if (data.preciosCompra) {
+                localStorage.setItem('ipb_precios_compra', JSON.stringify(data.preciosCompra));
+                console.log('✅ Reportes históricos restaurados:', data.preciosCompra.length);
+            }
+
+            this.showSuccess('✅ Sistema completo restaurado exitosamente. Actualizando interfaz...');
             this.updateSystemInfo();
 
+            // Actualizar TODAS las UI
             setTimeout(() => {
+                // Forzar recarga completa de productos y ventas
+                if (typeof window.forceReloadProducts === 'function') {
+                    window.forceReloadProducts();
+                }
+
+                // Actualizar salón
+                if (typeof window.actualizarSalonDesdeProductos === 'function') {
+                    setTimeout(() => window.actualizarSalonDesdeProductos(), 300);
+                }
+
+                // Actualizar cocina
+                if (typeof window.cargarDatosCocina === 'function') {
+                    setTimeout(() => window.cargarDatosCocina(), 400);
+                }
+
+                // Actualizar historial de reportes
+                if (typeof window.historialIPV?.cargarHistorial === 'function') {
+                    setTimeout(() => window.historialIPV.cargarHistorial(), 500);
+                }
+
+                // Actualizar todas las secciones visibles
+                if (typeof window.updateAllVisibleSections === 'function') {
+                    setTimeout(() => {
+                        window.updateAllVisibleSections('Completo');
+                    }, 600);
+                }
+
+                // Actualizar resumen
+                if (typeof window.updateSummary === 'function') {
+                    setTimeout(() => window.updateSummary(), 300);
+                }
+
+                // Disparar evento global
+                document.dispatchEvent(new CustomEvent('restoreCompleted', {
+                    detail: {
+                        type: 'completo',
+                        timestamp: new Date().toISOString(),
+                        datos: {
+                            productosSalon: data.productosSalon?.length || 0,
+                            productosCocina: data.productosCocina?.length || 0,
+                            ventasSalon: ventasSalon,
+                            ventasCocina: ventasCocina,
+                            reportes: data.reportes?.length || 0
+                        }
+                    }
+                }));
+
                 window.location.reload();
-            }, 2000);
+
+            }, 1500);
+
         } catch (error) {
-            throw error;
+            console.error('❌ Error en restore completo:', error);
+            this.showError('Error al restaurar sistema: ' + error.message);
         } finally {
             this.hideProgressModal();
         }
     }
 
+    updateAllUIsAfterRestore(type) {
+        console.log(`🔄 Actualizando todas las UI después de restore tipo: ${type}`);
+
+        // Disparar evento global para que todos los módulos se actualicen
+        document.dispatchEvent(new CustomEvent('restoreCompleted', {
+            detail: {
+                type: type,
+                timestamp: new Date().toISOString()
+            }
+        }));
+
+        // 1. Actualizar resumen principal
+        if (typeof window.updateSummary === 'function') {
+            setTimeout(() => window.updateSummary(), 100);
+        }
+
+        // 2. Actualizar productos si es necesario
+        if (type === 'productos' || type === 'completo') {
+            if (typeof window.productManager?.renderProducts === 'function') {
+                setTimeout(() => window.productManager.renderProducts(), 200);
+            }
+            if (typeof window.forceReloadProducts === 'function') {
+                setTimeout(() => window.forceReloadProducts(), 200);
+            }
+        }
+
+        // 3. Actualizar salón
+        if (type === 'dia_actual' || type === 'completo') {
+            if (typeof window.actualizarSalonDesdeProductos === 'function') {
+                setTimeout(() => window.actualizarSalonDesdeProductos(), 300);
+            }
+            if (typeof window.cargarDatosSalon === 'function') {
+                setTimeout(() => window.cargarDatosSalon(), 300);
+            }
+        }
+
+        // 4. Actualizar cocina
+        if (type === 'dia_actual' || type === 'completo') {
+            if (typeof window.cargarDatosCocina === 'function') {
+                setTimeout(() => window.cargarDatosCocina(), 400);
+            }
+            if (typeof window.actualizarTablaCocina === 'function') {
+                setTimeout(() => window.actualizarTablaCocina(), 400);
+            }
+            if (typeof window.cargarAgregos === 'function') {
+                setTimeout(() => window.cargarAgregos(), 450);
+            }
+        }
+
+        // 5. Actualizar consumo
+        if (type === 'dia_actual' || type === 'completo') {
+            if (typeof window.cargarConsumo === 'function') {
+                setTimeout(() => window.cargarConsumo(), 500);
+            }
+            if (typeof window.actualizarConsumo === 'function') {
+                setTimeout(() => window.actualizarConsumo(), 500);
+            }
+        }
+
+        // 6. Actualizar extracciones
+        if (type === 'dia_actual' || type === 'completo') {
+            if (typeof window.cargarExtracciones === 'function') {
+                setTimeout(() => window.cargarExtracciones(), 550);
+            }
+        }
+
+        // 7. Actualizar transferencias
+        if (type === 'dia_actual' || type === 'completo') {
+            if (typeof window.cargarTransferencias === 'function') {
+                setTimeout(() => window.cargarTransferencias(), 600);
+            }
+        }
+
+        // 8. Actualizar efectivo
+        if (type === 'dia_actual' || type === 'completo') {
+            if (typeof window.cargarEfectivo === 'function') {
+                setTimeout(() => window.cargarEfectivo(), 650);
+            }
+        }
+
+        // 9. Actualizar billetes
+        if (type === 'dia_actual' || type === 'completo') {
+            if (typeof window.cargarBilletes === 'function') {
+                setTimeout(() => window.cargarBilletes(), 700);
+            }
+            if (typeof window.actualizarContadorBilletes === 'function') {
+                setTimeout(() => window.actualizarContadorBilletes(), 700);
+            }
+        }
+
+        // 10. Actualizar historial
+        if (type === 'reportes' || type === 'completo') {
+            if (typeof window.historialIPV?.cargarHistorial === 'function') {
+                setTimeout(() => window.historialIPV.cargarHistorial(), 800);
+            }
+            if (typeof window.cargarHistorial === 'function') {
+                setTimeout(() => window.cargarHistorial(), 800);
+            }
+        }
+
+        // 11. Actualizar backup stats
+        if (typeof window.backupManager?.updateStats === 'function') {
+            setTimeout(() => window.backupManager.updateStats(), 900);
+        }
+
+        // 12. Actualizar todas las secciones visibles
+        if (typeof window.updateAllVisibleSections === 'function') {
+            setTimeout(() => window.updateAllVisibleSections(type), 1000);
+        }
+
+        // 13. Mostrar notificación final
+        setTimeout(() => {
+            this.showSuccess(`✅ Restauración tipo "${type}" completada. Todas las UI actualizadas.`);
+        }, 1500);
+    }
     async loadBackupHistory() {
         try {
             const history = JSON.parse(localStorage.getItem('ipb_backup_history') || '[]');
@@ -1549,108 +3266,168 @@ class BackupManager {
 
     showCustomModal(title, content) {
         const modalHtml = `
-            <div class="modal active">
-                <div class="modal-overlay"></div>
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>${title}</h3>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        ${content}
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-primary modal-close">Cerrar</button>
-                    </div>
+        <div class="modal active" id="backup-custom-modal">
+            <div class="modal-overlay" id="backup-modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>${title}</h3>
+                    <button class="modal-close" id="backup-modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    ${content}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="backup-modal-close-btn">Cerrar</button>
                 </div>
             </div>
-        `;
+        </div>
+    `;
+
+        // Primero eliminar cualquier modal existente
+        const existingModal = document.querySelector('#backup-custom-modal');
+        if (existingModal) existingModal.remove();
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        const modal = document.querySelector('.modal.active');
-        const closeBtns = modal.querySelectorAll('.modal-close');
-        const overlay = modal.querySelector('.modal-overlay');
+        // Agregar event listeners con delegación
+        setTimeout(() => {
+            const closeModal = () => {
+                const modal = document.querySelector('#backup-custom-modal');
+                if (modal) modal.remove();
+            };
 
-        const closeModal = () => modal.remove();
+            // Botón X
+            const closeBtn = document.querySelector('#backup-modal-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeModal);
+            }
 
-        closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
-        overlay?.addEventListener('click', closeModal);
+            // Botón Cerrar
+            const closeBtn2 = document.querySelector('#backup-modal-close-btn');
+            if (closeBtn2) {
+                closeBtn2.addEventListener('click', closeModal);
+            }
+
+            // Overlay
+            const overlay = document.querySelector('#backup-modal-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', closeModal);
+            }
+
+            // También cerrar con Escape
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+        }, 10);
     }
 
     showInfoModal() {
         const modalHtml = `
-            <div class="modal active">
-                <div class="modal-overlay"></div>
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-info-circle"></i> Información de Backup & Restore</h3>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="backup-alert info">
-                            <i class="fas fa-info-circle"></i>
-                            <div>
-                                <strong>Funcionalidades disponibles:</strong>
-                                <ul style="margin-top: 10px; padding-left: 20px;">
-                                    <li><strong>Productos:</strong> Backup/Restore de productos de Salón y Cocina</li>
-                                    <li><strong>Reportes:</strong> Backup/Restore de todos los reportes históricos</li>
-                                    <li><strong>Día Actual:</strong> Backup/Restore de datos del día en curso</li>
-                                    <li><strong>Completo:</strong> Backup/Restore de todo el sistema</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <div class="backup-alert success" style="margin-top: 15px;">
-                            <i class="fas fa-shield-alt"></i>
-                            <div>
-                                <strong>Características de seguridad:</strong>
-                                <ul style="margin-top: 10px; padding-left: 20px;">
-                                    <li><strong>Extensión personalizada:</strong> ${this.CUSTOM_EXTENSION}</li>
-                                    <li><strong>Cabecera mágica:</strong> Verificación de integridad</li>
-                                    <li><strong>Asociación de archivos:</strong> Solo abre con Gestor IPV (móvil)</li>
-                                    <li><strong>Metadatos:</strong> Información detallada del backup</li>
-                                    <li><strong>Verificación:</strong> Herramienta para validar archivos de backup</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <div class="backup-alert warning" style="margin-top: 15px;">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <div>
-                                <strong>Recomendaciones de seguridad:</strong>
-                                <ul style="margin-top: 10px; padding-left: 20px;">
-                                    <li>Realice backups regularmente</li>
-                                    <li>Guarde los archivos de backup en un lugar seguro</li>
-                                    <li>Verifique el tipo de backup antes de restaurar</li>
-                                    <li>El restore completo reemplaza TODO el sistema</li>
-                                    <li>En dispositivos móviles, los backups se guardan en "Gestor IPV/Backup"</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: 20px; font-size: 0.9rem; color: var(--gray-dark);">
-                            <p><i class="fas fa-mobile-alt"></i> <strong>Dispositivos móviles:</strong> Los backups se guardan en la carpeta "Gestor IPV/Backup" y están asociados a la aplicación. Puede compartirlos desde la app.</p>
-                            <p><i class="fas fa-desktop"></i> <strong>Navegador web:</strong> Los backups se descargan automáticamente con extensión ${this.CUSTOM_EXTENSION}</p>
+        <div class="modal active" id="backup-info-modal">
+            <div class="modal-overlay" id="backup-info-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-info-circle"></i> Información de Backup & Restore</h3>
+                    <button class="modal-close" id="backup-info-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="backup-alert info">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>Funcionalidades disponibles:</strong>
+                            <ul style="margin-top: 10px; padding-left: 20px;">
+                                <li><strong>Productos:</strong> Backup/Restore de productos de Salón y Cocina</li>
+                                <li><strong>Reportes:</strong> Backup/Restore de todos los reportes históricos</li>
+                                <li><strong>Día Actual:</strong> Backup/Restore de datos del día en curso</li>
+                                <li><strong>Completo:</strong> Backup/Restore de todo el sistema</li>
+                            </ul>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-primary modal-close">Entendido</button>
+                    
+                    <div class="backup-alert success" style="margin-top: 15px;">
+                        <i class="fas fa-shield-alt"></i>
+                        <div>
+                            <strong>Características de seguridad:</strong>
+                            <ul style="margin-top: 10px; padding-left: 20px;">
+                                <li><strong>Extensión personalizada:</strong> ${this.CUSTOM_EXTENSION}</li>
+                                <li><strong>Cabecera mágica:</strong> Verificación de integridad</li>
+                                <li><strong>Asociación de archivos:</strong> Solo abre con Gestor IPV (móvil)</li>
+                                <li><strong>Metadatos:</strong> Información detallada del backup</li>
+                                <li><strong>Verificación:</strong> Herramienta para validar archivos de backup</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="backup-alert warning" style="margin-top: 15px;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>Recomendaciones de seguridad:</strong>
+                                <ul style="margin-top: 10px; padding-left: 20px;">
+                                <li>Realice backups regularmente</li>
+                                <li>Guarde los archivos de backup en un lugar seguro</li>
+                                <li>Verifique el tipo de backup antes de restaurar</li>
+                                <li>El restore completo reemplaza TODO el sistema</li>
+                                <li>En dispositivos móviles, los backups se guardan en "Gestor IPV/Backup"</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; font-size: 0.9rem; color: var(--gray-dark);">
+                        <p><i class="fas fa-mobile-alt"></i> <strong>Dispositivos móviles:</strong> Los backups se guardan en la carpeta "Gestor IPV/Backup" y están asociados a la aplicación. Puede compartirlos desde la app.</p>
+                        <p><i class="fas fa-desktop"></i> <strong>Navegador web:</strong> Los backups se descargan automáticamente con extensión ${this.CUSTOM_EXTENSION}</p>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="backup-info-close-btn">Entendido</button>
+                </div>
             </div>
-        `;
+        </div>
+    `;
+
+        // Eliminar modal existente
+        const existingModal = document.querySelector('#backup-info-modal');
+        if (existingModal) existingModal.remove();
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        const modal = document.querySelector('.modal.active');
-        const closeBtns = modal.querySelectorAll('.modal-close');
-        const overlay = modal.querySelector('.modal-overlay');
+        // Agregar event listeners
+        setTimeout(() => {
+            const closeModal = () => {
+                const modal = document.querySelector('#backup-info-modal');
+                if (modal) modal.remove();
+            };
 
-        const closeModal = () => modal.remove();
+            // Botón X
+            const closeBtn = document.querySelector('#backup-info-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeModal);
+            }
 
-        closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
-        overlay?.addEventListener('click', closeModal);
+            // Botón Entendido
+            const closeBtn2 = document.querySelector('#backup-info-close-btn');
+            if (closeBtn2) {
+                closeBtn2.addEventListener('click', closeModal);
+            }
+
+            // Overlay
+            const overlay = document.querySelector('#backup-info-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', closeModal);
+            }
+
+            // Cerrar con Escape
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+        }, 10);
     }
 
     getTypeLabel(type) {
