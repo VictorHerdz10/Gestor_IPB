@@ -344,7 +344,7 @@ body {
 /* ===== CONTENT SECTIONS ===== */
 .content-section {
     display: none;
-    padding-bottom:20px;
+    padding-bottom: 20px;
 }
 
 .content-section.active {
@@ -885,10 +885,10 @@ body {
 
 /* Desktop hover effects */
 @media (min-width: 1025px) {
-    .bottom-nav{
+    .bottom-nav {
         display: none
-
     }
+
     .sidebar:hover {
         width: var(--sidebar-width);
     }
@@ -920,7 +920,8 @@ body {
     .mobile-menu-toggle {
         display: none;
     }
-    .bottom-nav{
+
+    .bottom-nav {
         display: none;
     }
 }
@@ -1453,8 +1454,8 @@ body {
             font-size: 0.8rem !important;
         }
 
-        .btn-icon .btn-text 
-        {display: none !important;
+        .btn-icon .btn-text {
+            display: none !important;
             font-size: 0.75rem;
         }
 
@@ -1464,7 +1465,7 @@ body {
         }
     }
 
-   
+
 
     .date-display {
         font-size: 0.75rem !important;
@@ -1586,6 +1587,7 @@ body {
     min-width: auto !important;
     /* Sobrescribir cualquier min-width que cause problemas */
 }
+
 /* === BOTONES RESPONSIVE MEJORADOS === */
 
 /* Base para mobile - Solo iconos */
@@ -1637,16 +1639,18 @@ body {
         opacity: 1;
         visibility: visible;
     }
-     #export-pdf-btn{
+
+    #export-pdf-btn {
         padding: 2px;
         width: auto;
 
     }
-    #new-day-btn{
+
+    #new-day-btn {
         padding: 2px;
         width: auto;
     }
-    
+
 }
 
 /* Tablet pequeña (768px - 900px) - Icono + texto pequeño */
@@ -1654,16 +1658,18 @@ body {
     .mobile-buttons {
         gap: 0.6rem;
     }
-     #export-pdf-btn{
+
+    #export-pdf-btn {
         padding: 2px;
         width: auto;
 
     }
-    #new-day-btn{
+
+    #new-day-btn {
         padding: 2px;
         width: auto;
     }
-    
+
 
     .btn-icon {
         padding: 0.6rem 0.8rem !important;
@@ -1689,16 +1695,18 @@ body {
     .mobile-buttons {
         gap: 0.8rem;
     }
-     #export-pdf-btn{
+
+    #export-pdf-btn {
         padding: 2px;
         width: auto;
 
     }
-    #new-day-btn{
+
+    #new-day-btn {
         padding: 2px;
         width: auto;
     }
-    
+
 
     .btn-icon {
         padding: 0.7rem 1rem !important;
@@ -1720,16 +1728,18 @@ body {
     .mobile-buttons {
         gap: 1rem;
     }
-     #export-pdf-btn{
+
+    #export-pdf-btn {
         padding: 2px;
         width: auto;
 
     }
-    #new-day-btn{
+
+    #new-day-btn {
         padding: 2px;
         width: auto;
     }
-    
+
 
     .btn-icon {
         padding: 0.8rem 1.25rem !important;
@@ -1749,16 +1759,17 @@ body {
 
 /* Desktop grande (más de 1400px) - Más grande */
 @media (min-width: 1401px) {
-    #export-pdf-btn{
+    #export-pdf-btn {
         padding: 2px;
         width: auto;
 
     }
-    #new-day-btn{
+
+    #new-day-btn {
         padding: 2px;
         width: auto;
     }
-    
+
     .mobile-buttons {
         gap: 1.2rem;
     }
@@ -1834,4 +1845,135 @@ body {
 
 .mobile-buttons .btn {
     margin: 0 !important;
+}
+
+@media (max-width: 400px) and (min-width: 320px) {
+    .top-bar {
+        padding: 0.4rem 0.5rem !important;
+        gap: 0.3rem;
+        flex-wrap: nowrap !important;
+        height: auto !important;
+        min-height: var(--header-height);
+    }
+
+    .top-bar-left {
+        flex: 1;
+        min-width: 0;
+        /* Permite que se reduzca */
+    }
+
+    .top-bar-left h1 {
+        font-size: 1rem !important;
+        line-height: 1.2;
+        margin-bottom: 0.1rem;
+    }
+
+    .date-display {
+        font-size: 0.7rem !important;
+        gap: 0.2rem;
+    }
+
+    .mobile-buttons {
+        flex-shrink: 0;
+        gap: 0.2rem !important;
+        margin-left: 0.2rem;
+    }
+
+    #new-day-btn {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        min-height: 34px;
+        padding: 0;
+    }
+
+    #export-pdf-btn {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        min-height: 34px;
+        padding: 0;
+    }
+
+    .btn-icon {
+        padding: 0.35rem !important;
+        width: 34px;
+        height: 34px;
+        min-width: 34px !important;
+        min-height: 34px !important;
+    }
+
+    .btn-icon i {
+        font-size: 0.9rem !important;
+    }
+
+    /* Ajustar el botón de menú hamburguesa */
+    .mobile-menu-toggle {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        min-height: 34px;
+        padding: 0;
+        margin-left: 0.2rem;
+    }
+
+    .mobile-menu-toggle i {
+        font-size: 1rem;
+    }
+
+    /* Asegurar que el contenido no se desborde */
+    .top-bar-left,
+    .mobile-buttons,
+    .mobile-menu-toggle {
+        overflow: hidden;
+        white-space: nowrap;
+    }
+}
+
+/* === AJUSTES ESPECIALES PARA PANTALLAS EXTRA PEQUEÑAS (menos de 368px) === */
+@media (max-width: 368px) {
+    .top-bar {
+        padding: 0.3rem 0.4rem !important;
+        gap: 0.2rem;
+    }
+
+    .top-bar-left h1 {
+        font-size: 0.9rem !important;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .date-display {
+        font-size: 0.65rem !important;
+    }
+
+    .mobile-buttons {
+        gap: 0.15rem !important;
+    }
+
+    .btn-icon {
+        padding: 0.3rem !important;
+        width: 32px;
+        height: 32px;
+        min-width: 32px !important;
+        min-height: 32px !important;
+    }
+
+    .btn-icon i {
+        font-size: 0.85rem !important;
+    }
+}
+
+/* === CORRECCIÓN DE ALTURA MÍNIMA PARA EL HEADER === */
+.top-bar {
+    min-height: var(--header-height);
+    align-items: center;
+}
+
+/* === GARANTIZAR QUE LOS BOTONES SE MANTENGAN VISIBLES === */
+.mobile-buttons .btn-icon {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: all !important;
 }

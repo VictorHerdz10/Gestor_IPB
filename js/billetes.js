@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span>Total USD en CUP:</span>
                             <span>$${totalUSDCUP.toLocaleString('es-ES')} CUP</span>
                         </div>
-                        <div class="resumen-item total">
+                        <div class="resumen-item total-billetes">
                             <span>Gran Total:</span>
                             <span>$${granTotal.toLocaleString('es-ES')} CUP</span>
                         </div>
@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 border-bottom: 1px solid var(--gray-light);
             }
             
-            .resumen-item.total {
+            .resumen-item.total-billetes {
                 font-weight: bold;
                 font-size: 1.2rem;
                 color: var(--primary-color);

@@ -214,7 +214,7 @@
     font-size: 1.1rem;
 }
 
-.resumen-item.total {
+.resumen-item.total-billetes {
     border-top: 2px solid var(--primary-color);
     border-bottom: none;
     font-weight: 700;
@@ -229,7 +229,7 @@
     font-size: 1.2rem;
 }
 
-.resumen-item.total .amount {
+.resumen-item.total-billetes  .amount {
     color: var(--primary-color);
     font-size: 1.5rem;
 }

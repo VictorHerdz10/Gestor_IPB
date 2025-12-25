@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="css/products.css">
     <link rel="stylesheet" href="css/salon.css">
     <link rel="stylesheet" href="css/cocina.css">
-    <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/transitions.css">
     <link rel="stylesheet" href="css/historial.css">
     <link rel="stylesheet" href="css/backup.css">
@@ -145,13 +144,11 @@
                         <button class="btn btn-icon btn-success" id="export-pdf-btn" title="Exportar PDF">
                             <i class="fas fa-file-pdf"></i>
                             <span class="btn-text">PDF</span>
+                        </button><button class="mobile-menu-toggle">
+                            <i class="fas fa-bars"></i>
                         </button>
                     </div>
                 </div>
-
-                <button class="mobile-menu-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
             </header>
 
             <!-- Resumen Section -->
@@ -1203,7 +1200,7 @@
                                 <span>Total USD en CUP:</span>
                                 <span class="amount" id="resumen-total-usd-cup">0 CUP</span>
                             </div>
-                            <div class="resumen-item total">
+                            <div class="resumen-item total-billetes">
                                 <span>Gran Total (CUP):</span>
                                 <span class="amount" id="gran-total-cup">0 CUP</span>
                             </div>
@@ -1241,7 +1238,7 @@
                                 <span>Total USD en CUP:</span>
                                 <span class="amount" id="total-registros-usd-cup">0 CUP</span>
                             </div>
-                            <div class="resumen-item total">
+                            <div class="resumen-item total-billetes">
                                 <span>Gran Total del Día:</span>
                                 <span class="amount" id="total-registros-dia">0 CUP</span>
                             </div>
@@ -1673,7 +1670,7 @@
                                     <span>Gastos Extras:</span>
                                     <span class="amount negative" id="resumen-gastos-extras">$0.00</span>
                                 </div>
-                                <div class="resumen-item total">
+                                <div class="resumen-item total-ganancia">
                                     <span>GANANCIA NETA:</span>
                                     <span class="amount total-ganancia" id="resumen-ganancia-neta">$0.00</span>
                                 </div>
@@ -1828,8 +1825,6 @@
             </div>
         </div>
     </div>
-    <script src="js/pdf-detector.js"></script>
-    <script src="js/pdf-integration.js"></script>
     <script src="js/historial.js"></script>
     <script src="js/generar-pdf-historial.js"></script>
     <script src="js/dashboard.js"></script>

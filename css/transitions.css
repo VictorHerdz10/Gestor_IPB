@@ -1,0 +1,233 @@
+/* transiciones.css - Estilos para transiciones tipo hoja */
+:root {
+    --transition-duration: 0.6s;
+    --transition-timing: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Contenedor para la transición */
+.page-transition {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 9999;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* Capas para el efecto de hoja */
+.transition-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);
+    transform-origin: left;
+    transform: scaleX(0);
+}
+
+.transition-layer-1 {
+    z-index: 3;
+    background: linear-gradient(135deg, #4361ee 0%, #3a56d4 100%);
+    transition: transform var(--transition-duration) var(--transition-timing);
+}
+
+.transition-layer-2 {
+    z-index: 2;
+    background: linear-gradient(135deg, #3a56d4 0%, #7209b7 100%);
+    transition: transform var(--transition-duration) var(--transition-timing) 0.1s;
+}
+
+.transition-layer-3 {
+    z-index: 1;
+    background: linear-gradient(135deg, #7209b7 0%, #2b2d42 100%);
+    transition: transform var(--transition-duration) var(--transition-timing) 0.2s;
+}
+
+/* Animación de entrada (de landing a dashboard) */
+.page-transition.enter .transition-layer-1 {
+    transform: scaleX(1);
+}
+
+.page-transition.enter .transition-layer-2 {
+    transform: scaleX(1);
+}
+
+.page-transition.enter .transition-layer-3 {
+    transform: scaleX(1);
+}
+
+/* Animación de salida (de dashboard a landing) */
+.page-transition.exit .transition-layer-1 {
+    transform-origin: right;
+    transform: scaleX(0);
+}
+
+.page-transition.exit .transition-layer-2 {
+    transform-origin: right;
+    transform: scaleX(0);
+}
+
+.page-transition.exit .transition-layer-3 {
+    transform-origin: right;
+    transform: scaleX(0);
+}
+
+/* Logo flotante durante la transición */
+.transition-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+    opacity: 0;
+    animation: logoFloat 2s infinite ease-in-out;
+}
+
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translate(-50%, -50%) translateY(0);
+    }
+    50% {
+        transform: translate(-50%, -50%) translateY(-10px);
+    }
+}
+
+.transition-logo img {
+    width: 80px;
+    height: 80px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Texto de carga */
+.transition-text {
+    position: absolute;
+    top: calc(50% + 60px);
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    z-index: 4;
+    opacity: 0.9;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+}
+
+/* BARRA DE NAVEGACIÓN UNIFICADA */
+.unified-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    flex: 1;
+    padding: 5px 0;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-icon {
+    font-size: 1.4rem;
+    color: #6c757d;
+    margin-bottom: 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-item.active .nav-icon {
+    color: #4361ee;
+    transform: translateY(-2px);
+}
+
+.nav-item.active .nav-label {
+    color: #4361ee;
+    font-weight: 600;
+}
+
+/* Indicador activo */
+.nav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: #4361ee;
+    border-radius: 3px;
+    animation: indicatorSlide 0.3s ease;
+}
+
+@keyframes indicatorSlide {
+    from {
+        width: 0;
+        opacity: 0;
+    }
+    to {
+        width: 20px;
+        opacity: 1;
+    }
+}
+
+/* Efecto al hacer clic */
+.nav-item:active .nav-icon {
+    transform: scale(0.9);
+}
+
+/* Ajustes para dashboard */
+.dashboard-container .unified-nav {
+    left: 250px; /* Ancho del sidebar */
+}
+
+@media (max-width: 768px) {
+    .dashboard-container .unified-nav {
+        left: 0;
+    }
+    
+    .unified-nav {
+        padding: 8px 0;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    }
+    
+    .nav-icon {
+        font-size: 1.3rem;
+    }
+    
+    .nav-label {
+        font-size: 0.7rem;
+    }
+}
+
+/* Para cuando la barra esté sobre contenido desplazable */
+.has-unified-nav {
+    padding-bottom: 70px;
+}
+
+.dashboard-container .main-content {
+    padding-bottom: 80px; /* Espacio para la barra */
+}

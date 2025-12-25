@@ -209,7 +209,7 @@
     border-left-color: var(--success-color);
 }
 
-.resumen-item.total {
+.resumen-item.total-ganancias {
     background: linear-gradient(135deg, #e0f4df 0%, #def5d9 100%);
     color: white;
     font-size: 17px;
@@ -217,7 +217,7 @@
     padding-top: 10px;
 }
 
-.resumen-item.total .amount {
+.resumen-item.total-ganancias .amount {
     position: relative;
     top: 10px;
     color: white;
