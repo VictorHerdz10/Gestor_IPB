@@ -1,4 +1,4 @@
-// pdf-export.js - Sistema de exportación a PDF para IPV (Versión Corregida)
+// pdf-export.js - Sistema de exportación a PDF para IPV (Versión Corregida y Mejorada)
 document.addEventListener('DOMContentLoaded', function () {
     const exportPdfBtn = document.getElementById('export-pdf-btn');
 
@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Cargar librerías CDN
     loadPDFLibraries().then(() => {
-
         exportPdfBtn.addEventListener('click', function () {
             showPDFOptionsModal();
         });
@@ -15,12 +14,12 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadPDFLibraries() {
         // Cargar jsPDF
         if (typeof window.jspdf === 'undefined') {
-            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+            await loadScript('./js/jspdf/jspdf.umd.min.js');
         }
 
         // Cargar jsPDF AutoTable
         if (typeof window.jspdfAutoTable === 'undefined') {
-            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js');
+            await loadScript('./js/jspdf/jspdf.plugin.autotable.min.js');
         }
     }
 
@@ -100,9 +99,9 @@ document.addEventListener('DOMContentLoaded', function () {
                            value="Reporte IPV - ${new Date().toLocaleDateString('es-ES')}">
                 </div>
 
-                <!-- SECCIÓN NUEVA: FIRMAS Y RESPONSABLES -->
+                <!-- SECCIÓN MEJORADA: FIRMAS Y RESPONSABLES -->
                 <div class="form-section" style="margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px;">
-                    <h4 style="margin-bottom: 15px; color: var(--primary-color);">
+                    <h4 style="margin-bottom: 20px; color: var(--primary-color);">
                         <i class="fas fa-signature"></i> Firmas y Responsables
                     </h4>
                     
@@ -181,6 +180,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 firmaTurnoEntrante: document.getElementById('firma-turno-entrante').value || ''
             };
 
+            // Validar que al menos una sección esté seleccionada
+            if (!options.resumen && !options.salon && !options.cocina && !options.agregos && 
+                !options.financiero && !options.transferencias && !options.billetes) {
+                showNotification('Selecciona al menos una sección para exportar', 'error');
+                return;
+            }
+
             // Mostrar progreso
             document.getElementById('pdf-options').style.display = 'none';
             document.getElementById('pdf-progress').style.display = 'block';
@@ -213,6 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
             progressText.textContent = message;
         }
     }
+
     function obtenerGanancias() {
         // Intentar obtener de gananciasManager
         if (window.gananciasManager && window.gananciasManager.calcularGanancias) {
@@ -223,7 +230,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         return 0;
     }
-
 
     async function generatePDF(options) {
         updateProgress(20, 'Recopilando datos...');
@@ -279,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         updateProgress(60, 'Agregando resumen...');
 
-        // ========== PÁGINA 2: RESUMEN GENERAL (TABLA ORIGINAL) ==========
+        // ========== PÁGINA 2: RESUMEN GENERAL ==========
         if (options.resumen) {
             doc.addPage();
             currentY = margin;
@@ -289,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
             doc.text('RESUMEN GENERAL', margin, currentY);
             currentY += 10;
 
-            // Datos del resumen en tabla
+            // CORRECCIÓN: Array de summaryData con comas correctas
             const summaryData = [
                 ['Ventas Salón:', `$${reportData.ventas.ventasSalon.toFixed(0)}`],
                 ['Ventas Cocina:', `$${reportData.ventas.ventasCocina.toFixed(0)}`],
@@ -302,53 +308,61 @@ document.addEventListener('DOMContentLoaded', function () {
                 ['Dinero Real:', `$${reportData.ventas.dineroReal.toFixed(0)}`],
                 ['', ''],
                 ['Diferencia:', `$${reportData.ventas.diferencia.toFixed(0)}`],
-                ['1% de Ventas:', `$${reportData.ventas.porciento.toFixed(0)}`]
+                ['1% de Ventas:', `$${reportData.ventas.porciento.toFixed(0)}`],
                 ['', ''],
                 ['Ganancias del Día:', `$${obtenerGanancias().toFixed(0)}`]
             ];
 
-            doc.autoTable({
-                startY: currentY,
-                head: [['Concepto', 'Monto']],
-                body: summaryData,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [74, 108, 247],
-                    textColor: [255, 255, 255],
-                    fontSize: 11,
-                    fontStyle: 'bold'
-                },
-                bodyStyles: {
-                    fontSize: 11,
-                    cellPadding: 4
-                },
-                margin: { left: margin, right: margin },
-                tableWidth: contentWidth,
-                columnStyles: {
-                    0: { cellWidth: contentWidth * 0.6 },
-                    1: { cellWidth: contentWidth * 0.4, halign: 'right' }
-                },
-                didParseCell: function (data) {
-                    // Resaltar filas importantes
-                    if (data.row.index === 2 || data.row.index === 8 || data.row.index === 10) {
-                        data.cell.styles.fontStyle = 'bold';
-                        data.cell.styles.textColor = [74, 108, 247];
-                    }
+            // Validar que los datos existan antes de crear la tabla
+            if (summaryData && summaryData.length > 0) {
+                doc.autoTable({
+                    startY: currentY,
+                    head: [['Concepto', 'Monto']],
+                    body: summaryData,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [74, 108, 247],
+                        textColor: [255, 255, 255],
+                        fontSize: 11,
+                        fontStyle: 'bold'
+                    },
+                    bodyStyles: {
+                        fontSize: 11,
+                        cellPadding: 4
+                    },
+                    margin: { left: margin, right: margin },
+                    tableWidth: contentWidth,
+                    columnStyles: {
+                        0: { cellWidth: contentWidth * 0.6 },
+                        1: { cellWidth: contentWidth * 0.4, halign: 'right' }
+                    },
+                    didParseCell: function (data) {
+                        // Resaltar filas importantes
+                        if (data.row.index === 2 || data.row.index === 8 || data.row.index === 10) {
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.textColor = [74, 108, 247];
+                        }
 
-                    if (data.row.index === 11) { // 1% de Ventas
-                        data.cell.styles.fontStyle = 'bold';
-                        data.cell.styles.textColor = [40, 167, 69];
+                        if (data.row.index === 11) { // 1% de Ventas
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.textColor = [40, 167, 69];
+                        }
+                        
+                        if (data.row.index === 13) { // Ganancias del Día
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.textColor = [255, 153, 0];
+                        }
                     }
-                }
-            });
+                });
 
-            currentY = doc.lastAutoTable.finalY + 10;
+                currentY = doc.lastAutoTable.finalY + 10;
+            }
         }
 
         updateProgress(70, 'Agregando productos salón...');
 
         // ========== PÁGINA 3: PRODUCTOS SALÓN ==========
-        if (options.salon && reportData.productos.salon.length > 0) {
+        if (options.salon && reportData.productos.salon && reportData.productos.salon.length > 0) {
             doc.addPage();
             currentY = margin;
 
@@ -357,77 +371,77 @@ document.addEventListener('DOMContentLoaded', function () {
             doc.text('INVENTARIO SALÓN', margin, currentY);
             currentY += 10;
 
-            // Tabla de productos salón ajustada
-            const salonTableData = reportData.productos.salon.map(producto => [
-                producto.nombre,
-                `$${producto.precio.toFixed(0)}`,
-                producto.inicio.toString(),
-                producto.entrada.toString(),
-                producto.venta.toString(),
-                producto.final.toString(),
-                producto.vendido.toString(),
-                `$${producto.importe.toFixed(0)}`
-            ]);
+            // Validar datos antes de crear tabla
+            const salonTableData = reportData.productos.salon
+                .filter(producto => producto && producto.nombre)
+                .map(producto => [
+                    producto.nombre || '',
+                    `$${(producto.precio || 0).toFixed(0)}`,
+                    (producto.inicio || 0).toString(),
+                    (producto.entrada || 0).toString(),
+                    (producto.venta || 0).toString(),
+                    (producto.final || 0).toString(),
+                    (producto.vendido || 0).toString(),
+                    `$${(producto.importe || 0).toFixed(0)}`
+                ]);
 
-            doc.autoTable({
-                startY: currentY,
-                head: [['Producto', 'Precio', 'Inicio', 'Entrada', 'Venta', 'Final', 'Vendido', 'Importe']],
-                body: salonTableData,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [41, 128, 185],
-                    textColor: [255, 255, 255],
-                    fontSize: 9,
-                    fontStyle: 'bold'
-                },
-                bodyStyles: {
-                    fontSize: 10,
-                    cellPadding: 2
-                },
-                margin: { left: 10, right: 10 },
-                tableWidth: contentWidth,
-                styles: {
-                    overflow: 'linebreak',
-                    cellWidth: 'wrap'
-                },
-                columnStyles: {
-                    0: { cellWidth: 40 }, // Producto
-                    1: { cellWidth: 20 }, // Precio
-                    2: { cellWidth: 20 }, // Inicio
-                    3: { cellWidth: 20 }, // Entrada
-                    4: { cellWidth: 20 }, // Venta
-                    5: { cellWidth: 20 }, // Final
-                    6: { cellWidth: 20 }, // Vendido
-                    7: {
-                        cellWidth: 30, // Importe
-                        halign: 'right'
+            if (salonTableData.length > 0) {
+                doc.autoTable({
+                    startY: currentY,
+                    head: [['Producto', 'Precio', 'Inicio', 'Entrada', 'Venta', 'Final', 'Vendido', 'Importe']],
+                    body: salonTableData,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [41, 128, 185],
+                        textColor: [255, 255, 255],
+                        fontSize: 9,
+                        fontStyle: 'bold'
+                    },
+                    bodyStyles: {
+                        fontSize: 10,
+                        cellPadding: 2
+                    },
+                    margin: { left: 10, right: 10 },
+                    tableWidth: contentWidth,
+                    styles: {
+                        overflow: 'linebreak',
+                        cellWidth: 'wrap'
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 40 }, // Producto
+                        1: { cellWidth: 20 }, // Precio
+                        2: { cellWidth: 20 }, // Inicio
+                        3: { cellWidth: 20 }, // Entrada
+                        4: { cellWidth: 20 }, // Venta
+                        5: { cellWidth: 20 }, // Final
+                        6: { cellWidth: 20 }, // Vendido
+                        7: {
+                            cellWidth: 30, // Importe
+                            halign: 'right'
+                        }
+                    },
+                    didParseCell: function (data) {
+                        // Resaltar totales en columna Importe
+                        if (data.column.index === 7 && data.cell.raw !== 'Importe') {
+                            data.cell.styles.fontStyle = 'bold';
+                        }
                     }
-                },
-                didParseCell: function (data) {
-                    // Resaltar totales en columna Importe
-                    if (data.column.index === 7 && data.cell.raw !== 'Importe') {
-                        data.cell.styles.fontStyle = 'bold';
-                    }
-                    if (data.row.index === 13) {
-                        data.cell.styles.fontStyle = 'bold';
-                        data.cell.styles.textColor = [255, 153, 0]; // Color naranja
-                    }
-                }
-            });
+                });
 
-            // Totales al final
-            currentY = doc.lastAutoTable.finalY + 8;
+                // Totales al final
+                currentY = doc.lastAutoTable.finalY + 8;
 
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`Total Productos: ${reportData.productos.salon.length}`, 10, currentY);
-            doc.text(`Total Vendido: $${reportData.ventas.ventasSalon.toFixed(0)}`, pageWidth - 10, currentY, { align: 'right' });
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Total Productos: ${reportData.productos.salon.length}`, 10, currentY);
+                doc.text(`Total Vendido: $${reportData.ventas.ventasSalon.toFixed(0)}`, pageWidth - 10, currentY, { align: 'right' });
+            }
         }
 
         updateProgress(80, 'Agregando productos cocina...');
 
         // ========== PÁGINA 4: PRODUCTOS COCINA ==========
-        if (options.cocina && reportData.productos.cocina.length > 0) {
+        if (options.cocina && reportData.productos.cocina && reportData.productos.cocina.length > 0) {
             doc.addPage();
             currentY = margin;
 
@@ -436,62 +450,66 @@ document.addEventListener('DOMContentLoaded', function () {
             doc.text('INVENTARIO COCINA', margin, currentY);
             currentY += 10;
 
-            // Tabla de productos cocina ajustada
-            const cocinaTableData = reportData.productos.cocina.map(producto => [
-                producto.nombre,
-                producto.precio === 0 ? 'Ingrediente' : `$${producto.precio.toFixed(0)}`,
-                producto.inicio.toString(),
-                producto.entrada.toString(),
-                producto.venta.toString(),
-                producto.final.toString(),
-                producto.vendido.toString(),
-                `$${producto.importe.toFixed(0)}`
-            ]);
+            // Validar datos antes de crear tabla
+            const cocinaTableData = reportData.productos.cocina
+                .filter(producto => producto && producto.nombre)
+                .map(producto => [
+                    producto.nombre || '',
+                    producto.precio === 0 ? 'Ingrediente' : `$${(producto.precio || 0).toFixed(0)}`,
+                    (producto.inicio || 0).toString(),
+                    (producto.entrada || 0).toString(),
+                    (producto.venta || 0).toString(),
+                    (producto.final || 0).toString(),
+                    (producto.vendido || 0).toString(),
+                    `$${(producto.importe || 0).toFixed(0)}`
+                ]);
 
-            doc.autoTable({
-                startY: currentY,
-                head: [['Producto', 'Precio', 'Inicio', 'Entrada', 'Venta', 'Final', 'Vendido', 'Importe']],
-                body: cocinaTableData,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [230, 126, 34],
-                    textColor: [255, 255, 255],
-                    fontSize: 9,
-                    fontStyle: 'bold'
-                },
-                bodyStyles: {
-                    fontSize: 10,
-                    cellPadding: 2
-                },
-                margin: { left: 10, right: 10 },
-                tableWidth: contentWidth,
-                columnStyles: {
-                    0: { cellWidth: 40 },
-                    1: { cellWidth: 25 },
-                    2: { cellWidth: 20 },
-                    3: { cellWidth: 20 },
-                    4: { cellWidth: 20 },
-                    5: { cellWidth: 20 },
-                    6: { cellWidth: 20 },
-                    7: {
-                        cellWidth: 25,
-                        halign: 'right'
+            if (cocinaTableData.length > 0) {
+                doc.autoTable({
+                    startY: currentY,
+                    head: [['Producto', 'Precio', 'Inicio', 'Entrada', 'Venta', 'Final', 'Vendido', 'Importe']],
+                    body: cocinaTableData,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [230, 126, 34],
+                        textColor: [255, 255, 255],
+                        fontSize: 9,
+                        fontStyle: 'bold'
+                    },
+                    bodyStyles: {
+                        fontSize: 10,
+                        cellPadding: 2
+                    },
+                    margin: { left: 10, right: 10 },
+                    tableWidth: contentWidth,
+                    columnStyles: {
+                        0: { cellWidth: 40 },
+                        1: { cellWidth: 25 },
+                        2: { cellWidth: 20 },
+                        3: { cellWidth: 20 },
+                        4: { cellWidth: 20 },
+                        5: { cellWidth: 20 },
+                        6: { cellWidth: 20 },
+                        7: {
+                            cellWidth: 25,
+                            halign: 'right'
+                        }
                     }
-                }
-            });
+                });
 
-            // Totales al final
-            currentY = doc.lastAutoTable.finalY + 8;
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`Total Productos: ${reportData.productos.cocina.length}`, 10, currentY);
-            doc.text(`Total Importe: $${reportData.ventas.ventasCocinaProductos.toFixed(0)}`, pageWidth - 10, currentY, { align: 'right' });
+                // Totales al final
+                currentY = doc.lastAutoTable.finalY + 8;
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Total Productos: ${reportData.productos.cocina.length}`, 10, currentY);
+                doc.text(`Total Importe: $${reportData.ventas.ventasCocinaProductos.toFixed(0)}`, pageWidth - 10, currentY, { align: 'right' });
+            }
         }
 
         updateProgress(85, 'Agregando agregos...');
 
         // ========== PÁGINA 5: AGREGOS Y PRODUCTOS COMPUESTOS (DISEÑO MEJORADO) ==========
-        if (options.agregos && reportData.productos.agregos.length > 0) {
+        if (options.agregos && reportData.productos.agregos && reportData.productos.agregos.length > 0) {
             doc.addPage();
             currentY = margin;
 
@@ -820,132 +838,144 @@ document.addEventListener('DOMContentLoaded', function () {
             currentY += 10;
 
             // Consumo
-            if (reportData.financiero.consumo.length > 0) {
+            if (reportData.financiero.consumo && reportData.financiero.consumo.length > 0) {
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
                 doc.text('CONSUMO', margin, currentY);
                 currentY += 8;
 
-                // Tabla de consumo
-                const consumoTableData = reportData.financiero.consumo.map(registro => [
-                    registro.descripcion,
-                    `$${registro.monto.toFixed(0)}`
-                ]);
+                // Validar datos
+                const consumoTableData = reportData.financiero.consumo
+                    .filter(registro => registro && registro.descripcion)
+                    .map(registro => [
+                        registro.descripcion || '',
+                        `$${(registro.monto || 0).toFixed(0)}`
+                    ]);
 
-                doc.autoTable({
-                    startY: currentY,
-                    head: [['Descripción', 'Monto']],
-                    body: consumoTableData,
-                    theme: 'grid',
-                    headStyles: {
-                        fillColor: [108, 117, 125],
-                        textColor: [255, 255, 255],
-                        fontSize: 9,
-                        fontStyle: 'bold'
-                    },
-                    bodyStyles: {
-                        fontSize: 9,
-                        cellPadding: 3
-                    },
-                    margin: { left: margin, right: margin },
-                    tableWidth: contentWidth
-                });
+                if (consumoTableData.length > 0) {
+                    doc.autoTable({
+                        startY: currentY,
+                        head: [['Descripción', 'Monto']],
+                        body: consumoTableData,
+                        theme: 'grid',
+                        headStyles: {
+                            fillColor: [108, 117, 125],
+                            textColor: [255, 255, 255],
+                            fontSize: 9,
+                            fontStyle: 'bold'
+                        },
+                        bodyStyles: {
+                            fontSize: 9,
+                            cellPadding: 3
+                        },
+                        margin: { left: margin, right: margin },
+                        tableWidth: contentWidth
+                    });
 
-                currentY = doc.lastAutoTable.finalY + 10;
+                    currentY = doc.lastAutoTable.finalY + 10;
 
-                // Total consumo
-                doc.setFontSize(11);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`Total Consumo: $${reportData.financiero.consumoTotal.toFixed(0)}`, pageWidth - margin, currentY, { align: 'right' });
-                currentY += 10;
+                    // Total consumo
+                    doc.setFontSize(11);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Total Consumo: $${reportData.financiero.consumoTotal.toFixed(0)}`, pageWidth - margin, currentY, { align: 'right' });
+                    currentY += 10;
+                }
             }
 
             // Extracciones
-            if (reportData.financiero.extracciones.length > 0) {
+            if (reportData.financiero.extracciones && reportData.financiero.extracciones.length > 0) {
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
                 doc.text('EXTRACCIONES', margin, currentY);
                 currentY += 8;
 
-                // Tabla de extracciones
-                const extraccionesTableData = reportData.financiero.extracciones.map(registro => [
-                    registro.descripcion,
-                    `$${registro.monto.toFixed(0)}`
-                ]);
+                // Validar datos
+                const extraccionesTableData = reportData.financiero.extracciones
+                    .filter(registro => registro && registro.descripcion)
+                    .map(registro => [
+                        registro.descripcion || '',
+                        `$${(registro.monto || 0).toFixed(0)}`
+                    ]);
 
-                doc.autoTable({
-                    startY: currentY,
-                    head: [['Descripción', 'Monto']],
-                    body: extraccionesTableData,
-                    theme: 'grid',
-                    headStyles: {
-                        fillColor: [255, 193, 7],
-                        textColor: [0, 0, 0],
-                        fontSize: 9,
-                        fontStyle: 'bold'
-                    },
-                    bodyStyles: {
-                        fontSize: 9,
-                        cellPadding: 3
-                    },
-                    margin: { left: margin, right: margin },
-                    tableWidth: contentWidth
-                });
+                if (extraccionesTableData.length > 0) {
+                    doc.autoTable({
+                        startY: currentY,
+                        head: [['Descripción', 'Monto']],
+                        body: extraccionesTableData,
+                        theme: 'grid',
+                        headStyles: {
+                            fillColor: [255, 193, 7],
+                            textColor: [0, 0, 0],
+                            fontSize: 9,
+                            fontStyle: 'bold'
+                        },
+                        bodyStyles: {
+                            fontSize: 9,
+                            cellPadding: 3
+                        },
+                        margin: { left: margin, right: margin },
+                        tableWidth: contentWidth
+                    });
 
-                currentY = doc.lastAutoTable.finalY + 10;
+                    currentY = doc.lastAutoTable.finalY + 10;
 
-                // Total extracciones
-                doc.setFontSize(11);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`Total Extracciones: $${reportData.financiero.extraccionesTotal.toFixed(0)}`, pageWidth - margin, currentY, { align: 'right' });
-                currentY += 10;
+                    // Total extracciones
+                    doc.setFontSize(11);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Total Extracciones: $${reportData.financiero.extraccionesTotal.toFixed(0)}`, pageWidth - margin, currentY, { align: 'right' });
+                    currentY += 10;
+                }
             }
 
             // Transferencias si está habilitado
-            if (options.transferencias && reportData.financiero.transferencias.length > 0) {
+            if (options.transferencias && reportData.financiero.transferencias && reportData.financiero.transferencias.length > 0) {
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
                 doc.text('TRANSFERENCIAS', margin, currentY);
                 currentY += 8;
 
-                // Tabla de transferencias
-                const transferenciasTableData = reportData.financiero.transferencias.map(registro => [
-                    registro.notas || 'Transferencia bancaria',
-                    `$${registro.monto.toFixed(0)}`
-                ]);
+                // Validar datos
+                const transferenciasTableData = reportData.financiero.transferencias
+                    .filter(registro => registro)
+                    .map(registro => [
+                        registro.notas || 'Transferencia bancaria',
+                        `$${(registro.monto || 0).toFixed(0)}`
+                    ]);
 
-                doc.autoTable({
-                    startY: currentY,
-                    head: [['Descripción', 'Monto']],
-                    body: transferenciasTableData,
-                    theme: 'grid',
-                    headStyles: {
-                        fillColor: [40, 167, 69],
-                        textColor: [255, 255, 255],
-                        fontSize: 9,
-                        fontStyle: 'bold'
-                    },
-                    bodyStyles: {
-                        fontSize: 9,
-                        cellPadding: 3
-                    },
-                    margin: { left: margin, right: margin },
-                    tableWidth: contentWidth
-                });
+                if (transferenciasTableData.length > 0) {
+                    doc.autoTable({
+                        startY: currentY,
+                        head: [['Descripción', 'Monto']],
+                        body: transferenciasTableData,
+                        theme: 'grid',
+                        headStyles: {
+                            fillColor: [40, 167, 69],
+                            textColor: [255, 255, 255],
+                            fontSize: 9,
+                            fontStyle: 'bold'
+                        },
+                        bodyStyles: {
+                            fontSize: 9,
+                            cellPadding: 3
+                        },
+                        margin: { left: margin, right: margin },
+                        tableWidth: contentWidth
+                    });
 
-                currentY = doc.lastAutoTable.finalY + 10;
+                    currentY = doc.lastAutoTable.finalY + 10;
 
-                // Total transferencias
-                doc.setFontSize(11);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`Total Transferencias: $${reportData.financiero.transferenciasTotal.toFixed(0)}`, pageWidth - margin, currentY, { align: 'right' });
+                    // Total transferencias
+                    doc.setFontSize(11);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Total Transferencias: $${reportData.financiero.transferenciasTotal.toFixed(0)}`, pageWidth - margin, currentY, { align: 'right' });
+                }
             }
         }
 
         updateProgress(95, 'Agregando conteo de billetes...');
 
         // ========== PÁGINA 7: CONTEO DE BILLETES (REGISTROS DEL DÍA) ==========
-        if (options.billetes && reportData.billetes.registros.length > 0) {
+        if (options.billetes && reportData.billetes.registros && reportData.billetes.registros.length > 0) {
             doc.addPage();
             currentY = margin;
 
@@ -1217,93 +1247,136 @@ document.addEventListener('DOMContentLoaded', function () {
 
         updateProgress(98, 'Preparando firmas...');
 
-        // ========== PÁGINA FINAL: FIRMAS MEJORADAS ==========
+        // ========== PÁGINA FINAL: FIRMAS MEJORADAS CON DISEÑO PROFESIONAL ==========
         doc.addPage();
         currentY = 20;
 
-        doc.setFontSize(16);
+        // Título principal centrado
+        doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
-        doc.text('CONTROL Y FIRMAS', pageWidth / 2, currentY, { align: 'center' });
+        doc.setTextColor(74, 108, 247);
+        doc.text('CONTROL Y AUTORIZACIONES', pageWidth / 2, currentY, { align: 'center' });
+        
+        // Línea decorativa bajo el título
+        doc.setDrawColor(74, 108, 247);
+        doc.setLineWidth(0.8);
+        doc.line(margin + 10, currentY + 5, pageWidth - margin - 10, currentY + 5);
 
         currentY += 25;
 
-        // Firma Administrador - Usar nombre si está disponible
+        // Función para dibujar sección de firma con diseño profesional
+        function dibujarSeccionFirma(titulo, nombre, margin, currentY) {
+            // Marco decorativo para la sección
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.3);
+            doc.rect(margin, currentY, contentWidth, 40);
+            
+            // Fondo sutil para el título
+            doc.setFillColor(248, 249, 250);
+            doc.rect(margin, currentY, contentWidth, 12, 'F');
+            
+            // Título de la sección
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(74, 108, 247);
+            doc.text(titulo, margin + 5, currentY + 8);
+            
+            currentY += 18;
+            
+            // Nombre en grande y centrado
+            if (nombre && nombre.trim() !== '') {
+                doc.setFontSize(18); // Tamaño más grande
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0, 0, 0);
+                
+                // Centrar el nombre horizontalmente
+                const nombreWidth = doc.getStringUnitWidth(nombre) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                const xPos = margin + (contentWidth - nombreWidth) / 2;
+                
+                doc.text(nombre, xPos, currentY);
+                currentY += 10;
+                
+                // Línea para firma más ancha
+                const lineStart = margin + 20;
+                const lineEnd = pageWidth - margin - 20;
+                const lineY = currentY + 2;
+                
+                doc.setDrawColor(74, 108, 247);
+                doc.setLineWidth(0.8); // Línea más gruesa
+                doc.line(lineStart, lineY, lineEnd, lineY);
+                
+                // Texto "Firma" centrado bajo la línea
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'italic');
+                doc.setTextColor(100, 100, 100);
+                doc.text('Firma', (lineStart + lineEnd) / 2, lineY + 6, { align: 'center' });
+            } else {
+                // Si no hay nombre, mostrar línea más larga para firma
+                const lineStart = margin + 20;
+                const lineEnd = pageWidth - margin - 20;
+                const lineY = currentY + 8;
+                
+                doc.setDrawColor(150, 150, 150);
+                doc.setLineWidth(0.5);
+                doc.line(lineStart, lineY, lineEnd, lineY);
+                
+                // Texto "Nombre y Firma" centrado
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'italic');
+                doc.setTextColor(100, 100, 100);
+                doc.text('Nombre y Firma', (lineStart + lineEnd) / 2, lineY + 6, { align: 'center' });
+            }
+            
+            return currentY + 25; // Retornar nueva posición Y
+        }
+
+        // Firma Administrador - Diseño profesional
+        currentY = dibujarSeccionFirma(
+            'ADMINISTRADOR / RESPONSABLE', 
+            options.firmaAdministrador, 
+            margin, 
+            currentY
+        );
+
+        // Firma Turno Saliente - Diseño profesional
+        currentY = dibujarSeccionFirma(
+            'TURNO SALIENTE', 
+            options.firmaTurnoSaliente, 
+            margin, 
+            currentY
+        );
+
+        // Firma Turno Entrante - Diseño profesional
+        currentY = dibujarSeccionFirma(
+            'TURNO ENTRANTE', 
+            options.firmaTurnoEntrante, 
+            margin, 
+            currentY
+        );
+
+        currentY += 15;
+
+        // Observaciones con diseño mejorado
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('ADMINISTRADOR / RESPONSABLE:', margin, currentY);
-        currentY += 7;
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-
-        if (options.firmaAdministrador) {
-            doc.text(`Nombre: ${options.firmaAdministrador}`, margin, currentY);
-        } else {
-            doc.text('Nombre:', margin, currentY);
-        }
-
-        doc.line(margin + 25, currentY + 2, margin + 100, currentY + 2);
-
-        doc.text('Firma:', margin + 110, currentY);
-        doc.line(margin + 130, currentY + 2, pageWidth - margin, currentY + 2);
-        currentY += 20;
-
-        // Turno Saliente - Usar nombre si está disponible
-        doc.setFont('helvetica', 'bold');
-        doc.text('TURNO SALIENTE:', margin, currentY);
-        currentY += 7;
-
-        doc.setFont('helvetica', 'normal');
-
-        if (options.firmaTurnoSaliente) {
-            doc.text(`Nombre: ${options.firmaTurnoSaliente}`, margin, currentY);
-        } else {
-            doc.text('Nombre:', margin, currentY);
-        }
-
-        doc.line(margin + 25, currentY + 2, margin + 100, currentY + 2);
-
-        doc.text('Firma:', margin + 110, currentY);
-        doc.line(margin + 130, currentY + 2, pageWidth - margin, currentY + 2);
-        currentY += 20;
-
-        // Turno Entrante - Usar nombre si está disponible
-        doc.setFont('helvetica', 'bold');
-        doc.text('TURNO ENTRANTE:', margin, currentY);
-        currentY += 7;
-
-        doc.setFont('helvetica', 'normal');
-
-        if (options.firmaTurnoEntrante) {
-            doc.text(`Nombre: ${options.firmaTurnoEntrante}`, margin, currentY);
-        } else {
-            doc.text('Nombre:', margin, currentY);
-        }
-
-        doc.line(margin + 25, currentY + 2, margin + 100, currentY + 2);
-
-        doc.text('Firma:', margin + 110, currentY);
-        doc.line(margin + 130, currentY + 2, pageWidth - margin, currentY + 2);
-        currentY += 30;
-
-        // Observaciones
-        doc.setFont('helvetica', 'bold');
-        doc.text('OBSERVACIONES:', margin, currentY);
+        doc.setTextColor(74, 108, 247);
+        doc.text('OBSERVACIONES Y NOTAS:', margin, currentY);
         currentY += 10;
 
-        doc.setFont('helvetica', 'normal');
-        // Cuadro para observaciones
-        doc.setDrawColor(200, 200, 200);
-        doc.setLineWidth(0.3);
-        const obsHeight = 60;
-        doc.rect(margin, currentY, contentWidth, obsHeight);
-
-        // Líneas horizontales
-        for (let i = 1; i <= 5; i++) {
+        // Cuadro para observaciones con diseño profesional
+        doc.setDrawColor(220, 220, 220);
+        doc.setFillColor(255, 255, 255);
+        doc.setLineWidth(0.5);
+        const obsHeight = 50;
+        doc.rect(margin, currentY, contentWidth, obsHeight, 'FD');
+        
+        // Líneas horizontales guía
+        doc.setDrawColor(240, 240, 240);
+        for (let i = 1; i <= 4; i++) {
             doc.line(margin, currentY + (i * 10), pageWidth - margin, currentY + (i * 10));
         }
 
-        // Número de páginas
+        // Número de páginas en todas las páginas
         const pageCount = doc.internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
@@ -1311,7 +1384,14 @@ document.addEventListener('DOMContentLoaded', function () {
             doc.setFont('helvetica', 'italic');
             doc.setTextColor(100, 100, 100);
             doc.text(`Página ${i} de ${pageCount}`, pageWidth - margin - 25, doc.internal.pageSize.height - 10);
-            doc.text(`IPV - ${new Date().getFullYear()} | ${new Date().toLocaleDateString('es-ES')}`, margin, doc.internal.pageSize.height - 10);
+            doc.text(`Reporte IPV - ${new Date().getFullYear()}`, margin, doc.internal.pageSize.height - 10);
+            
+            // Sello de confidencialidad en la primera página
+            if (i === 1) {
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text('CONFIDENCIAL', pageWidth / 2, doc.internal.pageSize.height - 20, { align: 'center' });
+            }
         }
 
         updateProgress(100, 'Finalizando documento...');
@@ -1332,134 +1412,174 @@ document.addEventListener('DOMContentLoaded', function () {
             usd: {}
         };
 
-        registros.forEach(registro => {
-            // Sumar billetes CUP
-            Object.entries(registro.billetesCUP || {}).forEach(([valor, cantidad]) => {
-                totales.cup[valor] = (totales.cup[valor] || 0) + cantidad;
-            });
+        if (!registros || !Array.isArray(registros)) {
+            return totales;
+        }
 
-            // Sumar billetes USD
-            Object.entries(registro.billetesUSD || {}).forEach(([valor, cantidad]) => {
-                totales.usd[valor] = (totales.usd[valor] || 0) + cantidad;
-            });
+        registros.forEach(registro => {
+            if (registro && registro.billetesCUP) {
+                Object.entries(registro.billetesCUP || {}).forEach(([valor, cantidad]) => {
+                    if (cantidad > 0) {
+                        totales.cup[valor] = (totales.cup[valor] || 0) + cantidad;
+                    }
+                });
+            }
+
+            if (registro && registro.billetesUSD) {
+                Object.entries(registro.billetesUSD || {}).forEach(([valor, cantidad]) => {
+                    if (cantidad > 0) {
+                        totales.usd[valor] = (totales.usd[valor] || 0) + cantidad;
+                    }
+                });
+            }
         });
 
         return totales;
     }
 
     async function collectReportData() {
-        // Obtener datos del StorageManager
-        const storage = window.StorageManager || {
-            getProducts: () => JSON.parse(localStorage.getItem('ipb_products') || '[]'),
-            getCocinaProducts: () => JSON.parse(localStorage.getItem('ipb_cocina_products') || '[]'),
-            getSalonData: () => JSON.parse(localStorage.getItem('ipb_salon') || '[]'),
-            getCocinaData: () => JSON.parse(localStorage.getItem('ipb_cocina') || '[]'),
-            getConsumoData: () => JSON.parse(localStorage.getItem('ipb_consumo_data') || '[]'),
-            getExtraccionesData: () => JSON.parse(localStorage.getItem('ipb_extracciones') || '[]'),
-            getTransferenciasData: () => JSON.parse(localStorage.getItem('ipb_transferencias_data') || '[]')
-        };
-
-        // Productos
-        const productosBaseSalon = storage.getProducts();
-        const productosBaseCocina = storage.getCocinaProducts();
-
-        // Datos del día
-        const salonData = storage.getSalonData();
-        const cocinaData = storage.getCocinaData();
-
-        // Fusionar datos base con datos del día
-        const productosSalon = productosBaseSalon.map(productoBase => {
-            const datosDia = salonData.find(p => p.id === productoBase.id) || {};
-            return {
-                ...productoBase,
-                inicio: datosDia.inicio || 0,
-                entrada: datosDia.entrada || 0,
-                venta: datosDia.venta || 0,
-                final: datosDia.final || 0,
-                vendido: datosDia.vendido || 0,
-                importe: (datosDia.importe || 0)
+        try {
+            // Obtener datos del StorageManager
+            const storage = window.StorageManager || {
+                getProducts: () => JSON.parse(localStorage.getItem('ipb_products') || '[]'),
+                getCocinaProducts: () => JSON.parse(localStorage.getItem('ipb_cocina_products') || '[]'),
+                getSalonData: () => JSON.parse(localStorage.getItem('ipb_salon') || '[]'),
+                getCocinaData: () => JSON.parse(localStorage.getItem('ipb_cocina') || '[]'),
+                getConsumoData: () => JSON.parse(localStorage.getItem('ipb_consumo_data') || '[]'),
+                getExtraccionesData: () => JSON.parse(localStorage.getItem('ipb_extracciones') || '[]'),
+                getTransferenciasData: () => JSON.parse(localStorage.getItem('ipb_transferencias_data') || '[]')
             };
-        });
 
-        const productosCocina = productosBaseCocina.map(productoBase => {
-            const datosDia = cocinaData.find(p => p.id === productoBase.id) || {};
+            // Productos
+            const productosBaseSalon = storage.getProducts() || [];
+            const productosBaseCocina = storage.getCocinaProducts() || [];
+
+            // Datos del día
+            const salonData = storage.getSalonData() || [];
+            const cocinaData = storage.getCocinaData() || [];
+
+            // Fusionar datos base con datos del día
+            const productosSalon = productosBaseSalon.map(productoBase => {
+                const datosDia = salonData.find(p => p.id === productoBase.id) || {};
+                return {
+                    ...productoBase,
+                    inicio: datosDia.inicio || 0,
+                    entrada: datosDia.entrada || 0,
+                    venta: datosDia.venta || 0,
+                    final: datosDia.final || 0,
+                    vendido: datosDia.vendido || 0,
+                    importe: (datosDia.importe || 0)
+                };
+            });
+
+            const productosCocina = productosBaseCocina.map(productoBase => {
+                const datosDia = cocinaData.find(p => p.id === productoBase.id) || {};
+                return {
+                    ...productoBase,
+                    inicio: datosDia.inicio || 0,
+                    entrada: datosDia.entrada || 0,
+                    venta: datosDia.venta || 0,
+                    final: datosDia.final || 0,
+                    vendido: datosDia.vendido || 0,
+                    importe: (datosDia.importe || 0)
+                };
+            });
+
+            // Agregos de cocina
+            const agregos = JSON.parse(localStorage.getItem(`cocina_agregos`) || '[]');
+
+            // Datos financieros
+            const consumoData = storage.getConsumoData() || [];
+            const extraccionesData = storage.getExtraccionesData() || [];
+            const transferenciasData = storage.getTransferenciasData() || [];
+
+            // Efectivo
+            const efectivoData = JSON.parse(localStorage.getItem('ipb_efectivo_data') || '[]');
+            const efectivoHoy = efectivoData || [];
+
+            // Billetes
+            const billetesHoy = JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]');
+
+            // Calcular ventas con validación
+            const ventasSalon = productosSalon.reduce((sum, p) => sum + (p.importe || 0), 0) || 0;
+            const ventasCocinaProductos = productosCocina.reduce((sum, p) => sum + (p.importe || 0), 0) || 0;
+            const agregosTotal = agregos.reduce((sum, a) => sum + (a.montoTotal || 0), 0) || 0;
+            const ventasCocina = ventasCocinaProductos + agregosTotal;
+            const ventasTotales = ventasSalon + ventasCocina;
+
+            // Calcular dinero real con validación
+            const consumoTotal = consumoData.reduce((sum, c) => sum + (c.monto || 0), 0) || 0;
+            const extraccionesTotal = extraccionesData.reduce((sum, e) => sum + (e.monto || 0), 0) || 0;
+            const transferenciasTotal = transferenciasData.reduce((sum, t) => sum + (t.monto || 0), 0) || 0;
+            const efectivoTotal = efectivoHoy.reduce((sum, e) => sum + (e.monto || 0), 0) || 0;
+            const dineroReal = consumoTotal + extraccionesTotal + transferenciasTotal + efectivoTotal;
+
+            // Calcular diferencia
+            const diferencia = dineroReal - ventasTotales;
+
+            // Calcular porciento (según tu fórmula)
+            const dineroAPorcentuar = ventasTotales - consumoTotal;
+            const porciento = Math.floor(dineroAPorcentuar / 10000) * 100;
+
             return {
-                ...productoBase,
-                inicio: datosDia.inicio || 0,
-                entrada: datosDia.entrada || 0,
-                venta: datosDia.venta || 0,
-                final: datosDia.final || 0,
-                vendido: datosDia.vendido || 0,
-                importe: (datosDia.importe || 0)
+                productos: {
+                    salon: productosSalon || [],
+                    cocina: productosCocina || [],
+                    agregos: agregos || []
+                },
+                ventas: {
+                    ventasSalon,
+                    ventasCocina,
+                    ventasCocinaProductos,
+                    agregosTotal,
+                    ventasTotales,
+                    dineroReal,
+                    diferencia,
+                    porciento
+                },
+                financiero: {
+                    consumo: consumoData || [],
+                    consumoTotal,
+                    extracciones: extraccionesData || [],
+                    extraccionesTotal,
+                    transferencias: transferenciasData || [],
+                    transferenciasTotal,
+                    efectivo: efectivoHoy || [],
+                    efectivoTotal
+                },
+                billetes: {
+                    registros: billetesHoy || []
+                }
             };
-        });
-
-        // Agregos de cocina
-        const agregos = JSON.parse(localStorage.getItem(`cocina_agregos`) || '[]');
-
-        // Datos financieros
-        const consumoData = storage.getConsumoData();
-        const extraccionesData = storage.getExtraccionesData();
-        const transferenciasData = storage.getTransferenciasData();
-
-        // Efectivo
-        const efectivoData = JSON.parse(localStorage.getItem('ipb_efectivo_data') || '[]');
-        const efectivoHoy = efectivoData;
-
-        // Billetes
-        const billetesHoy = JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]');
-
-        // Calcular ventas
-        const ventasSalon = productosSalon.reduce((sum, p) => sum + (p.importe || 0), 0);
-        const ventasCocinaProductos = productosCocina.reduce((sum, p) => sum + (p.importe || 0), 0);
-        const agregosTotal = agregos.reduce((sum, a) => sum + (a.montoTotal || 0), 0);
-        const ventasCocina = ventasCocinaProductos + agregosTotal;
-        const ventasTotales = ventasSalon + ventasCocina;
-
-        // Calcular dinero real
-        const consumoTotal = consumoData.reduce((sum, c) => sum + (c.monto || 0), 0);
-        const extraccionesTotal = extraccionesData.reduce((sum, e) => sum + (e.monto || 0), 0);
-        const transferenciasTotal = transferenciasData.reduce((sum, t) => sum + (t.monto || 0), 0);
-        const efectivoTotal = efectivoHoy.reduce((sum, e) => sum + (e.monto || 0), 0);
-        const dineroReal = consumoTotal + extraccionesTotal + transferenciasTotal + efectivoTotal;
-
-        // Calcular diferencia
-        const diferencia = dineroReal - ventasTotales;
-
-        // Calcular porciento (según tu fórmula)
-        const dineroAPorcentuar = ventasTotales - consumoTotal;
-        const porciento = Math.floor(dineroAPorcentuar / 10000) * 100;
-
-        return {
-            productos: {
-                salon: productosSalon,
-                cocina: productosCocina,
-                agregos: agregos
-            },
-            ventas: {
-                ventasSalon,
-                ventasCocina,
-                ventasCocinaProductos,
-                agregosTotal,
-                ventasTotales,
-                dineroReal,
-                diferencia,
-                porciento
-            },
-            financiero: {
-                consumo: consumoData,
-                consumoTotal,
-                extracciones: extraccionesData,
-                extraccionesTotal,
-                transferencias: transferenciasData,
-                transferenciasTotal,
-                efectivo: efectivoHoy,
-                efectivoTotal
-            },
-            billetes: {
-                registros: billetesHoy
-            }
-        };
+        } catch (error) {
+            console.error('Error recopilando datos:', error);
+            return {
+                productos: { salon: [], cocina: [], agregos: [] },
+                ventas: {
+                    ventasSalon: 0,
+                    ventasCocina: 0,
+                    ventasCocinaProductos: 0,
+                    agregosTotal: 0,
+                    ventasTotales: 0,
+                    dineroReal: 0,
+                    diferencia: 0,
+                    porciento: 0
+                },
+                financiero: {
+                    consumo: [],
+                    consumoTotal: 0,
+                    extracciones: [],
+                    extraccionesTotal: 0,
+                    transferencias: [],
+                    transferenciasTotal: 0,
+                    efectivo: [],
+                    efectivoTotal: 0
+                },
+                billetes: {
+                    registros: []
+                }
+            };
+        }
     }
 
     function showNotification(message, type = 'info') {
@@ -1512,151 +1632,186 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     }
-    // Agregar estilos CSS para el modal y debug
+    
+    // Agregar estilos CSS mejorados
     const style = document.createElement('style');
     style.textContent = `
     /* Estilos para la sección de firmas */
     .form-section {
         background: #f8f9fa;
         border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 20px;
+        padding: 20px;
+        margin-bottom: 25px;
         border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     
     .form-section h4 {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-size: 1.1rem;
+        gap: 12px;
+        font-size: 1.2rem;
         color: var(--primary-color);
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--primary-light);
+    }
+    
+    .form-group {
+        margin-bottom: 18px;
     }
     
     .form-group label {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-        font-weight: 500;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-weight: 600;
         color: var(--dark-color);
+        font-size: 1rem;
     }
     
     .form-group label i {
         color: var(--primary-color);
-        width: 18px;
+        width: 20px;
         text-align: center;
+        font-size: 1.1rem;
     }
     
     .form-input {
         width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        font-size: 0.95rem;
+        padding: 12px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1rem;
         transition: all 0.3s;
         background: white;
+        font-weight: 500;
     }
     
     .form-input:focus {
         outline: none;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+        box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.15);
+        transform: translateY(-1px);
     }
     
     .form-input::placeholder {
-        color: #6c757d;
-        opacity: 0.7;
+        color: #8a94a6;
+        opacity: 0.8;
+        font-weight: normal;
     }
     
     /* Estilos para el modal de exportación */
     .pdf-export-modal .action-buttons {
         display: flex;
-        gap: 10px;
+        gap: 12px;
         flex-wrap: wrap;
-        margin-top: 10px;
+        margin-top: 15px;
     }
     
     .pdf-export-modal .btn-action {
         flex: 1;
-        min-width: 120px;
-        padding: 12px;
-        background: var(--primary-color);
+        min-width: 140px;
+        padding: 14px;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         color: white;
         border: none;
-        border-radius: 8px;
+        border-radius: 10px;
         cursor: pointer;
-        font-weight: 500;
+        font-weight: 600;
+        font-size: 1rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 10px;
         transition: all 0.3s ease;
+        letter-spacing: 0.5px;
     }
     
     .pdf-export-modal .btn-action:hover {
-        background: var(--secondary-color);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(74, 108, 247, 0.25);
     }
     
     .pdf-export-modal .btn-action i {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
     }
     
     .option-checkbox {
         display: flex;
         align-items: center;
-        margin: 8px 0;
-        padding: 8px;
-        border-radius: 5px;
-        transition: background 0.3s;
+        margin: 10px 0;
+        padding: 12px 15px;
+        border-radius: 8px;
+        transition: all 0.3s;
+        background: white;
+        border: 1px solid #e1e5e9;
     }
     
     .option-checkbox:hover {
         background: #f8f9fa;
+        border-color: var(--primary-light);
+        transform: translateX(5px);
     }
     
     .option-checkbox input[type="checkbox"] {
-        margin-right: 10px;
-        width: 18px;
-        height: 18px;
+        margin-right: 15px;
+        width: 20px;
+        height: 20px;
         cursor: pointer;
+        accent-color: var(--primary-color);
     }
     
     .option-checkbox label {
         cursor: pointer;
-        font-weight: 500;
+        font-weight: 600;
         color: var(--dark-color);
+        font-size: 1rem;
+        flex: 1;
     }
     
     .pdf-progress {
-        padding: 20px;
+        padding: 30px;
         text-align: center;
+        background: #f8f9fa;
+        border-radius: 10px;
+        margin: 20px 0;
     }
     
     .progress-bar {
         width: 100%;
-        height: 10px;
+        height: 12px;
         background: #e0e0e0;
-        border-radius: 5px;
+        border-radius: 6px;
         overflow: hidden;
-        margin: 20px 0;
+        margin: 25px 0;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
     }
     
     .progress-fill {
         height: 100%;
         background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-        border-radius: 5px;
-        transition: width 0.3s ease;
+        border-radius: 6px;
+        transition: width 0.4s ease;
+        box-shadow: 0 2px 4px rgba(74, 108, 247, 0.3);
     }
     
     .progress-text {
         color: var(--gray-dark);
-        font-size: 0.95rem;
-        margin-top: 10px;
+        font-size: 1rem;
+        margin-top: 15px;
+        font-weight: 500;
+    }
+    
+    /* Animaciones */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pdf-export-modal .modal-content {
+        animation: fadeIn 0.3s ease;
     }
 `;
     document.head.appendChild(style);
