@@ -395,7 +395,6 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     function crearFilaProductoCocina(producto, index) {
-
         const row = document.createElement('tr');
         row.dataset.id = producto.id;
         row.dataset.index = index;
@@ -407,16 +406,16 @@ document.addEventListener('DOMContentLoaded', function () {
         // Determinar valor a mostrar en campo final
         let valorFinal = producto.final;
 
-        // MODIFICACIÓN CRÍTICA: Solo auto-ajustar si:
-        // 1. NO es ingrediente (precio > 0)
-        // 2. El final es 0 (no se ha vendido nada)
-        // 3. NO estamos en modo edición de final
-        // 4. El usuario NO ha editado manualmente el final (finalEditado === false)
+        // 🚨 CRÍTICO: SOLO auto-ajustar si:
+        // 1. NO es ingrediente (precio > 0) - o si quieres también para ingredientes
+        // 2. El usuario NO ha editado manualmente el final (finalEditado === false)
+        // 3. NO estamos en modo edición de final activado
+        // 4. El valor actual es 0
         // 5. Hay ventas disponibles
-        if (producto.precio > 0 &&
-            valorFinal === 0 &&
-            !editingFinalEnabled &&
+        if ((producto.precio > 0 || producto.esIngrediente) &&
             !producto.finalEditado &&
+            !editingFinalEnabled &&
+            valorFinal === 0 &&
             producto.venta > 0) {
             valorFinal = producto.venta;
             producto.final = valorFinal;
@@ -424,7 +423,8 @@ document.addEventListener('DOMContentLoaded', function () {
             recalcularProductoCocina(producto);
         }
 
-        // Si el usuario YA editó el final (finalEditado = true), respetar su valor
+        // 🚨 IMPORTANTE: Si el usuario YA editó el final (finalEditado = true), 
+        // respetar SIEMPRE su valor, aunque sea 0
         if (producto.finalEditado) {
             // Asegurar que no sea mayor que la venta
             if (producto.final > producto.venta) {
@@ -432,68 +432,68 @@ document.addEventListener('DOMContentLoaded', function () {
                 recalcularProductoCocina(producto);
             }
         }
+
         // Verificar si tiene relaciones (se usa en otros productos)
         const esUsadoEn = relacionesProductos.filter(r => r.ingredienteId === producto.id).length > 0;
         const esPan = relacionesPanIngredientes.filter(r => r.panId === producto.id).length > 0;
         const esProductoConIngredientes = relacionesProductos.filter(r => r.productoId === producto.id).length > 0;
 
         row.innerHTML = `
-        <td class="producto-cell">
-            <span class="product-name">${producto.nombre}</span>
-            ${producto.esIngrediente ? '<span class="badge-ingrediente">Ingrediente</span>' : ''}
-            ${esUsadoEn ? '<span class="badge-relacion" title="Usado en otros productos">✓</span>' : ''}
-            ${esPan ? '<span class="badge-pan" title="Pan con ingredientes">🍞</span>' : ''}
-            ${esProductoConIngredientes ? '<span class="badge-producto" title="Producto con ingredientes fijos">⭐</span>' : ''}
-        </td>
-        <td class="numeric-cell currency-cell">
-            <span class="price-display">$${producto.precio.toFixed(2)}</span>
-        </td>
-        <td class="numeric-cell">
-            <input type="number" 
-                   min="0" 
-                   value="${producto.inicio}" 
-                   data-field="inicio" 
-                   data-id="${producto.id}"
-                   class="editable-input inicio-input"
-                   placeholder="0"
-                   autocomplete="off">
-        </td>
-        <td class="numeric-cell">
-            <input type="number" 
-                   min="0" 
-                   value="${producto.entrada}" 
-                   data-field="entrada" 
-                   data-id="${producto.id}"
-                   class="editable-input entrada-input"
-                   placeholder="0"
-                   autocomplete="off">
-        </td>
-        <td class="calculated-cell venta-cell">
-            <span class="venta-display">${producto.venta}</span>
-        </td>
-        <td class="numeric-cell">
-            <input type="number" 
-                   min="0" 
-                   max="${producto.venta}"
-                   value="${valorFinal}" 
-                   data-field="final" 
-                   data-id="${producto.id}"
-                   data-venta="${producto.venta}"
-                   class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
-                   placeholder="0"
-                   autocomplete="off"
-                   ${!editingFinalEnabled ? 'disabled' : ''}>
-        </td>
-        <td class="calculated-cell vendido-cell">
-            <span class="vendido-display">${producto.vendido}</span>
-        </td>
-        <td class="currency-cell importe-cell">
-            <span class="importe-display">${producto.precio > 0 ? `$${producto.importe.toFixed(2)}` : '$0.00'}</span>
-        </td>
-    `;
+    <td class="producto-cell">
+        <span class="product-name">${producto.nombre}</span>
+        ${producto.esIngrediente ? '<span class="badge-ingrediente">Ingrediente</span>' : ''}
+        ${esUsadoEn ? '<span class="badge-relacion" title="Usado en otros productos">✓</span>' : ''}
+        ${esPan ? '<span class="badge-pan" title="Pan con ingredientes">🍞</span>' : ''}
+        ${esProductoConIngredientes ? '<span class="badge-producto" title="Producto con ingredientes fijos">⭐</span>' : ''}
+    </td>
+    <td class="numeric-cell currency-cell">
+        <span class="price-display">$${producto.precio.toFixed(2)}</span>
+    </td>
+    <td class="numeric-cell">
+        <input type="number" 
+               min="0" 
+               value="${producto.inicio}" 
+               data-field="inicio" 
+               data-id="${producto.id}"
+               class="editable-input inicio-input"
+               placeholder="0"
+               autocomplete="off">
+    </td>
+    <td class="numeric-cell">
+        <input type="number" 
+               min="0" 
+               value="${producto.entrada}" 
+               data-field="entrada" 
+               data-id="${producto.id}"
+               class="editable-input entrada-input"
+               placeholder="0"
+               autocomplete="off">
+    </td>
+    <td class="calculated-cell venta-cell">
+        <span class="venta-display">${producto.venta}</span>
+    </td>
+    <td class="numeric-cell">
+        <input type="number" 
+               min="0" 
+               max="${producto.venta}"
+               value="${producto.final}"
+               data-field="final" 
+               data-id="${producto.id}"
+               data-venta="${producto.venta}"
+               class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
+               placeholder="0"
+               autocomplete="off"
+               ${!editingFinalEnabled ? 'disabled' : ''}>
+    </td>
+    <td class="calculated-cell vendido-cell">
+        <span class="vendido-display">${producto.vendido}</span>
+    </td>
+    <td class="currency-cell importe-cell">
+        <span class="importe-display">${producto.precio > 0 ? `$${producto.importe.toFixed(2)}` : '$0.00'}</span>
+    </td>
+`;
 
         agregarEventListenersFila(row, producto);
-
         return row;
     }
 
@@ -653,9 +653,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (producto.venta !== nuevaVenta) {
             producto.venta = nuevaVenta;
 
-            // Si el final NO ha sido editado por el usuario, ajustarlo automáticamente
+            // 🚨 CRÍTICO: Solo ajustar el final automáticamente si:
+            // 1. NO ha sido editado por el usuario
+            // 2. El usuario NO lo dejó en 0 intencionalmente
             if (!producto.finalEditado) {
-                producto.final = producto.venta;
+                // Si el final era 0 y ahora hay ventas, ajustarlo
+                if (producto.final === 0 && producto.venta > 0) {
+                    producto.final = producto.venta;
+                }
             } else {
                 // Si ya fue editado, asegurar que no sea mayor que la venta
                 if (producto.final > producto.venta) {
@@ -722,7 +727,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 producto[field] = value;
                 producto.ultimaActualizacion = obtenerHoraActual();
 
-                // Si se está editando el campo "final", marcar como editado
+                // 🚨 CRÍTICO: Si se está editando el campo "final", marcar como editado
+                // y NO cambiar este estado nunca más
                 if (field === 'final') {
                     producto.finalEditado = true; // ← Asegurar que se marque como editado
                 }
@@ -755,6 +761,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             const diferencia = consumoNuevo - consumoAnterior;
 
                             ingrediente.vendido += diferencia;
+                            // Marcar como editado también si el ingrediente fue afectado
+                            ingrediente.finalEditado = true;
                             // Recalcular el ingrediente
                             recalcularProductoCocina(ingrediente);
                         }
@@ -787,7 +795,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function recalcularConsumosPorRelaciones() {
-
         // 1. Calcular consumo total desde AGREGOS
         const consumoDesdeAgregos = {};
         agregos.forEach(agrego => {
@@ -801,7 +808,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-
         // 2. Para cada PRODUCTO NO INGREDIENTE, verificar consistencia
         cocinaData.forEach(producto => {
             if (!producto.esIngrediente) {
@@ -814,15 +820,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Lo que el usuario QUIERE vender (según el campo final)
                     const quiereVender = producto.venta - producto.final;
 
-                    // MODIFICACIÓN CRÍTICA: Solo ajustar si el usuario NO ha editado manualmente
+                    // 🚨 MODIFICACIÓN CRÍTICA: Solo ajustar si el usuario NO ha editado manualmente
                     // O si está intentando vender más de lo que puede
                     if (quiereVender > maxVendible) {
-
-
                         // Si el usuario NO ha editado manualmente, ajustamos automáticamente
                         if (!producto.finalEditado) {
-
-
                             // Ajustar a lo máximo que puede vender
                             const nuevoVendido = maxVendible;
                             const nuevoFinal = Math.max(0, producto.venta - nuevoVendido);
@@ -832,12 +834,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                 producto.final = nuevoFinal;
                                 producto.vendido = nuevoVendido;
                                 producto.importe = producto.precio > 0 ? producto.vendido * producto.precio : 0;
-
                             }
                         } else {
-                            // Si el usuario YA editó manualmente, mostrar advertencia pero no ajustar
-                            // Podrías mostrar una notificación opcional aquí
-                            // showNotification(`${producto.nombre}: Quieres vender ${quiereVender} pero solo hay ingredientes para ${maxVendible}`, 'warning');
+                            // Si el usuario YA editó manualmente, mostrar advertencia
+                            // Pero no ajustar automáticamente
+                            console.warn(`${producto.nombre}: El usuario editó manualmente a ${producto.final}, pero solo hay para ${maxVendible}`);
                         }
                     }
                 }
@@ -862,17 +863,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
 
-                // MODIFICACIÓN: Solo ajustar ingredientes si el consumoTotal es diferente
+                // 🚨 MODIFICACIÓN: Solo ajustar ingredientes si el consumoTotal es diferente
                 // Pero respetar si el ingrediente fue editado manualmente
                 if (consumoTotal !== ingrediente.vendido) {
                     // Si el ingrediente NO ha sido editado manualmente, ajustamos
                     if (!ingrediente.finalEditado) {
-
                         ingrediente.vendido = consumoTotal;
                         ingrediente.final = Math.max(0, ingrediente.venta - ingrediente.vendido);
                         recalcularProductoCocina(ingrediente);
                     } else {
-
+                        // Si ya fue editado, no ajustar automáticamente
+                        console.warn(`${ingrediente.nombre}: Editado manualmente, no se ajusta automáticamente`);
                     }
                 }
             }
@@ -880,8 +881,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // 4. Recalcular disponibilidad final
         recalcularDisponibilidad();
-
     }
+
     function actualizarFilaUICocina(productoId) {
         const producto = cocinaData.find(p => p.id === productoId);
         if (!producto) return;
@@ -982,23 +983,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         input.disabled = false;
                         input.classList.add('editing-enabled');
 
-                        if (parseInt(input.value) === 0) {
-                            const id = parseInt(input.dataset.id);
-                            const producto = cocinaData.find(p => p.id === id);
-                            if (producto && producto.venta > 0) {
-                                input.value = producto.venta;
-                                input.max = producto.venta;
-                                input.dataset.venta = producto.venta;
-                                actualizarProductoCocinaDesdeInput(input, false);
-                            }
-                        }
+                        // 🚨 NO ajustar automáticamente aquí
+                        // El usuario debe decidir manualmente
                     });
 
                     this.innerHTML = '<i class="fas fa-times"></i><span class="btn-text">Cancelar Edición</span>';
                     this.classList.remove('btn-primary');
                     this.classList.add('btn-secondary');
 
-                    showNotification('Modo edición de valores finales activado en cocina', 'info');
+                    showNotification('Modo edición de valores finales activado en cocina. Puedes establecer el inventario final manualmente.', 'info');
                 } else {
                     const finalInputs = document.querySelectorAll('#cocina-tbody .final-input');
                     finalInputs.forEach(input => {
@@ -1010,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     this.classList.remove('btn-secondary');
                     this.classList.add('btn-primary');
 
-                    showNotification('Modo edición desactivado en cocina', 'info');
+                    showNotification('Modo edición desactivado en cocina. Los valores finales ahora están protegidos.', 'info');
                 }
 
                 actualizarTablaCocina();
