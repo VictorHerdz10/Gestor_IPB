@@ -206,15 +206,14 @@ document.addEventListener('DOMContentLoaded', function () {
         // Determinar valor a mostrar en campo final
         let valorFinal = producto.final;
 
-        // LOGÍCA MEJORADA: Similar a cocina.js
-        // Solo auto-ajustar si:
-        // 1. El final es 0 (no se ha vendido nada)
-        // 2. NO estamos en modo edición de final
-        // 3. El usuario NO ha editado manualmente el final (finalEditado === false)
+        // 🚨 CRÍTICO: SOLO auto-ajustar si:
+        // 1. El usuario NO ha editado manualmente el final (finalEditado === false)
+        // 2. NO estamos en modo edición de final activado
+        // 3. El valor actual es 0
         // 4. Hay ventas disponibles
-        if (valorFinal === 0 &&
+        if (!producto.finalEditado &&
             !editingFinalEnabled &&
-            !producto.finalEditado &&
+            valorFinal === 0 &&
             producto.venta > 0) {
             valorFinal = producto.venta;
             producto.final = valorFinal;
@@ -222,7 +221,8 @@ document.addEventListener('DOMContentLoaded', function () {
             recalcularProducto(producto);
         }
 
-        // Si el usuario YA editó el final (finalEditado = true), respetar su valor
+        // 🚨 IMPORTANTE: Si el usuario YA editó el final (finalEditado = true), 
+        // respetar SIEMPRE su valor, aunque sea 0
         if (producto.finalEditado) {
             // Asegurar que no sea mayor que la venta
             if (producto.final > producto.venta) {
@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <input type="number" 
                min="0" 
                max="${producto.venta}"
-               value="${valorFinal}" 
+               value="${producto.final}"
                data-field="final" 
                data-id="${producto.id}"
                data-venta="${producto.venta}"
@@ -283,7 +283,6 @@ document.addEventListener('DOMContentLoaded', function () {
 `;
 
         agregarEventListenersFila(row, producto);
-
         return row;
     }
 
@@ -394,9 +393,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (producto.venta !== nuevaVenta) {
             producto.venta = nuevaVenta;
 
-            // Si el final NO ha sido editado por el usuario, ajustarlo automáticamente
+            // 🚨 CRÍTICO: Solo ajustar el final automáticamente si:
+            // 1. NO ha sido editado por el usuario
+            // 2. El usuario NO lo dejó en 0 intencionalmente
             if (!producto.finalEditado) {
-                producto.final = producto.venta;
+                // Si el final era 0 y ahora hay ventas, ajustarlo
+                if (producto.final === 0 && producto.venta > 0) {
+                    producto.final = producto.venta;
+                }
             } else {
                 // Si ya fue editado, asegurar que no sea mayor que la venta
                 if (producto.final > producto.venta) {
@@ -427,7 +431,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 producto[field] = value;
                 producto.ultimaActualizacion = obtenerHoraActual();
 
-                // Si se está editando el campo "final", marcar como editado
+                // 🚨 CRÍTICO: Si se está editando el campo "final", marcar como editado
+                // y NO cambiar este estado nunca más
                 if (field === 'final') {
                     producto.finalEditado = true;
                 }
@@ -445,11 +450,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     accion: 'modificación'
                 });
 
-                // Actualizar UI si es en tiempo real
+                // Actualizar UI
                 if (realTime) {
                     actualizarFilaUI(id);
                 } else {
-                    // Si no es tiempo real, actualizar toda la fila
                     actualizarFilaCompleta(id);
                 }
 
@@ -588,7 +592,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Configurar salida (final) - SIMILAR A COCINA
         if (btnConfigurarSalida) {
             btnConfigurarSalida.addEventListener('click', function () {
                 editingFinalEnabled = !editingFinalEnabled;
@@ -600,24 +603,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         input.disabled = false;
                         input.classList.add('editing-enabled');
 
-                        // Si el valor es 0 y hay ventas disponibles, ajustar automáticamente
-                        if (parseInt(input.value) === 0) {
-                            const id = parseInt(input.dataset.id);
-                            const producto = salonData.find(p => p.id === id);
-                            if (producto && producto.venta > 0) {
-                                input.value = producto.venta;
-                                input.max = producto.venta;
-                                input.dataset.venta = producto.venta;
-                                actualizarProductoDesdeInput(input, false);
-                            }
-                        }
+                        // 🚨 NO ajustar automáticamente aquí
+                        // El usuario debe decidir manualmente
                     });
 
                     this.innerHTML = '<i class="fas fa-times"></i><span class="btn-text">Cancelar Edición</span>';
                     this.classList.remove('btn-warning');
                     this.classList.add('btn-secondary');
 
-                    showNotification('Modo edición de valores finales activado', 'info');
+                    showNotification('Modo edición de valores finales activado. Puedes establecer el inventario final manualmente.', 'info');
                 } else {
                     // Deshabilitar edición de finales
                     const finalInputs = document.querySelectorAll('.final-input');
@@ -630,7 +624,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     this.classList.remove('btn-secondary');
                     this.classList.add('btn-warning');
 
-                    showNotification('Modo edición desactivado', 'info');
+                    showNotification('Modo edición desactivado. Los valores finales ahora están protegidos.', 'info');
                 }
 
                 // Actualizar tabla para reflejar cambios
