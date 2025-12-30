@@ -43,11 +43,21 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Formulario de transferencia
         if (transferenciaForm) {
             transferenciaForm.addEventListener('submit', function (e) {
                 e.preventDefault();
+                e.stopPropagation(); // Evitar propagación
+
+                // Usar un debounce simple
+                if (this._submitting) return;
+                this._submitting = true;
+
                 guardarTransferencia();
+
+                // Resetear después de un tiempo
+                setTimeout(() => {
+                    this._submitting = false;
+                }, 1000);
             });
         }
     }
@@ -82,18 +92,66 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Guardar transferencia
     function guardarTransferencia() {
+        // Prevenir doble ejecución
+        const submitBtn = transferenciaForm?.querySelector('.btn-primary');
+        if (submitBtn && submitBtn.hasAttribute('data-saving')) {
+            return; // Ya está guardando
+        }
+
+        if (submitBtn) {
+            submitBtn.setAttribute('data-saving', 'true');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        }
+
         const montoInput = document.getElementById('transferencia-monto');
         const notasInput = document.getElementById('transferencia-notas');
 
-        if (!montoInput) return;
+        if (!montoInput) {
+            resetSubmitButton(submitBtn);
+            return;
+        }
 
-        const monto = parseFloat(montoInput.value);
+        // Validación más robusta
+        const montoStr = montoInput.value.trim();
         const notas = notasInput ? notasInput.value.trim() : '';
 
-        // Validaciones
-        if (!monto || monto <= 0) {
-            showNotification('Por favor, ingresa un monto válido', 'error');
+        if (!montoStr) {
+            showNotification('Por favor, ingresa un monto', 'error');
+            resetSubmitButton(submitBtn);
+            montoInput.focus();
             return;
+        }
+
+        const monto = parseFloat(montoStr.replace(',', '.'));
+
+        if (isNaN(monto) || monto <= 0) {
+            showNotification('Por favor, ingresa un monto válido (mayor a 0)', 'error');
+            resetSubmitButton(submitBtn);
+            montoInput.focus();
+            montoInput.select();
+            return;
+        }
+        if (montoInput) {
+            // Solo permitir números y un punto decimal
+            montoInput.addEventListener('input', function (e) {
+                let value = this.value;
+                // Remover caracteres no numéricos excepto punto
+                value = value.replace(/[^\d.]/g, '');
+
+                // Solo permitir un punto decimal
+                const parts = value.split('.');
+                if (parts.length > 2) {
+                    value = parts[0] + '.' + parts.slice(1).join('');
+                }
+
+                // Limitar a 2 decimales
+                if (parts.length === 2 && parts[1].length > 2) {
+                    value = parts[0] + '.' + parts[1].substring(0, 2);
+                }
+
+                this.value = value;
+            });
         }
 
         // Crear timestamp con el formato que pediste
@@ -148,8 +206,21 @@ document.addEventListener('DOMContentLoaded', function () {
         if (typeof window.updateSummary === 'function') {
             window.updateSummary();
         }
+        resetSubmitButton(submitBtn);
     }
 
+    function resetSubmitButton(btn) {
+        if (!btn) return;
+
+        btn.removeAttribute('data-saving');
+        btn.disabled = false;
+        if (editingId) {
+            btn.innerHTML = '<i class="fas fa-save"></i> Actualizar Transferencia';
+        } else {
+            btn.innerHTML = '<i class="fas fa-save"></i> Guardar Transferencia';
+        }
+
+    }
     // Cargar transferencias
     function cargarTransferencias() {
         const transferencias = obtenerTransferencias();
