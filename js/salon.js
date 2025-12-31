@@ -89,47 +89,97 @@ document.addEventListener('DOMContentLoaded', function () {
         // Agregar productos nuevos
         productos.forEach(producto => {
             if (!salonIds.includes(producto.id)) {
-                salonData.push({
-                    id: producto.id,
-                    nombre: producto.nombre,
-                    precio: producto.precio,
-                    inicio: 0,
-                    entrada: 0,
-                    venta: 0,
-                    final: 0,
-                    vendido: 0,
-                    importe: 0,
-                    historial: [],
-                    ultimaActualizacion: obtenerHoraActual()
-                });
+                // Buscar si ya existe por nombre (para migración)
+                const productoExistentePorNombre = salonData.find(p =>
+                    p.nombre.toLowerCase() === producto.nombre.toLowerCase()
+                );
+
+                if (productoExistentePorNombre) {
+                    // Actualizar ID y datos del producto existente
+                    productoExistentePorNombre.id = producto.id;
+                    productoExistentePorNombre.precio = producto.precio;
+                    productoExistentePorNombre.nombre = producto.nombre; // ← AÑADIR ESTO
+                } else {
+                    // Crear nuevo producto
+                    salonData.push({
+                        id: producto.id,
+                        nombre: producto.nombre,
+                        precio: producto.precio,
+                        inicio: 0,
+                        entrada: 0,
+                        venta: 0,
+                        final: 0,
+                        vendido: 0,
+                        importe: 0,
+                        historial: [],
+                        ultimaActualizacion: obtenerHoraActual(),
+                        finalEditado: false
+                    });
+                }
             }
         });
 
-        // Eliminar productos que ya no existen
-        salonData = salonData.filter(item => productosIds.includes(item.id));
+        // Eliminar productos que ya no existen (pero preservar datos si son importantes)
+        salonData = salonData.filter(item => {
+            if (productosIds.includes(item.id)) {
+                return true;
+            }
+            if (item.vendido > 0 || item.importe > 0) {
+                console.log(`⚠️ Preservando producto no encontrado pero con ventas: ${item.nombre}`);
+                return true;
+            }
+            return false;
+        });
 
-        // Actualizar nombres y precios (ESTA ES LA PARTE CLAVE)
+        // Actualizar nombres y precios con estrategia inteligente
         salonData.forEach(item => {
-            const productoActual = productos.find(p => p.id === item.id);
+            let productoActual = productos.find(p => p.id === item.id); // ← QUITAR "const"
+
+            if (!productoActual) {
+                // Buscar por nombre si no se encuentra por ID
+                productoActual = productos.find(p =>
+                    p.nombre.toLowerCase() === item.nombre.toLowerCase()
+                );
+
+                if (productoActual) {
+                    // Actualizar ID para futuras referencias
+                    item.id = productoActual.id;
+                }
+            }
+
             if (productoActual) {
-                // Guardar cambios si hay diferencia en precio
                 const precioAnterior = item.precio;
                 const precioNuevo = productoActual.precio;
+                const nombreAnterior = item.nombre;
+                const nombreNuevo = productoActual.nombre;
 
+                // Verificar si hubo cambios en nombre o precio
+                let huboCambios = false;
+
+                // Actualizar nombre si cambió
+                if (nombreAnterior !== nombreNuevo) {
+                    item.nombre = nombreNuevo;
+                    huboCambios = true;
+                }
+
+                // Actualizar precio si cambió
                 if (precioAnterior !== precioNuevo) {
-                    item.nombre = productoActual.nombre;
                     item.precio = precioNuevo;
-
                     // Recalcular importe con nuevo precio
-                    item.importe = item.vendido * precioNuevo;
+                    if (item.vendido > 0) {
+                        item.importe = item.vendido * precioNuevo;
+                    }
+                    huboCambios = true;
+                }
 
-                    // Agregar al historial
+                // Solo agregar al historial si realmente hubo un cambio
+                if (huboCambios) {
                     item.historial.push({
                         fecha: new Date().toISOString(),
                         hora: obtenerHoraActual(),
-                        campo: 'precio',
-                        valorAnterior: precioAnterior,
-                        valorNuevo: precioNuevo,
+                        campo: nombreAnterior !== nombreNuevo ? 'nombre' : 'precio',
+                        valorAnterior: nombreAnterior !== nombreNuevo ? nombreAnterior : precioAnterior,
+                        valorNuevo: nombreAnterior !== nombreNuevo ? nombreNuevo : precioNuevo,
                         accion: 'sincronización'
                     });
                 }
