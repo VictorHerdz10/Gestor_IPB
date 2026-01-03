@@ -245,14 +245,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const dineroReal = consumoTotal + extraccionesTotal + transferenciasTotal + efectivoTotal;
         const diferencia = dineroReal - ventasTotal;
         const dineroAporcentuar = ventasTotal - consumoTotal;
+        const dineroAporcentuarConFlatante = dineroReal - consumoTotal;
 
         // Calcular cada 10000 el porciento seria 100 ese es el calculo abajo q necesito
-        const porciento = Math.floor(dineroAporcentuar / 10000) * 100;
+        const porcientoSobrante = Math.floor(dineroAporcentuar / 10000) * 100;
+        const porcientoFaltante = Math.floor(dineroAporcentuarConFlatante / 10000) * 100;
 
         // Actualizar UI
         document.getElementById('total-ventas').textContent = `$${ventasTotal.toFixed(2)}`;
         document.getElementById('dinero-real').textContent = `$${dineroReal.toFixed(2)}`;
-        document.getElementById('porciento-ventas').textContent = `$${porciento.toFixed(2)}`;
+        document.getElementById('porciento-ventas').textContent = diferencia > 0 ? `$${porcientoSobrante.toFixed(2)}` : `$${porcientoFaltante.toFixed(2)}`;
 
         const diferenciaElement = document.getElementById('diferencia');
         const diferenciaDesc = document.getElementById('diferencia-desc');
@@ -274,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function () {
             diferenciaDesc.style.color = 'var(--gray-medium)';
         }
 
-        porcientoDesc.textContent = `Calculado de (Ventas Totales - consumo), $100 cada $10000 de $${dineroAporcentuar.toFixed(2)} `;
+        porcientoDesc.textContent = diferencia > 0 ? `Calculado de (Ventas Totales - consumo), $100 cada $10000 de $${dineroAporcentuar.toFixed(2)}` : `Calculado de (Dinero Real - consumo), $100 cada $10000 de $${dineroAporcentuarConFlatante.toFixed(2)}`;
 
         // Actualizar detalles
         document.getElementById('ventas-salon').textContent = `$${ventasSalon.toFixed(2)}`;

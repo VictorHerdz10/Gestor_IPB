@@ -406,22 +406,25 @@ document.addEventListener('DOMContentLoaded', function () {
         // Determinar valor a mostrar en campo final
         let valorFinal = producto.final;
 
-        // 🚨 CRÍTICO: SOLO auto-ajustar si:
-        // 1. NO es ingrediente (precio > 0) - o si quieres también para ingredientes
-        // 2. El usuario NO ha editado manualmente el final (finalEditado === false)
-        // 3. NO estamos en modo edición de final activado
-        // 4. El valor actual es 0
-        // 5. Hay ventas disponibles
-        if ((producto.precio > 0 || producto.esIngrediente) &&
+        // 🚨 CORRECCIÓN: Auto-ajustar SOLO cuando se cumplen TODAS estas condiciones:
+        // 1. Es un ingrediente (precio = 0) Y no ha sido editado manualmente
+        // 2. O es un producto con precio PERO el usuario ha habilitado explícitamente la edición
+        // 3. El valor actual es 0
+        // 4. Hay ventas disponibles
+
+        // Solo auto-ajustar para ingredientes NO editados manualmente
+        if (producto.esIngrediente &&
             !producto.finalEditado &&
             !editingFinalEnabled &&
             valorFinal === 0 &&
             producto.venta > 0) {
             valorFinal = producto.venta;
             producto.final = valorFinal;
-            // Recalcular con el nuevo valor
             recalcularProductoCocina(producto);
         }
+
+        // Para productos con precio (no ingredientes), NO auto-ajustar automáticamente
+        // Dejar que el usuario decida manualmente
 
         // 🚨 IMPORTANTE: Si el usuario YA editó el final (finalEditado = true), 
         // respetar SIEMPRE su valor, aunque sea 0
@@ -657,6 +660,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // 1. NO ha sido editado por el usuario
             // 2. El usuario NO lo dejó en 0 intencionalmente
             if (!producto.finalEditado) {
+                console.log()
                 // Si el final era 0 y ahora hay ventas, ajustarlo
                 if (producto.final === 0 && producto.venta > 0) {
                     producto.final = producto.venta;
