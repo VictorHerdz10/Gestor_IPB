@@ -1387,7 +1387,9 @@ class BackupManager {
             '🏪 Incluye todos los datos de ventas del día actual\n<br>' +
             '📊 Incluye todos los reportes históricos\n<br>' +
             '💰 Incluye todos los registros financieros\n<br>' +
-            '⚙️ Incluye todas las configuraciones\n\n<br>' +
+            '⚙️ Incluye todas las configuraciones\n<br>' +
+            '👤 Incluye todos los usuarios\n<br>' +
+            '📋 Incluye todos los datos adicionales\n\n<br>' +
             '⚠️ Este backup contiene TODO su sistema para restaurar completamente.',
             'info'
         );
@@ -1397,10 +1399,11 @@ class BackupManager {
         try {
             this.showProgressModal('Generando backup completo del sistema...');
 
-            // Obtener datos ACTUALES de ventas del día (¡IMPORTANTE!)
-            const salonDataActual = StorageManager.getSalonData(); // Incluye venta, vendido, importe
-            const cocinaDataActual = StorageManager.getCocinaData(); // Incluye venta, vendido, importe
+            // Obtener datos ACTUALES
+            const salonDataActual = StorageManager.getSalonData();
+            const cocinaDataActual = StorageManager.getCocinaData();
 
+            // Obtener TODAS las claves posibles
             const backupData = {
                 type: 'completo',
                 version: '1.0',
@@ -1408,7 +1411,7 @@ class BackupManager {
                 metadata: {
                     ...this.FILE_METADATA,
                     backupType: 'completo',
-                    note: 'Backup completo del sistema incluyendo productos, ventas del día, reportes históricos y configuraciones',
+                    note: 'Backup completo del sistema incluyendo TODOS los datos',
                     itemCount: {
                         productosSalon: StorageManager.getProducts().length,
                         productosCocina: StorageManager.getCocinaProducts().length,
@@ -1420,7 +1423,13 @@ class BackupManager {
                         transferencias: StorageManager.getTransferenciasData().length,
                         efectivo: JSON.parse(localStorage.getItem('ipb_efectivo_data') || '[]').length,
                         billetes: JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]').length,
-                        reportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]').length
+                        reportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]').length,
+                        reportesCocina: JSON.parse(localStorage.getItem('ipb_historial_reportes_cocina') || '[]').length,
+                        usuarios: JSON.parse(localStorage.getItem('ipv_users') || '[]').length,
+                        gastos: JSON.parse(localStorage.getItem('ipb_gastos_extras') || '[]').length,
+                        pedidos: JSON.parse(localStorage.getItem('ipb_pedidos') || '[]').length,
+                        mesas: JSON.parse(localStorage.getItem('ipb_mesas') || '[]').length,
+                        clientes: JSON.parse(localStorage.getItem('ipb_clientes') || '[]').length
                     },
                     ventasDelDia: {
                         totalSalon: salonDataActual.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0).toFixed(2),
@@ -1429,18 +1438,18 @@ class BackupManager {
                     }
                 },
                 data: {
-                    // PRODUCTOS BASE
+                    // ============= 1. PRODUCTOS BASE =============
                     productosSalon: StorageManager.getProducts(),
                     productosCocina: StorageManager.getCocinaProducts(),
 
-                    // DATOS DE VENTAS DEL DÍA ACTUAL (¡CRÍTICO!)
-                    salon: salonDataActual, // Con venta, vendido, importe
-                    cocina: cocinaDataActual, // Con venta, vendido, importe
+                    // ============= 2. VENTAS DEL DÍA =============
+                    salon: salonDataActual,
+                    cocina: cocinaDataActual,
 
-                    // DATOS ADICIONALES DE COCINA
+                    // ============= 3. DATOS DE COCINA =============
                     agregos: JSON.parse(localStorage.getItem('cocina_agregos') || '[]'),
 
-                    // DATOS FINANCIEROS DEL DÍA
+                    // ============= 4. DATOS FINANCIEROS =============
                     consumo: StorageManager.getConsumoData(),
                     extracciones: StorageManager.getExtraccionesData(),
                     transferencias: StorageManager.getTransferenciasData(),
@@ -1448,25 +1457,149 @@ class BackupManager {
                     billetes: JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]'),
                     conteoBilletes: JSON.parse(localStorage.getItem('ipb_conteo_billetes') || '[]'),
 
-                    // DATOS DIARIOS CONSOLIDADOS
+                    // ============= 5. DAILY DATA =============
                     dailyData: StorageManager.getDailyData(),
 
-                    // REPORTES HISTÓRICOS
+                    // ============= 6. REPORTES HISTÓRICOS =============
                     reportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]'),
+                    reportesCocina: JSON.parse(localStorage.getItem('ipb_historial_reportes_cocina') || '[]'),
 
-                    // CONFIGURACIONES COMPLETAS DEL SISTEMA
+                    // ============= 7. CONFIGURACIONES =============
                     configuraciones: {
                         lastReset: localStorage.getItem('ipb_last_reset'),
                         tasasUSD: JSON.parse(localStorage.getItem('ipb_tasas_usd') || '{}'),
                         efectivoInicial: localStorage.getItem('ipb_efectivo_inicial') || '0',
                         fechaActual: new Date().toISOString().split('T')[0],
                         totalProductos: StorageManager.getProducts().length + StorageManager.getCocinaProducts().length,
-                        totalReportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]').length
+                        totalReportes: JSON.parse(localStorage.getItem('ipb_historial_reportes') || '[]').length +
+                            JSON.parse(localStorage.getItem('ipb_historial_reportes_cocina') || '[]').length,
+                        notificationChannelCreated: localStorage.getItem('gestor_ipv_notification_channel_created'),
+                        notificationsEnabled: localStorage.getItem('gestor_ipv_notifications_enabled'),
+                        autoBackupSchedule: localStorage.getItem('gestor_ipv_auto_backup_schedule'),
+                        sidebarCollapsed: localStorage.getItem('sidebar-collapsed'),
+                        currentTheme: localStorage.getItem('gestor-ipv-theme'),
+                        lastActiveTab: localStorage.getItem('last-active-tab')
                     },
-                    gastos: JSON.parse(localStorage.getItem("ipb_gastos_extras") || '[]'),
-                    preciosCompra: JSON.parse(localStorage.getItem("ipb_precios_compra") || '[]')
+
+                    // ============= 8. DATOS ADICIONALES =============
+                    gastos: JSON.parse(localStorage.getItem('ipb_gastos_extras') || '[]'),
+                    preciosCompra: JSON.parse(localStorage.getItem('ipb_precios_compra') || '[]'),
+
+                    // ============= 9. SISTEMA DE USUARIOS =============
+                    auth: {
+                        usuarios: JSON.parse(localStorage.getItem('ipv_users') || '[]'),
+                        currentUser: localStorage.getItem('ipv_current_user'),
+                        token: localStorage.getItem('ipv_token')
+                    },
+
+                    // ============= 10. DATOS ESPECÍFICOS DE VENTAS =============
+                    ventasEspecificas: {
+                        ventasPorHora: JSON.parse(localStorage.getItem('ipb_ventas_por_hora') || '[]'),
+                        productosMasVendidos: JSON.parse(localStorage.getItem('ipb_productos_mas_vendidos') || '[]')
+                    },
+
+                    // ============= 11. DATOS DE PEDIDOS =============
+                    pedidos: JSON.parse(localStorage.getItem('ipb_pedidos') || '[]'),
+
+                    // ============= 12. DATOS DE INVENTARIO =============
+                    inventario: {
+                        historial: JSON.parse(localStorage.getItem('ipb_inventario_historial') || '[]'),
+                        ajustes: JSON.parse(localStorage.getItem('ipb_inventario_ajustes') || '[]')
+                    },
+
+                    // ============= 13. DATOS DE MESAS =============
+                    mesas: JSON.parse(localStorage.getItem('ipb_mesas') || '[]'),
+
+                    // ============= 14. DATOS DE CLIENTES =============
+                    clientes: JSON.parse(localStorage.getItem('ipb_clientes') || '[]'),
+
+                    // ============= 15. CONFIGURACIÓN DE IMPRESORA =============
+                    printerConfig: JSON.parse(localStorage.getItem('ipb_printer_config') || '{}'),
+
+                    // ============= 16. DATOS DE SINCRONIZACIÓN =============
+                    sincronizacion: {
+                        ultimaSincronizacion: localStorage.getItem('ipb_ultima_sincronizacion'),
+                        datosPendientes: JSON.parse(localStorage.getItem('ipb_datos_pendientes') || '[]')
+                    },
+
+                    // ============= 17. CACHE =============
+                    cache: {
+                        productosCache: localStorage.getItem('ipb_productos_cache'),
+                        reportesCache: localStorage.getItem('ipb_reportes_cache'),
+                        estadisticasCache: localStorage.getItem('ipb_estadisticas_cache')
+                    },
+
+                    // ============= 18. DATOS DE AUDITORÍA =============
+                    auditoria: {
+                        logsAcciones: JSON.parse(localStorage.getItem('ipb_logs_acciones') || '[]'),
+                        cambiosProductos: JSON.parse(localStorage.getItem('ipb_cambios_productos') || '[]')
+                    },
+
+                    // ============= 19. VARIABLES GLOBALES =============
+                    variablesGlobales: {
+                        appVersion: localStorage.getItem('app_version'),
+                        deviceId: localStorage.getItem('device_id'),
+                        installationDate: localStorage.getItem('installation_date'),
+                        lastUpdateCheck: localStorage.getItem('last_update_check')
+                    },
+
+                    // ============= 20. NOTIFICACIONES =============
+                    notificaciones: {
+                        pending: JSON.parse(localStorage.getItem('gestor_ipv_notifications_pending') || '[]'),
+                        scheduled: JSON.parse(localStorage.getItem('gestor_ipv_notifications_scheduled') || '[]')
+                    },
+
+                    // ============= 21. HISTORIAL DE CAMBIOS =============
+                    historialCambios: {
+                        productos: JSON.parse(localStorage.getItem('ipb_historial_cambios_productos') || '[]'),
+                        precios: JSON.parse(localStorage.getItem('ipb_historial_cambios_precios') || '[]')
+                    },
+
+                    // ============= 22. CONFIGURACIÓN DEL SISTEMA =============
+                    systemConfig: {
+                        idioma: localStorage.getItem('ipb_idioma'),
+                        moneda: localStorage.getItem('ipb_moneda'),
+                        zonaHoraria: localStorage.getItem('ipb_zona_horaria'),
+                        formatoFecha: localStorage.getItem('ipb_formato_fecha')
+                    },
+
+                    // ============= 23. ESTADÍSTICAS =============
+                    estadisticas: {
+                        totalVentas: localStorage.getItem('ipb_total_ventas'),
+                        ventasPromedio: localStorage.getItem('ipb_ventas_promedio'),
+                        productosPopulares: JSON.parse(localStorage.getItem('ipb_productos_populares') || '[]'),
+                        horasPico: JSON.parse(localStorage.getItem('ipb_horas_pico') || '[]')
+                    },
+
+                    // ============= 24. RESERVAS =============
+                    reservas: JSON.parse(localStorage.getItem('ipb_reservas') || '[]'),
+
+                    // ============= 25. PROMOCIONES =============
+                    promociones: JSON.parse(localStorage.getItem('ipb_promociones') || '[]'),
+
+                    // ============= 26. PROVEEDORES =============
+                    proveedores: JSON.parse(localStorage.getItem('ipb_proveedores') || '[]'),
+
+                    // ============= 27. COMPRAS =============
+                    compras: JSON.parse(localStorage.getItem('ipb_compras') || '[]'),
+
+                    // ============= 28. PRODUCTOS COMPUESTOS =============
+                    productosCompuestos: JSON.parse(localStorage.getItem('ipb_productos_compuestos') || '[]'),
+
+                    // ============= 29. AVATARES =============
+                    avatares: await this.recopilarAvataresLocalStorage(),
+
+                    // ============= 30. AGREGAR CABECERA MÁGICA =============
+                    _header: this.MAGIC_HEADER,
+                    _signature: this.FILE_SIGNATURE,
+                    _appIdentifier: this.APP_IDENTIFIER
                 }
             };
+
+            // AGREGAR CABECERA MÁGICA AL NIVEL PRINCIPAL TAMBIÉN
+            backupData._header = this.MAGIC_HEADER;
+            backupData._signature = this.FILE_SIGNATURE;
+            backupData._appIdentifier = this.APP_IDENTIFIER;
 
             const jsonString = JSON.stringify(backupData, null, 2);
 
@@ -1489,6 +1622,23 @@ class BackupManager {
         }
     }
 
+    // MÉTODO AUXILIAR PARA RECOPILAR AVATARES DESDE LOCALSTORAGE
+    async recopilarAvataresLocalStorage() {
+        const avatares = {};
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('ipv_avatar_') || key.includes('avatar'))) {
+                    avatares[key] = localStorage.getItem(key);
+                }
+            }
+            return avatares;
+        } catch (error) {
+            console.error('Error recopilando avatares:', error);
+            return {};
+        }
+    }
+
     async restoreCompleto() {
         const confirm = await this.showConfirmationModal(
             'Restore Completo del Sistema<br>',
@@ -1497,7 +1647,9 @@ class BackupManager {
             '🏪 Ventas del día: Datos actuales de ventas\n<br>' +
             '📊 Reportes: Historial completo\n<br>' +
             '💰 Finanzas: Consumo, extracciones, transferencias\n<br>' +
-            '⚙️ Configuraciones: Tasas, reset, iniciales\n\n<br>' +
+            '⚙️ Configuraciones: Tasas, reset, iniciales\n<br>' +
+            '👤 Usuarios: Todos los usuarios\n<br>' +
+            '📋 Todos los datos adicionales\n\n<br>' +
             '¿Está absolutamente seguro?',
             'error'
         );
@@ -1513,18 +1665,23 @@ class BackupManager {
                 return;
             }
 
-            // Calcular estadísticas para confirmación final
+            // Calcular estadísticas
             const ventasSalon = backupData.data?.salon?.length || 0;
             const ventasCocina = backupData.data?.cocina?.length || 0;
-            const totalVentasSalon = backupData.data?.salon?.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0) || 0;
-            const totalVentasCocina = backupData.data?.cocina?.reduce((sum, item) => sum + (parseFloat(item.importe) || 0), 0) || 0;
             const productosSalonCount = backupData.data?.productosSalon?.length || 0;
             const productosCocinaCount = backupData.data?.productosCocina?.length || 0;
             const reportesCount = backupData.data?.reportes?.length || 0;
+            const usuariosCount = backupData.data?.auth?.usuarios?.length || 0;
 
             const finalConfirm = await this.showConfirmationModal(
                 'CONFIRMACIÓN FINAL - Restore Completo',
-                '✅ Se remplasaran todos los datos actuales guardados :<br><br>' +
+                `📊 RESUMEN DEL BACKUP:\n\n` +
+                `📦 Productos Salón: ${productosSalonCount}\n` +
+                `👨‍🍳 Productos Cocina: ${productosCocinaCount}\n` +
+                `🏪 Ventas Salón: ${ventasSalon}\n` +
+                `🍳 Ventas Cocina: ${ventasCocina}\n` +
+                `📊 Reportes: ${reportesCount}\n` +
+                `👤 Usuarios: ${usuariosCount}\n\n` +
                 `⚠️ Esta acción NO se puede deshacer. ¿Continuar con el restore completo?`,
                 'error'
             );
@@ -1548,23 +1705,17 @@ class BackupManager {
                 StorageManager.saveCocinaProducts(data.productosCocina);
             }
 
-            // ==================== 2. DATOS DE VENTAS DEL DÍA ====================
+            // ==================== 2. VENTAS DEL DÍA ====================
             if (data.salon && Array.isArray(data.salon)) {
                 console.log(`🏪 Restaurando ${data.salon.length} ventas de salón`);
-
-                // Sincronizar IDs con productos actuales
                 const productosActualesSalon = StorageManager.getProducts();
                 const datosSalonValidados = data.salon.map(item => {
-                    // Buscar producto correspondiente por ID
                     let productoCorrespondiente = productosActualesSalon.find(p => p.id === item.id);
-
-                    // Si no se encuentra por ID, buscar por nombre
                     if (!productoCorrespondiente) {
                         productoCorrespondiente = productosActualesSalon.find(p =>
-                            p.nombre.toLowerCase() === item.nombre.toLowerCase()
+                            p.nombre.toLowerCase() === item.nombre?.toLowerCase()
                         );
                     }
-
                     const productoFinal = productoCorrespondiente || { id: item.id, nombre: item.nombre, precio: item.precio };
 
                     return {
@@ -1582,24 +1733,19 @@ class BackupManager {
                         ultimaActualizacion: item.ultimaActualizacion || new Date().toLocaleTimeString('es-ES')
                     };
                 });
-
                 StorageManager.saveSalonData(datosSalonValidados);
             }
 
             if (data.cocina && Array.isArray(data.cocina)) {
                 console.log(`🍳 Restaurando ${data.cocina.length} ventas de cocina`);
-
-                // Sincronizar IDs con productos actuales de cocina
                 const productosActualesCocina = StorageManager.getCocinaProducts();
                 const datosCocinaValidados = data.cocina.map(item => {
                     let productoCorrespondiente = productosActualesCocina.find(p => p.id === item.id);
-
                     if (!productoCorrespondiente) {
                         productoCorrespondiente = productosActualesCocina.find(p =>
-                            p.nombre.toLowerCase() === item.nombre.toLowerCase()
+                            p.nombre.toLowerCase() === item.nombre?.toLowerCase()
                         );
                     }
-
                     const productoFinal = productoCorrespondiente || { id: item.id, nombre: item.nombre, precio: item.precio };
 
                     return {
@@ -1617,55 +1763,54 @@ class BackupManager {
                         ultimaActualizacion: item.ultimaActualizacion || new Date().toLocaleTimeString('es-ES')
                     };
                 });
-
                 StorageManager.saveCocinaData(datosCocinaValidados);
             }
 
-            // ==================== 3. DATOS ADICIONALES DE COCINA ====================
+            // ==================== 3. AGREGOS CON VALIDACIÓN ====================
             if (data.agregos && Array.isArray(data.agregos)) {
-                localStorage.setItem('cocina_agregos', JSON.stringify(data.agregos));
-                console.log(`➕ Agregos cocina: ${data.agregos.length}`);
+                console.log(`➕ Restaurando ${data.agregos.length} agregos`);
+                const agregosLimpios = data.agregos.map(agrego => ({
+                    ...agrego,
+                    precio: parseFloat(agrego.precio) || 0,
+                    montoTotal: parseFloat(agrego.montoTotal) || 0,
+                    ingredientes: (agrego.ingredientes || []).map(ing => ({
+                        ...ing,
+                        cantidadPorUnidad: parseInt(ing.cantidadPorUnidad) || 1,
+                        cantidadTotal: parseInt(ing.cantidadTotal) || 0
+                    }))
+                }));
+                localStorage.setItem('cocina_agregos', JSON.stringify(agregosLimpios));
             }
 
             // ==================== 4. DATOS FINANCIEROS ====================
             if (data.consumo && Array.isArray(data.consumo)) {
                 StorageManager.saveConsumoData(data.consumo);
-                console.log(`💵 Consumo: ${data.consumo.length} registros`);
             }
-
             if (data.extracciones && Array.isArray(data.extracciones)) {
                 StorageManager.saveExtraccionesData(data.extracciones);
-                console.log(`💰 Extracciones: ${data.extracciones.length} registros`);
             }
-
             if (data.transferencias && Array.isArray(data.transferencias)) {
                 StorageManager.saveTransferenciasData(data.transferencias);
-                console.log(`🔄 Transferencias: ${data.transferencias.length} registros`);
             }
-
             if (data.efectivo && Array.isArray(data.efectivo)) {
                 localStorage.setItem('ipb_efectivo_data', JSON.stringify(data.efectivo));
-                console.log(`💵 Efectivo: ${data.efectivo.length} registros`);
             }
-
             if (data.billetes && Array.isArray(data.billetes)) {
                 localStorage.setItem('ipb_billetes_registros', JSON.stringify(data.billetes));
-                console.log(`💵 Billetes: ${data.billetes.length} registros`);
             }
-
             if (data.conteoBilletes && Array.isArray(data.conteoBilletes)) {
                 localStorage.setItem('ipb_conteo_billetes', JSON.stringify(data.conteoBilletes));
             }
-
             if (data.dailyData && typeof data.dailyData === 'object') {
                 StorageManager.saveDailyData(data.dailyData);
-                console.log(`📅 Daily Data restaurado`);
             }
 
-            // ==================== 5. REPORTES HISTÓRICOS ====================
+            // ==================== 5. REPORTES ====================
             if (data.reportes && Array.isArray(data.reportes)) {
                 localStorage.setItem('ipb_historial_reportes', JSON.stringify(data.reportes));
-                console.log(`📊 Reportes históricos: ${data.reportes.length}`);
+            }
+            if (data.reportesCocina && Array.isArray(data.reportesCocina)) {
+                localStorage.setItem('ipb_historial_reportes_cocina', JSON.stringify(data.reportesCocina));
             }
 
             // ==================== 6. CONFIGURACIONES ====================
@@ -1673,57 +1818,160 @@ class BackupManager {
                 if (data.configuraciones.lastReset) {
                     localStorage.setItem('ipb_last_reset', data.configuraciones.lastReset);
                 }
-                if (data.configuraciones.tasasUSD && typeof data.configuraciones.tasasUSD === 'object') {
+                if (data.configuraciones.tasasUSD) {
                     localStorage.setItem('ipb_tasas_usd', JSON.stringify(data.configuraciones.tasasUSD));
                 }
                 if (data.configuraciones.efectivoInicial) {
                     localStorage.setItem('ipb_efectivo_inicial', data.configuraciones.efectivoInicial.toString());
                 }
-                console.log(`⚙️ Configuraciones restauradas`);
+                if (data.configuraciones.notificationChannelCreated) {
+                    localStorage.setItem('gestor_ipv_notification_channel_created', data.configuraciones.notificationChannelCreated);
+                }
+                if (data.configuraciones.notificationsEnabled) {
+                    localStorage.setItem('gestor_ipv_notifications_enabled', data.configuraciones.notificationsEnabled);
+                }
+                if (data.configuraciones.autoBackupSchedule) {
+                    localStorage.setItem('gestor_ipv_auto_backup_schedule', data.configuraciones.autoBackupSchedule);
+                }
+                if (data.configuraciones.sidebarCollapsed !== undefined) {
+                    localStorage.setItem('sidebar-collapsed', data.configuraciones.sidebarCollapsed);
+                }
+                if (data.configuraciones.currentTheme) {
+                    localStorage.setItem('gestor-ipv-theme', data.configuraciones.currentTheme);
+                }
+                if (data.configuraciones.lastActiveTab) {
+                    localStorage.setItem('last-active-tab', data.configuraciones.lastActiveTab);
+                }
             }
 
-            if (backupData.data.gastos && Array.isArray(backupData.data.gastos)) {
-                localStorage.setItem('ipb_gastos_extras', JSON.stringify(backupData.data.gastos));
+            // ==================== 7. DATOS ADICIONALES ====================
+            if (data.gastos && Array.isArray(data.gastos)) {
+                localStorage.setItem('ipb_gastos_extras', JSON.stringify(data.gastos));
             }
-            if (backupData.data.preciosCompra && Array.isArray(backupData.data.preciosCompra)) {
-                localStorage.setItem('ipb_precios_compra', JSON.stringify(backupData.data.preciosCompra));
+            if (data.preciosCompra && Array.isArray(data.preciosCompra)) {
+                localStorage.setItem('ipb_precios_compra', JSON.stringify(data.preciosCompra));
+            }
+
+            // ==================== 8. USUARIOS ====================
+            if (data.auth) {
+                if (data.auth.usuarios && Array.isArray(data.auth.usuarios)) {
+                    localStorage.setItem('ipv_users', JSON.stringify(data.auth.usuarios));
+                }
+                if (data.auth.currentUser) {
+                    localStorage.setItem('ipv_current_user', data.auth.currentUser);
+                }
+                if (data.auth.token) {
+                    localStorage.setItem('ipv_token', data.auth.token);
+                }
+            }
+
+            // ==================== 9. DATOS ESPECÍFICOS ====================
+            if (data.ventasEspecificas) {
+                if (data.ventasEspecificas.ventasPorHora) {
+                    localStorage.setItem('ipb_ventas_por_hora', JSON.stringify(data.ventasEspecificas.ventasPorHora));
+                }
+                if (data.ventasEspecificas.productosMasVendidos) {
+                    localStorage.setItem('ipb_productos_mas_vendidos', JSON.stringify(data.ventasEspecificas.productosMasVendidos));
+                }
+            }
+
+            // ==================== 10. RESTAURAR DATOS ADICIONALES ====================
+            // Función auxiliar para restaurar datos adicionales
+            const restaurarDato = (clave, valor) => {
+                if (valor !== undefined && valor !== null) {
+                    localStorage.setItem(clave, JSON.stringify(valor));
+                    console.log(`💾 Restaurado: ${clave}`);
+                }
+            };
+
+            // Restaurar todos los datos adicionales
+            if (data.pedidos) restaurarDato('ipb_pedidos', data.pedidos);
+            if (data.inventario) {
+                if (data.inventario.historial) restaurarDato('ipb_inventario_historial', data.inventario.historial);
+                if (data.inventario.ajustes) restaurarDato('ipb_inventario_ajustes', data.inventario.ajustes);
+            }
+            if (data.mesas) restaurarDato('ipb_mesas', data.mesas);
+            if (data.clientes) restaurarDato('ipb_clientes', data.clientes);
+            if (data.printerConfig) restaurarDato('ipb_printer_config', data.printerConfig);
+            if (data.sincronizacion) {
+                if (data.sincronizacion.ultimaSincronizacion) {
+                    localStorage.setItem('ipb_ultima_sincronizacion', data.sincronizacion.ultimaSincronizacion);
+                }
+                if (data.sincronizacion.datosPendientes) {
+                    restaurarDato('ipb_datos_pendientes', data.sincronizacion.datosPendientes);
+                }
+            }
+            if (data.cache) {
+                if (data.cache.productosCache) localStorage.setItem('ipb_productos_cache', data.cache.productosCache);
+                if (data.cache.reportesCache) localStorage.setItem('ipb_reportes_cache', data.cache.reportesCache);
+                if (data.cache.estadisticasCache) localStorage.setItem('ipb_estadisticas_cache', data.cache.estadisticasCache);
+            }
+            if (data.auditoria) {
+                if (data.auditoria.logsAcciones) restaurarDato('ipb_logs_acciones', data.auditoria.logsAcciones);
+                if (data.auditoria.cambiosProductos) restaurarDato('ipb_cambios_productos', data.auditoria.cambiosProductos);
+            }
+            if (data.variablesGlobales) {
+                if (data.variablesGlobales.appVersion) localStorage.setItem('app_version', data.variablesGlobales.appVersion);
+                if (data.variablesGlobales.deviceId) localStorage.setItem('device_id', data.variablesGlobales.deviceId);
+                if (data.variablesGlobales.installationDate) localStorage.setItem('installation_date', data.variablesGlobales.installationDate);
+                if (data.variablesGlobales.lastUpdateCheck) localStorage.setItem('last_update_check', data.variablesGlobales.lastUpdateCheck);
+            }
+            if (data.notificaciones) {
+                if (data.notificaciones.pending) restaurarDato('gestor_ipv_notifications_pending', data.notificaciones.pending);
+                if (data.notificaciones.scheduled) restaurarDato('gestor_ipv_notifications_scheduled', data.notificaciones.scheduled);
+            }
+            if (data.historialCambios) {
+                if (data.historialCambios.productos) restaurarDato('ipb_historial_cambios_productos', data.historialCambios.productos);
+                if (data.historialCambios.precios) restaurarDato('ipb_historial_cambios_precios', data.historialCambios.precios);
+            }
+            if (data.systemConfig) {
+                if (data.systemConfig.idioma) localStorage.setItem('ipb_idioma', data.systemConfig.idioma);
+                if (data.systemConfig.moneda) localStorage.setItem('ipb_moneda', data.systemConfig.moneda);
+                if (data.systemConfig.zonaHoraria) localStorage.setItem('ipb_zona_horaria', data.systemConfig.zonaHoraria);
+                if (data.systemConfig.formatoFecha) localStorage.setItem('ipb_formato_fecha', data.systemConfig.formatoFecha);
+            }
+            if (data.estadisticas) {
+                if (data.estadisticas.totalVentas) localStorage.setItem('ipb_total_ventas', data.estadisticas.totalVentas);
+                if (data.estadisticas.ventasPromedio) localStorage.setItem('ipb_ventas_promedio', data.estadisticas.ventasPromedio);
+                if (data.estadisticas.productosPopulares) restaurarDato('ipb_productos_populares', data.estadisticas.productosPopulares);
+                if (data.estadisticas.horasPico) restaurarDato('ipb_horas_pico', data.estadisticas.horasPico);
+            }
+            if (data.reservas) restaurarDato('ipb_reservas', data.reservas);
+            if (data.promociones) restaurarDato('ipb_promociones', data.promociones);
+            if (data.proveedores) restaurarDato('ipb_proveedores', data.proveedores);
+            if (data.compras) restaurarDato('ipb_compras', data.compras);
+            if (data.productosCompuestos) restaurarDato('ipb_productos_compuestos', data.productosCompuestos);
+
+            // ==================== 11. AVATARES ====================
+            if (data.avatares && typeof data.avatares === 'object') {
+                for (const [key, avatarData] of Object.entries(data.avatares)) {
+                    localStorage.setItem(key, avatarData);
+                }
             }
 
             this.showSuccess(`✅ Sistema completo restaurado exitosamente. Actualizando interfaz...`);
             this.updateSystemInfo();
 
-            // ==================== 9. ACTUALIZAR TODAS LAS UI ====================
+            // ==================== 12. ACTUALIZAR UI ====================
             setTimeout(() => {
-                console.log('🔄 Actualizando todas las UI después del restore completo...');
+                console.log('🔄 Actualizando todas las UI después del restore...');
 
-                // Forzar recarga completa de productos
+                // Forzar recarga completa
                 if (typeof window.forceReloadProducts === 'function') {
                     window.forceReloadProducts();
                 }
-
-                // Actualizar salón
                 if (typeof window.actualizarSalonDesdeProductos === 'function') {
                     setTimeout(() => window.actualizarSalonDesdeProductos(), 300);
                 }
-
-                // Actualizar cocina
                 if (typeof window.cargarDatosCocina === 'function') {
                     setTimeout(() => window.cargarDatosCocina(), 400);
                 }
-
-                // Actualizar historial de reportes
                 if (typeof window.historialIPV?.cargarHistorial === 'function') {
                     setTimeout(() => window.historialIPV.cargarHistorial(), 500);
                 }
-
-                // Actualizar todas las secciones visibles
                 if (typeof window.updateAllVisibleSections === 'function') {
-                    setTimeout(() => {
-                        window.updateAllVisibleSections('Completo');
-                    }, 600);
+                    setTimeout(() => window.updateAllVisibleSections('Completo'), 600);
                 }
-
-                // Actualizar resumen
                 if (typeof window.updateSummary === 'function') {
                     setTimeout(() => window.updateSummary(), 300);
                 }
@@ -1738,13 +1986,14 @@ class BackupManager {
                             productosCocina: productosCocinaCount,
                             ventasSalon: ventasSalon,
                             ventasCocina: ventasCocina,
-                            reportes: reportesCount
+                            reportes: reportesCount,
+                            usuarios: usuariosCount
                         }
                     }
                 }));
 
                 console.log('✅ Restore completo finalizado exitosamente');
-                window.location.reload()
+                window.location.reload();
 
             }, 1500);
 
