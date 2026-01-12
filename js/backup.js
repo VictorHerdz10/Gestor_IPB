@@ -1020,6 +1020,7 @@ class BackupManager {
             if (typeof window.historialIPV?.cargarHistorial === 'function') {
                 window.historialIPV.cargarHistorial();
             }
+            this.updateStats();
 
             // DISPARAR EVENTO GLOBAL
             document.dispatchEvent(new CustomEvent('restoreCompleted', {
@@ -4005,4 +4006,18 @@ document.addEventListener('DOMContentLoaded', () => {
             window.backupManager.bindEvents();
         }
     }
+
+        // Inicializar si ya estamos en la sección de Historial
+    const backupSection = document.getElementById('backup-section');
+    if (backupSection && backupSection.classList.contains('active')) {
+        window.backupManager.updateStats();
+    }
+
+    // Inicializar cuando se haga clic en el enlace del sidebar
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest('a[data-section="backup"]');
+        if (link) {
+        window.backupManager.updateStats();
+        }
+    });
 });

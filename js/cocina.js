@@ -191,20 +191,24 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function reconstruirConsumosDesdeAgregos() {
-        // RESETEAR primero todos los vendidos de ingredientes
+        // 1. RESETEAR todos los vendidos de ingredientes
         cocinaData.forEach(producto => {
             if (producto.esIngrediente) {
                 producto.vendido = 0;
+                // Solo resetear edición si no hay ventas y el final es igual a la venta
+                if (producto.final === producto.venta && producto.vendido === 0) {
+                    producto.finalEditado = false;
+                }
             }
         });
 
-        // Calcular consumo desde agregos
+        // 2. Calcular consumo desde TODOS los agregos activos
         agregos.forEach(agrego => {
             if (agrego.ingredientes && agrego.ingredientes.length > 0) {
                 agrego.ingredientes.forEach(ingrediente => {
                     const productoIngrediente = cocinaData.find(p => p.id === ingrediente.id);
                     if (productoIngrediente) {
-                        // Sumar la cantidad correcta según la estructura del agrego
+                        // Calcular la cantidad TOTAL que consume este agrego
                         let cantidad = 0;
 
                         if (ingrediente.cantidadTotal !== undefined) {
@@ -217,13 +221,14 @@ document.addEventListener('DOMContentLoaded', function () {
                             cantidad = agrego.cantidad || 1;
                         }
 
+                        // Sumar al vendido total de este ingrediente
                         productoIngrediente.vendido += cantidad;
                     }
                 });
             }
         });
 
-        // Calcular consumo desde productos principales (si existen relaciones)
+        // 3. Calcular consumo desde productos principales (relaciones fijas)
         cocinaData.forEach(producto => {
             if (!producto.esIngrediente && producto.vendido > 0) {
                 const relaciones = relacionesProductos.filter(r => r.productoId === producto.id);
@@ -236,11 +241,15 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Recalcular final y disponibilidad para todos los ingredientes
+        // 4. Recalcular final y disponibilidad para todos los ingredientes
         cocinaData.forEach(producto => {
             if (producto.esIngrediente) {
+                // El final es lo que NO se vendió
                 producto.final = Math.max(0, producto.venta - producto.vendido);
-                producto.disponible = Math.max(0, producto.venta - producto.vendido);
+                producto.disponible = producto.final;
+
+                // Recalcular el producto para consistencia
+                recalcularProductoCocina(producto);
             }
         });
     }
@@ -403,18 +412,17 @@ document.addEventListener('DOMContentLoaded', function () {
         recalcularProductoCocina(producto);
         recalcularDisponibilidad();
 
-        // Determinar valor a mostrar en campo final
+        // 🚨 CORRECCIÓN: Determinar valor final RESPETANDO el estado actual
         let valorFinal = producto.final;
 
-        // 🚨 CORRECCIÓN: Auto-ajustar SOLO cuando se cumplen TODAS estas condiciones:
-        // 1. Es un ingrediente (precio = 0) Y no ha sido editado manualmente
-        // 2. O es un producto con precio PERO el usuario ha habilitado explícitamente la edición
-        // 3. El valor actual es 0
-        // 4. Hay ventas disponibles
-
-        // Solo auto-ajustar para ingredientes NO editados manualmente
+        // Solo auto-ajustar si:
+        // 1. Es ingrediente (precio = 0)
+        // 2. NO ha sido editado manualmente
+        // 3. NO hay ventas registradas (vendido === 0)
+        // 4. El final actual es 0
         if (producto.esIngrediente &&
             !producto.finalEditado &&
+            producto.vendido === 0 &&
             !editingFinalEnabled &&
             valorFinal === 0 &&
             producto.venta > 0) {
@@ -423,79 +431,74 @@ document.addEventListener('DOMContentLoaded', function () {
             recalcularProductoCocina(producto);
         }
 
-        // Para productos con precio (no ingredientes), NO auto-ajustar automáticamente
-        // Dejar que el usuario decida manualmente
-
-        // 🚨 IMPORTANTE: Si el usuario YA editó el final (finalEditado = true), 
-        // respetar SIEMPRE su valor, aunque sea 0
-        if (producto.finalEditado) {
-            // Asegurar que no sea mayor que la venta
-            if (producto.final > producto.venta) {
-                producto.final = producto.venta;
-                recalcularProductoCocina(producto);
-            }
-        }
-
-        // Verificar si tiene relaciones (se usa en otros productos)
+        // Verificar si tiene relaciones
         const esUsadoEn = relacionesProductos.filter(r => r.ingredienteId === producto.id).length > 0;
         const esPan = relacionesPanIngredientes.filter(r => r.panId === producto.id).length > 0;
         const esProductoConIngredientes = relacionesProductos.filter(r => r.productoId === producto.id).length > 0;
 
-        row.innerHTML = `
-    <td class="producto-cell">
-        <span class="product-name">${producto.nombre}</span>
-        ${producto.esIngrediente ? '<span class="badge-ingrediente">Ingrediente</span>' : ''}
-        ${esUsadoEn ? '<span class="badge-relacion" title="Usado en otros productos">✓</span>' : ''}
-        ${esPan ? '<span class="badge-pan" title="Pan con ingredientes">🍞</span>' : ''}
-        ${esProductoConIngredientes ? '<span class="badge-producto" title="Producto con ingredientes fijos">⭐</span>' : ''}
-    </td>
-    <td class="numeric-cell currency-cell">
-        <span class="price-display">$${producto.precio.toFixed(2)}</span>
-    </td>
-    <td class="numeric-cell">
-        <input type="number" 
-               min="0" 
-               value="${producto.inicio}" 
-               data-field="inicio" 
-               data-id="${producto.id}"
-               class="editable-input inicio-input"
-               placeholder="0"
-               autocomplete="off">
-    </td>
-    <td class="numeric-cell">
-        <input type="number" 
-               min="0" 
-               value="${producto.entrada}" 
-               data-field="entrada" 
-               data-id="${producto.id}"
-               class="editable-input entrada-input"
-               placeholder="0"
-               autocomplete="off">
-    </td>
-    <td class="calculated-cell venta-cell">
-        <span class="venta-display">${producto.venta}</span>
-    </td>
-    <td class="numeric-cell">
-        <input type="number" 
-               min="0" 
-               max="${producto.venta}"
-               value="${producto.final}"
-               data-field="final" 
-               data-id="${producto.id}"
-               data-venta="${producto.venta}"
-               class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
-               placeholder="0"
-               autocomplete="off"
-               ${!editingFinalEnabled ? 'disabled' : ''}>
-    </td>
-    <td class="calculated-cell vendido-cell">
-        <span class="vendido-display">${producto.vendido}</span>
-    </td>
-    <td class="currency-cell importe-cell">
-        <span class="importe-display">${producto.precio > 0 ? `$${producto.importe.toFixed(2)}` : '$0.00'}</span>
-    </td>
-`;
+        // 🚨 CORRECCIÓN: Asegurar que innerHTML tenga contenido válido
+        const badges = [];
+        if (producto.esIngrediente) badges.push('<span class="badge-ingrediente">Ingrediente</span>');
+        if (esUsadoEn) badges.push('<span class="badge-relacion" title="Usado en otros productos">✓</span>');
+        if (esPan) badges.push('<span class="badge-pan" title="Pan con ingredientes">🍞</span>');
+        if (esProductoConIngredientes) badges.push('<span class="badge-producto" title="Producto con ingredientes fijos">⭐</span>');
 
+        row.innerHTML = `
+        <td class="producto-cell">
+            <span class="product-name">${producto.nombre}</span>
+            ${badges.join('')}
+        </td>
+        <td class="numeric-cell currency-cell">
+            <span class="price-display">$${producto.precio.toFixed(2)}</span>
+        </td>
+        <td class="numeric-cell">
+            <input type="number" 
+                   min="0" 
+                   value="${producto.inicio}" 
+                   data-field="inicio" 
+                   data-id="${producto.id}"
+                   class="editable-input inicio-input"
+                   placeholder="0"
+                   autocomplete="off"
+                   style="padding: 6px 0;">
+        </td>
+        <td class="numeric-cell">
+            <input type="number" 
+                   min="0" 
+                   value="${producto.entrada}" 
+                   data-field="entrada" 
+                   data-id="${producto.id}"
+                   class="editable-input entrada-input"
+                   placeholder="0"
+                   autocomplete="off"
+                   style="padding: 6px 0;">
+        </td>
+        <td class="calculated-cell venta-cell">
+            <span class="venta-display">${producto.venta}</span>
+        </td>
+        <td class="numeric-cell">
+            <input type="number" 
+                   min="0" 
+                   max="${producto.venta}"
+                   value="${valorFinal}"
+                   data-field="final" 
+                   data-id="${producto.id}"
+                   data-venta="${producto.venta}"
+                   class="editable-input final-input ${editingFinalEnabled ? 'editing-enabled' : ''}"
+                   placeholder="0"
+                   autocomplete="off"
+                   ${!editingFinalEnabled ? 'disabled' : ''}
+                   style="padding: 6px 0;">
+        </td>
+        <td class="calculated-cell vendido-cell">
+            <span class="vendido-display">${producto.vendido}</span>
+        </td>
+        <td class="currency-cell importe-cell">
+            <span class="importe-display">${producto.precio > 0 ? `$${producto.importe.toFixed(2)}` : '$0.00'}</span>
+        </td>
+    `;
+
+        // Asegurar que agregarEventListenersFila recibe elementos válidos
         agregarEventListenersFila(row, producto);
         return row;
     }
@@ -659,21 +662,21 @@ document.addEventListener('DOMContentLoaded', function () {
             // 🚨 CRÍTICO: Solo ajustar el final automáticamente si:
             // 1. NO ha sido editado por el usuario
             // 2. El usuario NO lo dejó en 0 intencionalmente
-            if (!producto.finalEditado) {
-                console.log()
-                // Si el final era 0 y ahora hay ventas, ajustarlo
+            // 3. El vendido actual es 0 (no hay ventas registradas)
+            if (!producto.finalEditado && producto.vendido === 0) {
+                // Solo ajustar si no hay ventas registradas
                 if (producto.final === 0 && producto.venta > 0) {
                     producto.final = producto.venta;
                 }
             } else {
-                // Si ya fue editado, asegurar que no sea mayor que la venta
+                // Si ya fue editado o tiene ventas, asegurar que no sea mayor que la venta
                 if (producto.final > producto.venta) {
                     producto.final = producto.venta;
                 }
             }
         }
 
-        // Calcular vendido e importe
+        // Calcular vendido e importe (SIEMPRE basado en venta y final actual)
         producto.vendido = Math.max(0, producto.venta - producto.final);
         producto.importe = producto.precio > 0 ? producto.vendido * producto.precio : 0;
 
@@ -732,9 +735,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 producto.ultimaActualizacion = obtenerHoraActual();
 
                 // 🚨 CRÍTICO: Si se está editando el campo "final", marcar como editado
-                // y NO cambiar este estado nunca más
-                if (field === 'final') {
-                    producto.finalEditado = true; // ← Asegurar que se marque como editado
+                // PERO solo si el usuario está editando manualmente desde la tabla
+                if (field === 'final' && document.activeElement === input) {
+                    producto.finalEditado = true;
                 }
 
                 // Recalcular primero
@@ -765,8 +768,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             const diferencia = consumoNuevo - consumoAnterior;
 
                             ingrediente.vendido += diferencia;
-                            // Marcar como editado también si el ingrediente fue afectado
-                            ingrediente.finalEditado = true;
+                            // 🚨 IMPORTANTE: NO marcar como editado si fue por relación
+                            // ingrediente.finalEditado = true; // ← ELIMINAR ESTA LÍNEA
+
                             // Recalcular el ingrediente
                             recalcularProductoCocina(ingrediente);
                         }
@@ -799,7 +803,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function recalcularConsumosPorRelaciones() {
-        // 1. Calcular consumo total desde AGREGOS
+        // 1. Reconstruir desde agregos primero
+        reconstruirConsumosDesdeAgregos();
         const consumoDesdeAgregos = {};
         agregos.forEach(agrego => {
             if (agrego.ingredientes && agrego.ingredientes.length > 0) {
@@ -2076,6 +2081,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // Agregar a la lista de agregos
             agregos.push(nuevoAgrego);
 
+            // 🚨 IMPORTANTE: Reconstruir todos los consumos
+            reconstruirConsumosDesdeAgregos();
+
             // Guardar y actualizar
             recalcularDisponibilidad();
             guardarDatosCocina();
@@ -2891,46 +2899,42 @@ document.addEventListener('DOMContentLoaded', function () {
             function () {
                 const agregoIndex = agregos.findIndex(a => a.id === agregoId);
                 if (agregoIndex !== -1) {
-                    const agrego = agregos[agregoIndex];
+                    try {
+                        // 1. Mostrar indicador de carga
+                        mostrarCargandoCocina();
 
-                    // Restaurar ingredientes consumidos
-                    if (agrego.ingredientes && agrego.ingredientes.length > 0) {
-                        agrego.ingredientes.forEach(ingrediente => {
-                            const producto = cocinaData.find(p => p.id === ingrediente.id);
-                            if (producto && producto.esIngrediente) {
-                                // Obtener la cantidad correcta a restar
-                                let cantidadARestar = 0;
+                        // 2. Eliminar el agrego de la lista
+                        const agregoEliminado = agregos[agregoIndex];
+                        agregos.splice(agregoIndex, 1);
 
-                                if (ingrediente.cantidadTotal !== undefined) {
-                                    cantidadARestar = ingrediente.cantidadTotal;
-                                } else if (ingrediente.cantidad !== undefined) {
-                                    cantidadARestar = ingrediente.cantidad;
-                                } else if (ingrediente.cantidadPorProducto !== undefined && agrego.cantidad !== undefined) {
-                                    cantidadARestar = ingrediente.cantidadPorProducto * agrego.cantidad;
-                                } else {
-                                    cantidadARestar = agrego.cantidad || 1;
-                                }
+                        // 3. Reconstruir TODOS los consumos desde CERO
+                        reconstruirConsumosDesdeAgregos();
 
-                                // Restar la cantidad
-                                producto.vendido = Math.max(0, producto.vendido - cantidadARestar);
+                        // 4. Recalcular disponibilidad
+                        recalcularDisponibilidad();
 
-                                // IMPORTANTE: Recalcular el producto completo
-                                recalcularProductoCocina(producto);
-                            }
-                        });
+                        // 5. Guardar cambios
+                        guardarDatosCocina();
+
+                        // 6. Actualizar la interfaz COMPLETAMENTE
+                        setTimeout(() => {
+                            actualizarResumenCocina();
+                            actualizarListaAgregos();
+                            actualizarTablaCocina();
+                            ocultarCargandoCocina();
+
+                            showNotification(
+                                `"${agregoEliminado.nombre}" eliminado correctamente. ` +
+                                `Se restablecieron los ingredientes consumidos.`,
+                                'success'
+                            );
+                        }, 100); // Pequeño delay para asegurar renderizado
+
+                    } catch (error) {
+                        console.error('Error eliminando agrego:', error);
+                        showNotification('Error al eliminar el registro', 'error');
+                        ocultarCargandoCocina();
                     }
-
-                    agregos.splice(agregoIndex, 1);
-
-                    // Recalcular disponibilidad y guardar
-                    recalcularDisponibilidad();
-                    recalcularConsumosPorRelaciones(); // Añadir esta línea
-                    guardarDatosCocina();
-                    actualizarResumenCocina();
-                    actualizarListaAgregos();
-                    actualizarTablaCocina();
-
-                    showNotification('Registro eliminado correctamente', 'success');
                 }
             }
         );

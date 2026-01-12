@@ -5,83 +5,83 @@ class HistorialIPV {
         this.KEY_HISTORIAL = 'ipb_historial_reportes';
         this.reportes = this.cargarHistorial();
         this.reporteSeleccionado = null;
-        
+
         this.init();
     }
-    
+
     init() {
         this.cargarAniosFiltro();
         this.bindEvents();
         this.mostrarListaReportes();
     }
-    
+
     cargarHistorial() {
         const historial = localStorage.getItem(this.KEY_HISTORIAL);
         return historial ? JSON.parse(historial) : [];
     }
-    
+
     guardarHistorial() {
         localStorage.setItem(this.KEY_HISTORIAL, JSON.stringify(this.reportes));
     }
-    
-async guardarReporteActual(titulo = null) {
-    try {
-        const datos = await this.recopilarDatosActuales();
-        
-        // ========== VALIDAR SI ES DUPLICADO ==========
-        if (window.validateDuplicateReport) {
-            const esDuplicado = !window.validateDuplicateReport(datos);
-            
-            if (esDuplicado) {
-                // Mostrar confirmación para sobrescribir
-                const confirmar = await this.mostrarConfirmacionDuplicado(titulo);
-                if (!confirmar) {
-                    showNotification('❌ Reporte no guardado (duplicado)', 'warning');
-                    return null;
+
+    async guardarReporteActual(titulo = null) {
+        try {
+            const datos = await this.recopilarDatosActuales();
+
+            // ========== VALIDAR SI ES DUPLICADO ==========
+            if (window.validateDuplicateReport) {
+                const esDuplicado = !window.validateDuplicateReport(datos);
+
+                if (esDuplicado) {
+                    // Mostrar confirmación para sobrescribir
+                    const confirmar = await this.mostrarConfirmacionDuplicado(titulo);
+                    if (!confirmar) {
+                        showNotification('❌ Reporte no guardado (duplicado)', 'warning');
+                        return null;
+                    }
                 }
             }
-        }
-        // ============================================
-        
-        const reporte = {
-            id: Date.now(),
-            fecha: new Date().toISOString().split('T')[0],
-            hora: new Date().toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: true
-            }),
-            titulo: titulo || `Reporte IPV - ${new Date().toLocaleDateString('es-ES')}`,
-            datos: datos,
-            timestamp: Date.now()
-        };
-        
-        this.reportes.unshift(reporte);
-        
-        if (this.reportes.length > 100) {
-            this.reportes = this.reportes.slice(0, 100);
-        }
-        
-        this.guardarHistorial();
-        this.mostrarListaReportes();
-        this.cargarAniosFiltro();
-        
-        this.seleccionarReporte(reporte.id);
-        
-        showNotification('✅ Reporte guardado en el historial', 'success');
-        return reporte;
-        
-    } catch (error) {
-        console.error('Error guardando reporte:', error);
-        showNotification('❌ Error al guardar el reporte: ' + error.message, 'error');
-        return null;
-    }
-}
+            // ============================================
 
-// Agregar esta función después de guardarReporteActual
-mostrarConfirmacionDuplicado(titulo) {
-    return new Promise((resolve) => {
-        const modalHtml = `
+            const reporte = {
+                id: Date.now(),
+                fecha: new Date().toISOString().split('T')[0],
+                hora: new Date().toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                }),
+                titulo: titulo || `Reporte IPV - ${new Date().toLocaleDateString('es-ES')}`,
+                datos: datos,
+                timestamp: Date.now()
+            };
+
+            this.reportes.unshift(reporte);
+
+            if (this.reportes.length > 100) {
+                this.reportes = this.reportes.slice(0, 100);
+            }
+
+            this.guardarHistorial();
+            this.mostrarListaReportes();
+            this.cargarAniosFiltro();
+
+            this.seleccionarReporte(reporte.id);
+
+            showNotification('✅ Reporte guardado en el historial', 'success');
+            return reporte;
+
+        } catch (error) {
+            console.error('Error guardando reporte:', error);
+            showNotification('❌ Error al guardar el reporte: ' + error.message, 'error');
+            return null;
+        }
+    }
+
+    // Agregar esta función después de guardarReporteActual
+    mostrarConfirmacionDuplicado(titulo) {
+        return new Promise((resolve) => {
+            const modalHtml = `
             <div class="modal active">
                 <div class="modal-overlay"></div>
                 <div class="modal-content" style="max-width: 500px;">
@@ -103,33 +103,33 @@ mostrarConfirmacionDuplicado(titulo) {
                 </div>
             </div>
         `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        const modal = document.querySelector('.modal:last-child');
-        
-        modal.querySelector('.modal-close').addEventListener('click', () => {
-            modal.remove();
-            resolve(false);
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            const modal = document.querySelector('.modal:last-child');
+
+            modal.querySelector('.modal-close').addEventListener('click', () => {
+                modal.remove();
+                resolve(false);
+            });
+
+            modal.querySelector('#cancelar-duplicado').addEventListener('click', () => {
+                modal.remove();
+                resolve(false);
+            });
+
+            modal.querySelector('.modal-overlay').addEventListener('click', () => {
+                modal.remove();
+                resolve(false);
+            });
+
+            modal.querySelector('#confirmar-duplicado').addEventListener('click', () => {
+                modal.remove();
+                resolve(true);
+            });
         });
-        
-        modal.querySelector('#cancelar-duplicado').addEventListener('click', () => {
-            modal.remove();
-            resolve(false);
-        });
-        
-        modal.querySelector('.modal-overlay').addEventListener('click', () => {
-            modal.remove();
-            resolve(false);
-        });
-        
-        modal.querySelector('#confirmar-duplicado').addEventListener('click', () => {
-            modal.remove();
-            resolve(true);
-        });
-    });
-}
-    
+    }
+
     async recopilarDatosActuales() {
         const storage = window.StorageManager || {
             getProducts: () => JSON.parse(localStorage.getItem('ipb_products') || '[]'),
@@ -140,7 +140,7 @@ mostrarConfirmacionDuplicado(titulo) {
             getExtraccionesData: () => JSON.parse(localStorage.getItem('ipb_extracciones') || '[]'),
             getTransferenciasData: () => JSON.parse(localStorage.getItem('ipb_transferencias_data') || '[]')
         };
-        
+
         const productosBaseSalon = storage.getProducts();
         const salonData = storage.getSalonData();
         const productosSalon = productosBaseSalon.map(productoBase => {
@@ -155,7 +155,7 @@ mostrarConfirmacionDuplicado(titulo) {
                 importe: (datosDia.importe || 0)
             };
         });
-        
+
         const productosBaseCocina = storage.getCocinaProducts();
         const cocinaData = storage.getCocinaData();
         const productosCocina = productosBaseCocina.map(productoBase => {
@@ -170,30 +170,30 @@ mostrarConfirmacionDuplicado(titulo) {
                 importe: (datosDia.importe || 0)
             };
         });
-        
+
         const agregos = JSON.parse(localStorage.getItem('cocina_agregos') || '[]');
         const consumoData = storage.getConsumoData();
         const extraccionesData = storage.getExtraccionesData();
         const transferenciasData = storage.getTransferenciasData();
         const efectivoData = JSON.parse(localStorage.getItem('ipb_efectivo_data') || '[]');
         const billetesData = JSON.parse(localStorage.getItem('ipb_billetes_registros') || '[]');
-        
+
         const ventasSalon = productosSalon.reduce((sum, p) => sum + (p.importe || 0), 0);
         const ventasCocinaProductos = productosCocina.reduce((sum, p) => sum + (p.importe || 0), 0);
         const agregosTotal = agregos.reduce((sum, a) => sum + (a.montoTotal || a.monto || 0), 0);
         const ventasCocina = ventasCocinaProductos + agregosTotal;
         const ventasTotales = ventasSalon + ventasCocina;
-        
+
         const consumoTotal = consumoData.reduce((sum, c) => sum + (c.monto || 0), 0);
         const extraccionesTotal = extraccionesData.reduce((sum, e) => sum + (e.monto || 0), 0);
         const transferenciasTotal = transferenciasData.reduce((sum, t) => sum + (t.monto || 0), 0);
         const efectivoTotal = efectivoData.reduce((sum, e) => sum + (e.monto || 0), 0);
         const dineroReal = consumoTotal + extraccionesTotal + transferenciasTotal + efectivoTotal;
-        
+
         const diferencia = dineroReal - ventasTotales;
         const dineroAPorcentuar = ventasTotales - consumoTotal;
         const porciento = Math.floor(dineroAPorcentuar / 10000) * 100;
-        
+
         return {
             productos: {
                 salon: productosSalon,
@@ -225,24 +225,24 @@ mostrarConfirmacionDuplicado(titulo) {
             }
         };
     }
-    
+
     cargarAniosFiltro() {
         const selectAnio = document.getElementById('filtro-ano');
         if (!selectAnio) return;
-        
+
         selectAnio.innerHTML = '<option value="">Todos los años</option>';
-        
+
         const anios = new Set();
         this.reportes.forEach(reporte => {
             const fecha = new Date(reporte.timestamp);
             anios.add(fecha.getFullYear().toString());
         });
-        
+
         const anioActual = new Date().getFullYear();
         for (let i = anioActual - 2; i <= anioActual + 1; i++) {
             anios.add(i.toString());
         }
-        
+
         Array.from(anios)
             .sort((a, b) => b - a)
             .forEach(anio => {
@@ -252,14 +252,14 @@ mostrarConfirmacionDuplicado(titulo) {
                 selectAnio.appendChild(option);
             });
     }
-    
+
     bindEvents() {
-       
+
         // Botón limpiar filtros
         document.getElementById('btn-limpiar-filtros')?.addEventListener('click', () => {
             this.limpiarFiltros();
         });
-        
+
         // Filtros
         const filtroIds = ['filtro-fecha', 'filtro-mes', 'filtro-ano', 'filtro-busqueda'];
         filtroIds.forEach(id => {
@@ -267,11 +267,11 @@ mostrarConfirmacionDuplicado(titulo) {
                 this.aplicarFiltros();
             });
         });
-        
+
         document.getElementById('filtro-busqueda')?.addEventListener('input', () => {
             this.aplicarFiltros();
         });
-        
+
         // Delegación de eventos
         document.addEventListener('click', (e) => {
             if (e.target.closest('.btn-deseleccionar')) {
@@ -290,10 +290,10 @@ mostrarConfirmacionDuplicado(titulo) {
             }
         });
     }
-    
+
     promptGuardarReporte() {
         const tituloPredeterminado = `Reporte IPV - ${new Date().toLocaleDateString('es-ES')}`;
-        
+
         const modalHtml = `
             <div class="modal active modal-historial" id="modal-guardar-reporte">
                 <div class="modal-overlay"></div>
@@ -326,16 +326,16 @@ mostrarConfirmacionDuplicado(titulo) {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
+
         const modal = document.getElementById('modal-guardar-reporte');
         const tituloInput = modal.querySelector('#reporte-titulo');
-        
+
         modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
         modal.querySelector('#cancelar-guardar').addEventListener('click', () => modal.remove());
         modal.querySelector('.modal-overlay').addEventListener('click', () => modal.remove());
-        
+
         modal.querySelector('#confirmar-guardar').addEventListener('click', async () => {
             const titulo = tituloInput.value.trim() || tituloPredeterminado;
             const reporte = await this.guardarReporteActual(titulo);
@@ -343,35 +343,35 @@ mostrarConfirmacionDuplicado(titulo) {
                 modal.remove();
             }
         });
-        
+
         tituloInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 modal.querySelector('#confirmar-guardar').click();
             }
         });
     }
-    
+
     mostrarListaReportes(filtrados = null) {
         const lista = document.getElementById('historial-list');
         const totalElement = document.getElementById('total-reportes');
         const emptyState = document.getElementById('historial-empty-state');
         const listWrapper = document.querySelector('.historial-list-wrapper');
-        
+
         if (!lista) return;
-        
+
         const reportesAMostrar = filtrados || this.reportes;
         totalElement.textContent = reportesAMostrar.length;
-        
+
         if (reportesAMostrar.length === 0) {
             emptyState.style.display = 'block';
             listWrapper.style.display = 'none';
             lista.innerHTML = '';
             return;
         }
-        
+
         emptyState.style.display = 'none';
         listWrapper.style.display = 'block';
-        
+
         lista.innerHTML = reportesAMostrar.map(reporte => {
             const fecha = new Date(reporte.timestamp);
             const fechaFormateada = fecha.toLocaleDateString('es-ES', {
@@ -380,9 +380,9 @@ mostrarConfirmacionDuplicado(titulo) {
                 month: 'short',
                 day: 'numeric'
             });
-            
+
             const seleccionado = this.reporteSeleccionado?.id === reporte.id ? 'seleccionado' : '';
-            
+
             return `
                 <div class="reporte-card ${seleccionado}" data-id="${reporte.id}">
                     ${seleccionado ? '<button class="btn-deseleccionar" title="Deseleccionar">×</button>' : ''}
@@ -436,36 +436,36 @@ mostrarConfirmacionDuplicado(titulo) {
             `;
         }).join('');
     }
-    
+
     seleccionarReporte(id) {
         if (this.reporteSeleccionado?.id === id) {
             this.deseleccionarReporte();
             return;
         }
-        
+
         this.reporteSeleccionado = this.reportes.find(r => r.id === id);
         this.mostrarListaReportes();
         this.mostrarDetalleReporte();
     }
-    
+
     deseleccionarReporte() {
         this.reporteSeleccionado = null;
         this.mostrarListaReportes();
         this.ocultarDetalleReporte();
     }
-    
+
     mostrarDetalleReporte() {
         const detalleContainer = document.getElementById('detalle-container');
         const detalleContent = document.getElementById('detalle-content');
-        
+
         if (!this.reporteSeleccionado) {
             this.ocultarDetalleReporte();
             return;
         }
-        
+
         const reporte = this.reporteSeleccionado;
         const fecha = new Date(reporte.timestamp);
-        
+
         detalleContent.innerHTML = `
             <div class="detalle-card">
                 <h4><i class="fas fa-info-circle"></i> Información General</h4>
@@ -477,11 +477,11 @@ mostrarConfirmacionDuplicado(titulo) {
                     <div class="detalle-info-item">
                         <span class="detalle-info-label">Fecha:</span>
                         <span class="detalle-info-valor">${fecha.toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}</span>
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })}</span>
                     </div>
                     <div class="detalle-info-item">
                         <span class="detalle-info-label">Hora:</span>
@@ -555,33 +555,33 @@ mostrarConfirmacionDuplicado(titulo) {
                 </button>
             </div>
         `;
-        
+
         detalleContainer.style.display = 'block';
         detalleContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    
+
     ocultarDetalleReporte() {
         const detalleContainer = document.getElementById('detalle-container');
         if (detalleContainer) {
             detalleContainer.style.display = 'none';
         }
     }
-    
+
     aplicarFiltros() {
         const filtroFecha = document.getElementById('filtro-fecha')?.value || '';
         const filtroMes = document.getElementById('filtro-mes')?.value || '';
         const filtroAno = document.getElementById('filtro-ano')?.value || '';
         const filtroBusqueda = document.getElementById('filtro-busqueda')?.value.toLowerCase() || '';
-        
+
         let reportesFiltrados = this.reportes;
-        
+
         if (filtroFecha) {
             reportesFiltrados = reportesFiltrados.filter(reporte => {
                 const reporteFecha = new Date(reporte.timestamp).toISOString().split('T')[0];
                 return reporteFecha === filtroFecha;
             });
         }
-        
+
         if (filtroMes) {
             reportesFiltrados = reportesFiltrados.filter(reporte => {
                 const fecha = new Date(reporte.timestamp);
@@ -589,14 +589,14 @@ mostrarConfirmacionDuplicado(titulo) {
                 return mesReporte === filtroMes;
             });
         }
-        
+
         if (filtroAno) {
             reportesFiltrados = reportesFiltrados.filter(reporte => {
                 const fecha = new Date(reporte.timestamp);
                 return fecha.getFullYear().toString() === filtroAno;
             });
         }
-        
+
         if (filtroBusqueda) {
             reportesFiltrados = reportesFiltrados.filter(reporte => {
                 return (
@@ -607,14 +607,14 @@ mostrarConfirmacionDuplicado(titulo) {
                 );
             });
         }
-        
+
         if (this.reporteSeleccionado && !reportesFiltrados.find(r => r.id === this.reporteSeleccionado.id)) {
             this.deseleccionarReporte();
         }
-        
+
         this.mostrarListaReportes(reportesFiltrados);
     }
-    
+
     limpiarFiltros() {
         document.getElementById('filtro-fecha').value = '';
         document.getElementById('filtro-mes').value = '';
@@ -622,99 +622,99 @@ mostrarConfirmacionDuplicado(titulo) {
         document.getElementById('filtro-busqueda').value = '';
         this.mostrarListaReportes();
     }
-    
-exportarReporte() {
-    if (!this.reporteSeleccionado) {
-        showNotification('Selecciona un reporte primero', 'warning');
-        return;
-    }
-    
-    // Siempre cargar el generador de PDF dinámicamente
-    this.cargarPDFGenerator().then(() => {
-        if (typeof window.showHistorialPDFOptionsModal === 'function') {
-            window.showHistorialPDFOptionsModal();
-        } else {
-            // Si aún no está disponible, intentar un enfoque alternativo
-            console.error('Función showHistorialPDFOptionsModal no disponible');
-            this.generarPDFDirecto();
-        }
-    }).catch(error => {
-        console.error('Error cargando generador de PDF:', error);
-        showNotification('❌ Error al cargar el generador de PDF', 'error');
-    });
-}
 
-// Método alternativo para generar PDF directamente
-generarPDFDirecto() {
-    if (!this.reporteSeleccionado) return;
-    
-    const reporte = this.reporteSeleccionado;
-    showNotification(`Generando PDF para: ${reporte.titulo}`, 'info');
-    
-    // Aquí puedes implementar la generación directa de PDF
-    // o redirigir a una función alternativa
-    console.log('Generando PDF directo para reporte:', reporte.id);
-}
-
-// Modificar cargarPDFGenerator para ser más robusto
-cargarPDFGenerator() {
-    return new Promise((resolve, reject) => {
-        // Verificar si ya está cargado
-        if (typeof window.showHistorialPDFOptionsModal === 'function') {
-            console.log('Generador de PDF ya cargado');
-            resolve();
+    exportarReporte() {
+        if (!this.reporteSeleccionado) {
+            showNotification('Selecciona un reporte primero', 'warning');
             return;
         }
-        
-        // Verificar si el script ya está en el DOM
-        const existingScript = document.querySelector('script[src*="generar-pdf-historial.js"]');
-        if (existingScript) {
-            // Si el script ya existe pero la función no está disponible,
-            // intentar inicializarlo manualmente
-            console.log('Script ya cargado, esperando inicialización...');
-            setTimeout(() => {
-                if (typeof window.showHistorialPDFOptionsModal === 'function') {
-                    resolve();
-                } else {
-                    reject(new Error('Función no disponible después de cargar script'));
-                }
-            }, 1000);
-            return;
-        }
-        
-        // Crear y cargar script
-        const script = document.createElement('script');
-        script.src = 'js/generar-pdf-historial.js';
-        
-        script.onload = () => {
-            console.log('Generador de PDF para historial cargado exitosamente');
-            // Dar tiempo a que se inicialice
-            setTimeout(() => {
-                if (typeof window.showHistorialPDFOptionsModal === 'function') {
-                    resolve();
-                } else {
-                    reject(new Error('Función no disponible después de cargar'));
-                }
-            }, 500);
-        };
-        
-        script.onerror = (error) => {
+
+        // Siempre cargar el generador de PDF dinámicamente
+        this.cargarPDFGenerator().then(() => {
+            if (typeof window.showHistorialPDFOptionsModal === 'function') {
+                window.showHistorialPDFOptionsModal();
+            } else {
+                // Si aún no está disponible, intentar un enfoque alternativo
+                console.error('Función showHistorialPDFOptionsModal no disponible');
+                this.generarPDFDirecto();
+            }
+        }).catch(error => {
             console.error('Error cargando generador de PDF:', error);
-            reject(new Error('Error cargando script'));
-        };
-        
-        document.head.appendChild(script);
-    });
-}
-    
+            showNotification('❌ Error al cargar el generador de PDF', 'error');
+        });
+    }
+
+    // Método alternativo para generar PDF directamente
+    generarPDFDirecto() {
+        if (!this.reporteSeleccionado) return;
+
+        const reporte = this.reporteSeleccionado;
+        showNotification(`Generando PDF para: ${reporte.titulo}`, 'info');
+
+        // Aquí puedes implementar la generación directa de PDF
+        // o redirigir a una función alternativa
+        console.log('Generando PDF directo para reporte:', reporte.id);
+    }
+
+    // Modificar cargarPDFGenerator para ser más robusto
+    cargarPDFGenerator() {
+        return new Promise((resolve, reject) => {
+            // Verificar si ya está cargado
+            if (typeof window.showHistorialPDFOptionsModal === 'function') {
+                console.log('Generador de PDF ya cargado');
+                resolve();
+                return;
+            }
+
+            // Verificar si el script ya está en el DOM
+            const existingScript = document.querySelector('script[src*="generar-pdf-historial.js"]');
+            if (existingScript) {
+                // Si el script ya existe pero la función no está disponible,
+                // intentar inicializarlo manualmente
+                console.log('Script ya cargado, esperando inicialización...');
+                setTimeout(() => {
+                    if (typeof window.showHistorialPDFOptionsModal === 'function') {
+                        resolve();
+                    } else {
+                        reject(new Error('Función no disponible después de cargar script'));
+                    }
+                }, 1000);
+                return;
+            }
+
+            // Crear y cargar script
+            const script = document.createElement('script');
+            script.src = 'js/generar-pdf-historial.js';
+
+            script.onload = () => {
+                console.log('Generador de PDF para historial cargado exitosamente');
+                // Dar tiempo a que se inicialice
+                setTimeout(() => {
+                    if (typeof window.showHistorialPDFOptionsModal === 'function') {
+                        resolve();
+                    } else {
+                        reject(new Error('Función no disponible después de cargar'));
+                    }
+                }, 500);
+            };
+
+            script.onerror = (error) => {
+                console.error('Error cargando generador de PDF:', error);
+                reject(new Error('Error cargando script'));
+            };
+
+            document.head.appendChild(script);
+        });
+    }
+
     eliminarReporte() {
         if (!this.reporteSeleccionado) {
             showNotification('Selecciona un reporte primero', 'warning');
             return;
         }
-        
+
         const titulo = this.reporteSeleccionado.titulo;
-        
+
         window.showConfirmationModal(
             'Eliminar Reporte',
             `¿Estás seguro de eliminar el reporte "${titulo}"?<br><br>
@@ -737,7 +737,7 @@ cargarPDFGenerator() {
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
     const historialSection = document.getElementById('historial-section');
-    
+
     if (historialSection) {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
@@ -752,17 +752,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
-        
+
         observer.observe(historialSection, { attributes: true });
-        
+
         if (historialSection.classList.contains('active')) {
             window.historialIPV = new HistorialIPV();
         }
     }
-    
+
     // Función auxiliar para notificaciones
     if (typeof window.showNotification !== 'function') {
-        window.showNotification = function(message, type = 'info') {
+        window.showNotification = function (message, type = 'info') {
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.style.cssText = `
@@ -780,23 +780,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 align-items: center;
                 gap: 10px;
             `;
-            
-            const icon = type === 'success' ? 'fa-check-circle' : 
-                         type === 'error' ? 'fa-exclamation-circle' : 
-                         type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-            
+
+            const icon = type === 'success' ? 'fa-check-circle' :
+                type === 'error' ? 'fa-exclamation-circle' :
+                    type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+
             notification.innerHTML = `
                 <i class="fas ${icon}"></i>
                 <span>${message}</span>
             `;
-            
+
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.style.animation = 'slideOut 0.3s ease';
                 setTimeout(() => notification.remove(), 300);
             }, 3000);
-            
+
             if (!document.querySelector('#notification-styles')) {
                 const style = document.createElement('style');
                 style.id = 'notification-styles';
@@ -814,7 +814,57 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
+
+    // Inicializar si ya estamos en la sección de Historial
+    const historialSeccion = document.getElementById('historial-section');
+    if (historialSeccion && historialSeccion.classList.contains('active')) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    if (historialSection.classList.contains('active')) {
+                        if (!window.historialIPV) {
+                            window.historialIPV = new HistorialIPV();
+                        } else {
+                            window.historialIPV.mostrarListaReportes();
+                        }
+                    }
+                }
+            });
+        });
+
+        observer.observe(historialSection, { attributes: true });
+
+        if (historialSection.classList.contains('active')) {
+            window.historialIPV = new HistorialIPV();
+        }
+    }
+
+    // Inicializar cuando se haga clic en el enlace del sidebar
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest('a[data-section="historial"]');
+        if (link) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        if (historialSection.classList.contains('active')) {
+                            if (!window.historialIPV) {
+                                window.historialIPV = new HistorialIPV();
+                            } else {
+                                window.historialIPV.mostrarListaReportes();
+                            }
+                        }
+                    }
+                });
+            });
+
+            observer.observe(historialSection, { attributes: true });
+
+            if (historialSection.classList.contains('active')) {
+                window.historialIPV = new HistorialIPV();
+            }
+        }
+    });
 });
 
 
-window.HistorialIPV = HistorialIPV;
+window.historialIPV = new HistorialIPV();
